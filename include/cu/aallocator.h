@@ -1,7 +1,4 @@
 #pragma once
-#include "mode.h"
-#include "ttype.h"
-
 /*
 TODO: We should log and do bounds checking for our regular mallocs as well
  */

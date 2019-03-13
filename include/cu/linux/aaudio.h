@@ -1,8 +1,6 @@
 #pragma once
 
-#include "mode.h"
 #include "alsa/asoundlib.h"
-#include "ttype.h"
 
 /*
   NOTE: We will only support signed 16 for now

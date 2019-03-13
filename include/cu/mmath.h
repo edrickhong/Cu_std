@@ -11,8 +11,6 @@
 //maybe this will change in time (https://gist.github.com/rygorous/32bc3ea8301dba09358fd2c64e02d774)
 
 #include "math.h"//we can replace this too I guess
-#include "mode.h"
-#include "ttype.h"
 #include "iintrin.h"
 
 

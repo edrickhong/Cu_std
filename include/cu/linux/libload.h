@@ -1,8 +1,5 @@
 #pragma once
 
-#include "mode.h"
-#include "ttype.h"
-
 #include "dlfcn.h"//for dlopen close
 
 

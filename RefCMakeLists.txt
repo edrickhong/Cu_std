@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
-project(copper)
+project(cu_std)
+
+option(IS_INDEPENDENT "" ON)
+
+if(IS_INDEPENDENT)
+
+message(STATUS "CU_STD STAND ALONE")
+
+set(CU_STD_DIR "${CMAKE_SOURCE_DIR}/")
 
 option(BUILD_STEP "" ON)
 option(DEBUG "" ON)
-
-#sets internal libs paths and flags
-include(${CMAKE_BINARY_DIR}/../cmake/cu.cmake)
-
-
 
 #kept because we change these often (Linux compiler flags)
 if(UNIX)
@@ -22,102 +25,37 @@ endif()
   
 endif(UNIX)
 
+
   set(CMAKE_CXX_FLAGS ${FLAGS})
 
  #Output Directory Variables
-   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
-   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
-   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
+   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
 
- #Include Directories
-  include_directories(
-  "${CMAKE_BINARY_DIR}/../src/cu_std/cu"
-  "${CMAKE_BINARY_DIR}/../src/cu_std/amd64"
-  "${CMAKE_BINARY_DIR}/../include"
-  "${CMAKE_BINARY_DIR}/../include/generated"
-  "${CMAKE_BINARY_DIR}/../src/engine"
-  ${PLATFORM_INCLUDES}
-  "${CMAKE_BINARY_DIR}/../src/game"
-  )
+else()
 
-#source files. all unity builds
-file(GLOB IMPORTER src/importer/main.cpp)
-file(GLOB GLSLPARSER src/glslparser/main.cpp)
-file(GLOB CPARSER src/cparser/main.cpp)
-file(GLOB ENGINE src/engine/main.cpp)
-file(GLOB ASSETPACKER src/assetpacker/main.cpp)
-file(GLOB GAME src/game/game.cpp)
-file(GLOB CU_STD src/cu_std/cu/gui_bin.cpp src/cu_std/cu/main.cpp)
-file(GLOB FILEARRAY src/filearray/main.cpp)
-file(GLOB FBMP src/fbmpgenerator/main.cpp)
-
-GenAndInstallAdditionalDep()
-
-add_custom_target(CJOBS ALL  echo EXECUTING BUILD STEP
-
-)
-
-
-if(BUILD_STEP)
-
-#SHADER COMPILING
-CompileAllShaders(CJOBS)
-CompileShaderCase(CJOBS USE_SKEL model.vert model_skel.vert)
-CompileShaderCase(CJOBS USE_TEXTURE m_gui.frag m_gui_tex.frag)
+message(STATUS "CU_STD DEPENDENT")
 
 endif()
 
 
 
+#sets internal libs paths and flags
+include(${CU_STD_DIR}/cmake/cu.cmake)
+GenerateWaylandExtensionFiles()
+
+ #Include Directories
+  include_directories(
+  "${CU_STD_DIR}/include"
+  "${CU_STD_DIR}/include/cu"
+  "${CU_STD_DIR}/include/cu/amd64/"
+  ${MODE_INCLUDE}
+  ${PLATFORM_INCLUDES}
+  )
+
+#source files. all unity builds
+file(GLOB CU_STD ${CU_STD_DIR}/src/cu_std/cu/gui_bin.cpp ${CU_STD_DIR}/src/cu_std/cu/main.cpp)
 
 add_library(cu_std STATIC ${CU_STD})
-
-if(UNIX)
-target_compile_options(cu_std BEFORE PRIVATE -fPIC)
-endif(UNIX)
-
-add_executable(assetpacker ${ASSETPACKER})
-add_executable(cparser ${CPARSER})
-add_executable(importer ${IMPORTER})
-add_executable(glslparser ${GLSLPARSER})
-add_executable(filearray ${FILEARRAY})
-add_executable(fbmp ${FBMP})
-
-#we shouldn't have to link platform libs (the only thing we shoud have to link to is libdl)
-target_link_libraries(assetpacker cu_std ${PLATFORM_LIBS})
-target_link_libraries(cparser cu_std ${PLATFORM_LIBS})
-target_link_libraries(importer ${ASSIMP_LIB} cu_std ${PLATFORM_LIBS})
-target_link_libraries(glslparser cu_std ${PLATFORM_LIBS})
-target_link_libraries(filearray cu_std ${PLATFORM_LIBS})
-target_link_libraries(fbmp cu_std ${PLATFORM_LIBS})
-
-
-
-#for these we do not want to have stdc++
-
-add_executable(cu_engine ${ENGINE} ${METACALL_SRC})
-
-target_link_libraries(cu_engine cu_std ${PLATFORM_LIBS})
-set_target_properties(cu_engine PROPERTIES LINKER_LANGUAGE C)
-
-
-add_library(game ${PDLL} ${GAME} ${METACALL_SRC})
-set_target_properties(game PROPERTIES LINKER_LANGUAGE C)
-
-target_link_libraries(game cu_std ${PLATFORM_LIBS})
-
-if(WIN32)
-
-  set_target_properties(game PROPERTIES
-  PDB_NAME "game_${VERSION}"
-)
-  
-endif(WIN32)
-
-
-set(C_INCLUDES "")
-Gen_IncludeList(C_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR})
-
-Add_Metapass(CJOBS "${ENGINE}" "${C_INCLUDES}" "engine" cu_engine)
-Add_MetaCompass(CJOBS "${GAME}" "${C_INCLUDES}" "game" game)
 

@@ -1,7 +1,4 @@
 #pragma once
-#include "mode.h"
-#include "ttype.h"
-
 #include "x86intrin.h"
 #include "time.h"
 

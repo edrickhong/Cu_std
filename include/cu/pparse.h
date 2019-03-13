@@ -1,8 +1,6 @@
 #pragma once
 
-#include "ttype.h"
-#include "mode.h"
-
+//MARK: C STDLIB
 #include "string.h"
 
 /*

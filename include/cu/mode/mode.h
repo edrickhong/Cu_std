@@ -1,36 +1,9 @@
 #pragma  once
 
-#include "shader_include/glsl_shared.h"
-
-
-//MARK: this should be tied to shaders as well
 
 #define _row_major 1
 
-
-#define _encode_rgba(r,g,b,a) ((u8(r)) | ((u8(g)) << 8) | ((u8(b)) << 16) | ((u8(a)) << 24))
-#define _encode_bgra(b,g,r,a) ((u8(b)) | ((u8(g)) << 8) | ((u8(r)) << 16) | ((u8(a)) << 24))
-
-#define _removesignedbit(value) (value & 0x7FFFFFFF)
-
-#define _addsignedbit(value) (value |  (1 << 31))
-
-#ifdef CPP_PASS
-
-#define REFL REFL
-#define REFLCOMPONENT REFLCOMPONENT
-
-#else
-
-#define REFL
-#define REFLCOMPONENT
-
-#endif
-
 #ifdef _WIN32
-
-
-#define _FileSlash '\\'
 
 #pragma warning(disable:4996)
 #pragma warning(disable:4244)
@@ -58,39 +31,11 @@
 
 #define _winapi __stdcall
 
-#define MODEL_PATH(name) "..\\..\\rsrc\\models\\"#name
-
-#define IMAGE_PATH(name) "..\\..\\rsrc\\images\\"#name
-
-#define AUDIO_PATH(name) "..\\..\\rsrc\\audio\\"#name
-
-#define TEXTURE_PATH(name) "..\\..\\rsrc\\textures\\"#name
-
-#define SHADER_PATH(name) "..\\..\\rsrc\\shaders\\"#name
-
-#define SHADER_PATH(name) "..\\..\\rsrc\\shaders\\"#name
-
-#define FONT_PATH(name) "C:\\Windows\\Fonts\\"#name
-
 #define _dllexport __declspec(dllexport)
 
 #else
 
 #define _deprecated __attribute__ ((deprecated))
-
-#define _FileSlash '/'
-
-#define MODEL_PATH(name) "../rsrc/models/"#name
-
-#define IMAGE_PATH(name) "../rsrc/images/"#name
-
-#define AUDIO_PATH(name) "../rsrc/audio/"#name
-
-#define TEXTURE_PATH(name) "../rsrc/textures/"#name
-
-#define SHADER_PATH(name) "../rsrc/shaders/"#name
-
-#define FONT_PATH(name) "/usr/share/fonts/truetype/"#name
 
 #define _restrict __restrict__
 #define _ainline inline __attribute__((always_inline))
@@ -114,22 +59,7 @@
 /* ==> do { if (x == 0) */
 /* 	fprintf (stderr, "Warning: " "x == 0" "\n"); } while (0); */
 
-#define _COMPFILE "OBJ.comp"
-
-#define _enable_gui 1
-
-#define _renderbatchsize 128
-
-#define _rendergroupcount 3
-
-#define _usergba 0
-
 #define _either(condition,value1,value2) ((condition) ? value1: value2)
-
-//we do not need to free an object when it happens when our program closes
-#define _ignorefree 0
-
-#define _useasm 1
 
 #define _internal static
 
@@ -138,9 +68,6 @@
 #define _global static
 
 #define _countsize(size,type) size/(sizeof(type))
-
-#define _parse
-#define _reflect
 
 #define _typebitcount(a) (sizeof(a) * 8)
 
@@ -164,7 +91,6 @@ relevant function. Getting better cache performance when using lambdas cos of th
   return a * b;
   })
 */
-#define _lambda(ret,args,body) []args->ret body
 
 #define _kilobytes(value) ((value) * 1024)
 #define _megabytes(value) (_kilobytes(value) * 1024)
@@ -188,8 +114,6 @@ relevant function. Getting better cache performance when using lambdas cos of th
 #define _dmapalign(value) _dalignpow2(value,128)
 
 #ifdef DEBUG
-
-#define _test_dim 64
 
 
 #ifdef __clang__
@@ -268,11 +192,6 @@ relevant function. Getting better cache performance when using lambdas cos of th
 #endif
 
 
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
-
-
 #define _kill(string,condition) if((condition)) {printf("%s %s %d\n",__FUNCTION__,__FILE__,__LINE__);*(int *)0 = 0;}
 #define _dprint(string, ...) printf(string, __VA_ARGS__);
 
@@ -284,13 +203,6 @@ typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 #define _compile_kill(condition) _impl_CASSERT_LINE(!(condition),__LINE__,__FILE__)
 
 
-
-#define _uninitptr 0xCF
-
-
-
-#define _destroy(ptr) ptr->Destroy();free(ptr);ptr = (void*)0xFEFEFEFEFEFEFEFE;
-
 #else
 
 #define _kill(string,condition)
@@ -298,15 +210,5 @@ typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 #define _compile_kill(condition)
 
 #define _dprint(string, ...)
-
-#define _alloc(type,size) ((type*)malloc(sizeof(type) * size))
-
-#define _destroy(ptr) {ptr->Destroy();free(ptr)}
-
-#define _free(type,ptr)
-
-#define _gettime(time)
-
-#define _timediff(var,start,end)
 
 #endif

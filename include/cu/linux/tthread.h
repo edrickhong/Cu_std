@@ -1,6 +1,4 @@
 #pragma once
-#include "ttype.h"
-#include "mode.h"
 #include "pthread.h"
 #include "semaphore.h"
 

@@ -15,8 +15,6 @@
 #include "vulkan/vulkan.h"
 #include "aanimation.h"
 
-#include "mode.h"
-#include "ttype.h"
 #include "ccolor.h"
 
 #include "tthreadx.h"

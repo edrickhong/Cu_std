@@ -1,33 +1,32 @@
 #pragma once
 
-#pragma once
-#include <Windows.h>
 
-#include "mode.h"
-#include "ttype.h"
-#include "string.h"
+#include "fcntl.h"
+#include "unistd.h"
+#include "dirent.h"
+#include "sys/stat.h" // get file size
 
 #define F_METHOD_START 0xFFFFFFFF
 #define F_METHOD_CUR SEEK_CUR
 #define F_METHOD_END SEEK_END
 
-#define F_FLAG_READONLY GENERIC_READ
-#define F_FLAG_WRITEONLY GENERIC_WRITE
-#define F_FLAG_READWRITE (GENERIC_READ | GENERIC_WRITE)
+#define F_FLAG_READONLY O_RDONLY
+#define F_FLAG_WRITEONLY O_WRONLY
+#define F_FLAG_READWRITE O_RDWR
+
+#define F_FLAG_CREATE (O_CREAT)
 
 
-#define F_FLAG_CREATE 0x00000008
-#define F_FLAG_TRUNCATE 16
-#define F_FILE_INVALID INVALID_HANDLE_VALUE
+#define F_FLAG_TRUNCATE O_TRUNC
 
-typedef HANDLE FileHandle;
+#define F_FILE_INVALID (u32)-1
 
-typedef HANDLE* DirectoryHandle;
 
-struct FileNode{
-    FileHandle filehandle = 0;
-    FILETIME timestamp = {};
-};
+typedef u32 FileHandle;
+
+typedef DIR* DirectoryHandle;
+
+typedef ino64_t FileNode;
 
 struct FileInfo{
     s8 filename[256];
@@ -36,26 +35,20 @@ struct FileInfo{
 
 FileHandle _ainline FOpenFile(const s8* filepath,u32 flags){
     
-    u32 exflags = OPEN_EXISTING;
+    /*
+    http://man7.org/linux/man-pages/man2/open.2.html
     
-    if(flags & F_FLAG_CREATE){
-        exflags = OPEN_ALWAYS;
-        flags ^= F_FLAG_CREATE;
-    }
+    The last arg gives the owner read write and execute permissions
+*/
     
-    if(flags & F_FLAG_TRUNCATE){
-        exflags = CREATE_ALWAYS;
-        flags ^= F_FLAG_TRUNCATE;
-    }
-    
-    FileHandle filehandle =
-        CreateFile(filepath,flags,FILE_SHARE_READ,NULL,exflags,FILE_ATTRIBUTE_NORMAL,NULL);
+    FileHandle filehandle = open(filepath,flags,S_IRWXU);
     
     return filehandle;
 }
 
+
 void _ainline FCloseFile(FileHandle filehandle){
-    CloseHandle(filehandle);
+    close(filehandle);
 }
 
 logic _ainline FIsFileExists(const s8* filepath){
@@ -66,21 +59,21 @@ logic _ainline FIsFileExists(const s8* filepath){
 }
 
 void _ainline FRead(FileHandle filehandle,void* buffer,ptrsize size){
-    DWORD dwRead;
-    ReadFile(filehandle, buffer, size, &dwRead, NULL);
+    read(filehandle,buffer,size);
 }
 
 void _ainline FWrite(FileHandle filehandle,void* buffer,ptrsize size){
-    DWORD dwWritten;
-    WriteFile(filehandle, buffer, size, &dwWritten, NULL);
+    write(filehandle,buffer,size);
 }
 
 ptrsize _ainline FSeekFile(FileHandle filehandle,ptrsize move_size,u32 movemethod){
+    
     if(movemethod == F_METHOD_START){
-        SetFilePointer(filehandle, 0, NULL, SEEK_SET);
+        lseek(filehandle,0,SEEK_SET);
         movemethod = F_METHOD_CUR;
     }
-    return SetFilePointer(filehandle, move_size, NULL, movemethod);
+    
+    return lseek(filehandle,move_size,movemethod);
 }
 
 ptrsize _ainline FCurFilePosition(FileHandle filehandle){
@@ -108,6 +101,7 @@ FileNode FGetFileNode(const s8* file);
 
 logic FFileChanged(const s8* file,FileNode* node);
 
+
 #ifdef DEBUG
 
 FileHandle DebugFOpenFile(const s8* filepath,u32 flags,s8* file,s8* function,u32 line);
@@ -121,4 +115,3 @@ void DebugDumpOpenFiles();
 #define FCloseFile(filehandle) DebugFCloseFile(filehandle)
 
 #endif
-

@@ -1,8 +1,4 @@
 #pragma once
-
-#include "mode.h"
-#include "ttype.h"
-
 #define COBJMACROS
 #include "mmdeviceapi.h"
 #include "audioclient.h"

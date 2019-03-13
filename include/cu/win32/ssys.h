@@ -1,6 +1,4 @@
 #pragma once
-#include "mode.h"
-
 #include "Windows.h"
 
 #define MEMPROT_EXEC PAGE_EXECUTE
@@ -15,9 +13,9 @@
 #define ALLOCFLAG_LARGEPAGES_1GB (30 << MAP_HUGE_SHIFT)
 
 u32 _ainline SGetTotalThreads(){
-  SYSTEM_INFO sysinfo;
-  GetSystemInfo(&sysinfo);
-  return sysinfo.dwNumberOfProcessors;
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
 }
 
 #define SSysAlloc(addr,len,mem_prot,flags) VirtualAlloc(addr,len,MEM_COMMIT | MEM_RESERVE,mem_prot)

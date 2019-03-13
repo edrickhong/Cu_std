@@ -1,6 +1,4 @@
 #pragma once
-#include "mode.h"
-#include "ttype.h"
 
 #ifdef _MSC_VER
 #include "intrin.h"
@@ -18,11 +16,11 @@ void TInitTimer();
 
 
 void _ainline GetTime(TimeSpec* timespec){
-  QueryPerformanceCounter(timespec);
+    QueryPerformanceCounter(timespec);
 }
 
 f32 GetTimeDifferenceMS(TimeSpec,TimeSpec);
 
 void _ainline SleepMS(f32 time){
-  Sleep((DWORD)time);
+    Sleep((DWORD)time);
 }

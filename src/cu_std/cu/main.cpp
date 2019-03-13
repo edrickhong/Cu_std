@@ -1,5 +1,13 @@
 
 
+//MARK: C STDLIB
+#include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
+
+#include "mode.h"
+#include "ttype.h"
+
 #include "audio_util.cpp"
 
 #ifdef _WIN32
