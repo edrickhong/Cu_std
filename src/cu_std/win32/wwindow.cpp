@@ -1,8 +1,12 @@
-
 #include "wwindow.h"
 #include "string.h"
 
 #include "Windowsx.h"
+
+struct InternalWindowData{
+    u16 width;
+    u16 height;
+};
 
 
 _persist WWindowEvent event_array[32];
@@ -119,20 +123,22 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
                              u32 height){
     
-    WWindowContext context;
+    WWindowContext context = {};
     
-    context.width = width;
-    context.height = height;
+    context.data = (InternalWindowData*)alloc(sizeof(InternalWindowData));
+    
+    context.data->width = width;
+    context.data->height = height;
     
     GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 0,
-                      &context.handle);
+                      (HMODULE*)&context.handle);
     
     WNDCLASSEX wndclass = {};
     
     wndclass.cbSize = sizeof(WNDCLASSEX);
     wndclass.style = flags;
     wndclass.lpfnWndProc = WindowCallback;
-    wndclass.hInstance = context.handle;
+    wndclass.hInstance = (HMODULE)context.handle;
     wndclass.lpszClassName = "WIN32WNDCLASSEX";
     wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
     
@@ -145,12 +151,12 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     }
     
     
-    context.rootwindow =
-        CreateWindow(wndclass.lpszClassName,title,style, x, y,
-                     width, height, 0, 0, context.handle, 0);
+    context.window =
+        (void*)CreateWindow(wndclass.lpszClassName,title,style, x, y,
+                            width, height, 0, 0, (HMODULE)context.handle, 0);
     
     _kill("Failed to register WNDCLASS", !res);
-    _kill("Unable to create window", !(context.rootwindow));
+    _kill("Unable to create window", !(context.window));
     
     return context;
 }
@@ -161,7 +167,7 @@ u32 WWaitForWindowEvent(WWindowContext* windowcontext,WWindowEvent* event){
     
     auto ret = event_count;
     
-    while(PeekMessage(&msg,windowcontext->rootwindow,0,0,PM_REMOVE | PM_NOYIELD) > 0){
+    while(PeekMessage(&msg,windowcontext->window,0,0,PM_REMOVE | PM_NOYIELD) > 0){
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -196,3 +202,8 @@ s8 WKeyCodeToASCII(u32 keycode){
     return ascii_char[0];
 }
 
+WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
+                                   u32 height){
+    
+    return WCreateWindow(title,flags,x,y,width,height);
+}

@@ -285,9 +285,9 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
     
     auto XFree_fptr = (void (*)(void*))LGetLibFunction(wwindowlib_handle,"XFree");
     
-    context->type = _X11_WINDOW;
-    context->width = width;
-    context->height = height;
+    context->data->type = _X11_WINDOW;
+    context->data->width = width;
+    context->data->height = height;
     
     context->handle = XOpenDisplay_fptr(0);
     
@@ -343,7 +343,7 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
         
         visual_ptr = vis.visual;
         depth = vis.depth;
-        context->x11_visualid = vis.visualid;
+        context->data->x11_visualid = vis.visualid;
         
         
         XFree_fptr(info_array);

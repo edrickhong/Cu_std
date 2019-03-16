@@ -3,6 +3,37 @@
 
 #include "pparse.h"
 
+#include "wayland_dyn.hpp"
+
+struct WaylandData{
+    //We don't touch these alot
+    wl_compositor* compositor;
+    wl_shell* shell;
+    wl_seat* seat;
+    wl_pointer* pointer;
+    wl_keyboard* keyboard;
+};
+
+struct InternalWindowData{
+    
+    u32 type;
+    u16 width;
+    u16 height;
+    
+    union{
+        
+        VisualID x11_visualid;
+        
+        struct{
+            
+            void* wayland_shell_surface;
+            void* internaldata;
+            WaylandData wayland_data;
+        };
+    };
+    
+};
+
 _persist LibHandle wwindowlib_handle = 0;
 _persist u32 loaded_lib_type = 0;
 _persist s8 wtext_buffer[256] ={};
@@ -33,20 +64,23 @@ void WSetTitle(WWindowContext* context,const s8* title){
     impl_wsettitle(context,title);
 }
 
-#define W_CREATE_NO_CHECK (1 << 3)
+#define W_CREATE_NO_CHECK (1 << 29)
 
 WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,
                              u32 width,u32 height){
     
     WWindowContext context = {};
+    context.data = (InternalWindowData*)alloc(sizeof(InternalWindowData));
+    
+    memset(context.data,0,sizeof(InternalWindowData));
     
     logic res = 0;
     
-    if(!(flags & W_CREATE_FORCE_XLIB)){
+    if(!(flags & W_CREATE_BACKEND_XLIB)){
         res = InternalCreateWaylandWindow(&context,title,flags,x,y,width,height);
     }
     
-    if(!res && !(flags & W_CREATE_FORCE_WAYLAND)){
+    if(!res && !(flags & W_CREATE_BACKEND_WAYLAND)){
         res = InternalCreateX11Window(&context,title,flags,x,y,width,height);  
     }
     
@@ -86,13 +120,21 @@ WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 
         }
     }
     
-    context = WCreateWindow(title,(WCreateFlags)(flags | W_CREATE_FORCE_WAYLAND | W_CREATE_NO_CHECK),x,y,width,height);
+    context = WCreateWindow(title,(WCreateFlags)(flags | W_CREATE_BACKEND_WAYLAND | W_CREATE_NO_CHECK),x,y,width,height);
     
     if(!context.handle){
-        context = WCreateWindow(title,(WCreateFlags)(flags | W_CREATE_FORCE_XLIB | W_CREATE_NO_CHECK),x,y,width,height);
+        context = WCreateWindow(title,(WCreateFlags)(flags | W_CREATE_BACKEND_XLIB | W_CREATE_NO_CHECK),x,y,width,height);
     }
     
     _kill("Create window failed: either failed to load window lib,failed to connect to window manager or failed to get a hw enabled window\n",!context.handle);
     
     return context;
+}
+
+u32 WWindowContextGetWidth(WWindowContext* context){
+    return context->data->width;
+}
+
+u32 WWindowContextGetHeight(WWindowContext* context){
+    return context->data->height;
 }

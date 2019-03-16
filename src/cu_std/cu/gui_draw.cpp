@@ -1357,15 +1357,17 @@ void _ainline InternalGetWindowTextDim(GUIFont* font,f32* w,f32* h,f32 scale,
     }  
 }
 
-void GUIUpdate(WWindowContext* window,KeyboardState* keyboardstate,s8* keyboard_ascii_buffer,u32 keyboard_ascii_count,
+void GUIUpdate(VSwapchainContext* swapchain,KeyboardState* keyboardstate,s8* keyboard_ascii_buffer,u32 keyboard_ascii_count,
                MouseState* mousestate,Matrix4b4 view,Matrix4b4 proj){
     
     
     memcpy(gui->input_buffer,keyboard_ascii_buffer,keyboard_ascii_count);
     gui->input_buffer[keyboard_ascii_count] = 0;
     
-    gui->internal_width = window->width;
-    gui->internal_height = window->height;
+    
+    //MARK: this should get its dimensions from the swapchain
+    gui->internal_width = swapchain->width;
+    gui->internal_height = swapchain->height;
     
     gui->aspect_ratio = (f32)gui->internal_width/(f32)gui->internal_height;
     

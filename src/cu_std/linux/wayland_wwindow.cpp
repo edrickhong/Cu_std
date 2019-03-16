@@ -8,7 +8,6 @@ fix quit message (requires xdg extensions)
 xdg-shell-client-protocol.h
 */
 
-#include "wayland_dyn.h"
 #include "ssys.h"
 #include "xkbcommon/xkbcommon.h"
 
@@ -72,17 +71,6 @@ const wl_interface* wl_data_source_interface_ptr = 0;
 const wl_interface* wl_data_device_interface_ptr = 0;
 const wl_interface* wl_touch_interface_ptr = 0;
 const wl_interface* wl_subsurface_interface_ptr = 0;
-
-struct WaylandData{
-    //We don't touch these alot
-    wl_compositor* compositor;
-    wl_shell* shell;
-    wl_seat* seat;
-    wl_pointer* pointer;
-    wl_keyboard* keyboard;
-};
-
-
 
 
 logic InternalLoadLibraryWayland(){
@@ -209,7 +197,7 @@ u32 WWaitForWindowEventWayland(WWindowContext* windowcontext,
 
 void WSetTitleWayland(WWindowContext* context,const s8* title){
     
-    wl_shell_surface_set_title((wl_shell_surface*)context->wayland_shell_surface,title);
+    wl_shell_surface_set_title((wl_shell_surface*)context->data->wayland_shell_surface,title);
     
 }
 
@@ -351,7 +339,7 @@ _persist wl_keyboard_listener keyboard_listener = {
 
 void SeatCapabilities(void* data,wl_seat* seat,u32 caps){
     
-    auto w = (WaylandData*)(((WWindowContext*)data)->internaldata);
+    auto w = (WaylandData*)(&((WWindowContext*)data)->data->wayland_data);
     
     if(caps & WL_SEAT_CAPABILITY_POINTER){
         
@@ -376,7 +364,7 @@ _persist const wl_seat_listener seat_listener = {
 
 void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry, u32 id,const s8* interface, u32 version){
     
-    auto w = (WaylandData*)(((WWindowContext*)data)->internaldata);
+    auto w = (WaylandData*)(&((WWindowContext*)data)->data->wayland_data);
     
     
     if(PHashString(interface) == PHashString("wl_compositor")){
@@ -550,8 +538,7 @@ logic InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
         return false;
     }
     
-    context->internaldata = alloc(sizeof(WaylandData));
-    auto wdata = (WaylandData*)context->internaldata;
+    auto wdata = (WaylandData*)&context->data->wayland_data;
     
     
     InternalLoadWaylandSymbols();
@@ -571,16 +558,18 @@ logic InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
     
     context->window = (void*)wl_compositor_create_surface(wdata->compositor);
     
-    context->wayland_shell_surface = 
+    context->data->wayland_shell_surface = 
         wl_shell_get_shell_surface(wdata->shell,(wl_surface*)context->window);
     
-    wl_shell_surface_add_listener((wl_shell_surface*)context->wayland_shell_surface, &shell_surface_listener,(void*)context);
+    auto wayland_shell_surface = context->data->wayland_shell_surface;
     
-    wl_shell_surface_set_toplevel((wl_shell_surface*)context->wayland_shell_surface);
+    wl_shell_surface_add_listener((wl_shell_surface*)wayland_shell_surface, &shell_surface_listener,(void*)context);
     
-    wl_shell_surface_set_title((wl_shell_surface*)context->wayland_shell_surface,title);
+    wl_shell_surface_set_toplevel((wl_shell_surface*)wayland_shell_surface);
     
-    wl_shell_surface_set_class((wl_shell_surface*)context->wayland_shell_surface,title);
+    wl_shell_surface_set_title((wl_shell_surface*)wayland_shell_surface,title);
+    
+    wl_shell_surface_set_class((wl_shell_surface*)wayland_shell_surface,title);
     
     /*
     TODO:
@@ -598,9 +587,9 @@ wl_shell_surface_move allows dragging windows
     impl_wsettitle = WSetTitleWayland;
     
     
-    context->type = _WAYLAND_WINDOW;
-    context->width = width;
-    context->height = height;
+    context->data->type = _WAYLAND_WINDOW;
+    context->data->width = width;
+    context->data->height = height;
     
     context->handle = display;
     

@@ -1529,7 +1529,7 @@ u32 VCreateInstance(const s8* applicationname_string,logic validation_enable,u32
     
 #ifndef _WIN32
     
-    if(window->type == _WAYLAND_WINDOW){
+    if(window->data->type == _WAYLAND_WINDOW){
         extension_array[1] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
     }
     
@@ -1785,13 +1785,13 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     _instproc(vkcreate_xlib_wayland_win32surfacekhr,global_instance,vkCreateWin32SurfaceKHR);
     
     VkSurfaceKHR surface =
-        CreateSurface(global_instance,window->handle, window->rootwindow);
+        CreateSurface(global_instance,(HMODULE)window->handle, (HWND)window->window);
     
 #else
     
     VkSurfaceKHR surface = 0;
     
-    if(window->type == _WAYLAND_WINDOW){
+    if(window->data->type == _WAYLAND_WINDOW){
         surface =
             CreateSurfaceWayland(global_instance,(wl_display*)window->handle, (wl_surface*)window->window);
     }
@@ -1817,8 +1817,8 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     
     VSwapchainContext context =
         CreateSwapchain(global_instance,vdevice->phys_info->physicaldevice_array[0],vdevice->device,
-                        *(vdevice->phys_info->memoryproperties),surface,window->width,
-                        window->height,swapcount,oldswapchain,sync_type);
+                        *(vdevice->phys_info->memoryproperties),surface,window->data->width,
+                        window->data->height,swapcount,oldswapchain,sync_type);
     
     context.internal->surface = surface;
     
@@ -3385,7 +3385,7 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
                 
                 VkBool32 present_support = 0;
                 
-                if(window->type == _WAYLAND_WINDOW){
+                if(window->data->type == _WAYLAND_WINDOW){
                     
                     _instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,
                               global_instance,
@@ -3403,7 +3403,7 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
                               );
                     
                     
-                    present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)window->handle,window->x11_visualid);
+                    present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)window->handle,window->data->x11_visualid);
                     
                     
                 }
