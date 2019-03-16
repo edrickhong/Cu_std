@@ -22,12 +22,19 @@ message box?
 
 
 struct InternalWindowData;
+struct InternalBackBufferData;
 
 struct WWindowContext{
     void* handle;//why have this?? each program can only have one anyway
     void* window;
     
     InternalWindowData* data;//hidden data that isn't accessed often anyway
+};
+
+//backbuffer used for sw rendering
+struct WBackBufferContext{
+    u32* pixels;
+    InternalBackBufferData* data;
 };
 
 #define _WAYLAND_WINDOW ((u32)(1 << 31))

@@ -242,6 +242,20 @@ void WSetTitleX11(WWindowContext* context,const s8* title){
 }
 
 
+void X11CreateBackBuffer(WWindowContext* context){
+    
+    //Init
+    //XInitImage //raw pixels
+    //XCreatePixmap // pixmap to associate pixels to 
+    //XCreateGC //backbuffer of the window
+    
+    
+    //for drawing
+    //copy the image to the pixmap
+    //XPutImage //associate pixels to pixmap
+    //XCopyArea //blit pixmap to window
+}
+
 
 logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
                               u32 x,u32 y,u32 width,u32 height){
