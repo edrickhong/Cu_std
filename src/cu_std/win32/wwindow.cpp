@@ -167,7 +167,7 @@ u32 WWaitForWindowEvent(WWindowContext* windowcontext,WWindowEvent* event){
     
     auto ret = event_count;
     
-    while(PeekMessage(&msg,(HMODULE)windowcontext->window,0,0,PM_REMOVE | PM_NOYIELD) > 0){
+    while(PeekMessage(&msg,(HWND)windowcontext->window,0,0,PM_REMOVE | PM_NOYIELD) > 0){
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
