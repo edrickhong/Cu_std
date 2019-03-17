@@ -488,14 +488,17 @@ void InternalLoadXkbSymbols(){
         LGetLibFunction(xkb_lib,"xkb_state_key_get_utf8");
 }
 
+void GetWindowSizeWayland(WWindowContext* window,u32* w,u32* h){
+    *w = window->data->wayland_data.width;
+    *h = window->data->wayland_data.height;
+}
+
 logic InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
                                   WCreateFlags flags,u32 x,u32 y,u32 width,u32 height){
     
     if(!InternalLoadLibraryWayland()){
         return false;    
     }
-    
-    *context = {};
     
     //get all the functions needed for init
     
@@ -585,11 +588,12 @@ wl_shell_surface_move allows dragging windows
     impl_wkeycodetoascii = WKeyCodeToASCIIWayland;
     impl_wwaitforevent = WWaitForWindowEventWayland;
     impl_wsettitle = WSetTitleWayland;
+    impl_getwindowsize = GetWindowSizeWayland;
     
     
     context->data->type = _WAYLAND_WINDOW;
-    context->data->width = width;
-    context->data->height = height;
+    context->data->wayland_data.width = width;
+    context->data->wayland_data.height = height;
     
     context->handle = display;
     

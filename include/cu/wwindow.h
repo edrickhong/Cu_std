@@ -34,6 +34,8 @@ struct WWindowContext{
 //backbuffer used for sw rendering
 struct WBackBufferContext{
     u32* pixels;
+    u16 width;
+    u16 height;
     InternalBackBufferData* data;
 };
 
@@ -98,6 +100,11 @@ struct WWindowEvent{
     union{
         WKeyboardEvent keyboard_event;
         WMouseEvent mouse_event;
+        
+        struct{
+            u16 width;
+            u16 height;
+        };
     };
 };
 
@@ -127,14 +134,17 @@ enum MouseButton{
 
 u32 WWaitForWindowEvent(WWindowContext* windowcontext,WWindowEvent* event);
 
+
+//TODO: we should make selecting the backend a separate thing
 WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
                              u32 height);
 
 WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
                                    u32 height);
 
-//TODO: implement this
-void WCreateBackBuffer();
+WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext);
+
+void WPresentBackBuffer(WWindowContext* windowcontext,WBackBufferContext* buffer);
 
 void WDestroyWindow(WWindowContext* windowcontext);
 

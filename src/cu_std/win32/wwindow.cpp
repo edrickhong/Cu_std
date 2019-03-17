@@ -3,11 +3,6 @@
 
 #include "Windowsx.h"
 
-struct InternalWindowData{
-    u16 width;
-    u16 height;
-};
-
 
 _persist WWindowEvent event_array[32];
 _persist u32 event_count = 0;
@@ -111,6 +106,29 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             PostEvent(event);
         }break;
         
+        case WM_SIZE:{
+            
+            WWindowEvent event = {};
+            event.type = W_EVENT_RESIZE;
+            
+            union U32_PACKED{
+                u32 u;
+                
+                struct{
+                    u16 w;
+                    u16 h;
+                };
+            };
+            
+            U32_PACKED p = {lParam};
+            
+            event.width = p.w;
+            event.height = p.h;
+            
+            PostEvent(event);
+            
+        }break;
+        
         default:
         {
             result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -124,11 +142,6 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
                              u32 height){
     
     WWindowContext context = {};
-    
-    context.data = (InternalWindowData*)alloc(sizeof(InternalWindowData));
-    
-    context.data->width = width;
-    context.data->height = height;
     
     GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 0,
                       (HMODULE*)&context.handle);
@@ -206,4 +219,13 @@ WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 
                                    u32 height){
     
     return WCreateWindow(title,flags,x,y,width,height);
+}
+
+void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
+    
+    Rect rect = {};
+    GetWindowRect((HWND)window->window,&rect);
+    
+    *w = rect.right - rect.left;
+    *h = rect.bottom - rect.top;
 }

@@ -6,6 +6,10 @@
 #include "wayland_dyn.hpp"
 
 struct WaylandData{
+    
+    u16 width;
+    u16 height;
+    
     //We don't touch these alot
     wl_compositor* compositor;
     wl_shell* shell;
@@ -17,20 +21,30 @@ struct WaylandData{
 struct InternalWindowData{
     
     u32 type;
-    u16 width;
-    u16 height;
     
     union{
         
         VisualID x11_visualid;
         
         struct{
-            
             void* wayland_shell_surface;
-            void* internaldata;
+            void* internaldata; // what's this for??
             WaylandData wayland_data;
         };
     };
+    
+};
+
+struct InternalBackBufferData{
+    
+    union{
+        struct{
+            XImage ximage;
+            Pixmap pixmap;
+            GC gc;
+        };
+    };
+    
     
 };
 
@@ -42,6 +56,9 @@ _persist s8 wtext_buffer[256] ={};
 _persist s8 (*impl_wkeycodetoascii)(u32) = 0;
 _persist u32 (*impl_wwaitforevent)(WWindowContext*,WWindowEvent*) = 0;
 _persist void (*impl_wsettitle)(WWindowContext*,const s8*) = 0;
+_persist WBackBufferContext (*impl_wcreatebackbuffer)(WWindowContext*) = 0;
+_persist void (*impl_getwindowsize)(WWindowContext*,u32*,u32*) = 0;
+_persist void (*impl_wpresentbackbuffer)(WWindowContext*,WBackBufferContext*) = 0;
 
 #include "x11_wwindow.cpp"
 #include "wayland_wwindow.cpp"
@@ -131,10 +148,14 @@ WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 
     return context;
 }
 
-u32 WWindowContextGetWidth(WWindowContext* context){
-    return context->data->width;
+WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext){
+    return impl_wcreatebackbuffer(windowcontext);
 }
 
-u32 WWindowContextGetHeight(WWindowContext* context){
-    return context->data->height;
+void WPresentBackBuffer(WWindowContext* windowcontext,WBackBufferContext* buffer){
+    impl_wpresentbackbuffer(windowcontext,buffer);
+}
+
+void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
+    impl_getwindowsize(window,w,h);
 }

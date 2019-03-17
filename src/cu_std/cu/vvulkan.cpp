@@ -1778,6 +1778,11 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
                                           VPresentSyncType sync_type,
                                           VSwapchainContext* oldswapchain){
     
+    u32 width = 0;
+    u32 height = 0;
+    
+    InternalGetWindowSize(window,&width,&height);
+    
     //combine surface and swapchain creation, pull CreateSwapchain into here
     
 #ifdef _WIN32
@@ -1817,8 +1822,8 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     
     VSwapchainContext context =
         CreateSwapchain(global_instance,vdevice->phys_info->physicaldevice_array[0],vdevice->device,
-                        *(vdevice->phys_info->memoryproperties),surface,window->data->width,
-                        window->data->height,swapcount,oldswapchain,sync_type);
+                        *(vdevice->phys_info->memoryproperties),surface,width,
+                        height,swapcount,oldswapchain,sync_type);
     
     context.internal->surface = surface;
     

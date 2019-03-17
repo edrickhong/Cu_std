@@ -11,6 +11,10 @@ _persist void* wfptr_x11_xsetwmprotocols = 0;
 _persist void* wfptr_x11_xlookupstring = 0;
 _persist void* wfptr_x11_xconfigurewindow = 0;
 
+//for presenting
+_persist void* wfptr_x11_xputimage = 0;
+_persist void* wfptr_x11_xcopyarea = 0;
+
 logic InternalLoadLibraryX11(){
     
     
@@ -96,6 +100,11 @@ logic InternalLoadLibraryX11(){
 #define XConfigureWindow ((s32 (*)(Display*,Window,u32,XWindowChanges*))wfptr_x11_xconfigurewindow)
 
 
+#define XPutImage ((s32 (*)(Display*,Drawable,GC,XImage*,s32,s32,s32,s32,u32,u32))wfptr_x11_xputimage)
+
+#define XCopyArea ((s32 (*)(Display*,Drawable,Drawable,GC,s32,s32,u32,u32,s32,s32))wfptr_x11_xcopyarea)
+
+
 s8 WKeyCodeToASCIIX11(u32 keycode){
     return wtext_buffer[keycode];
 }
@@ -125,6 +134,8 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
             
             case ConfigureNotify:{
                 event->type = W_EVENT_RESIZE;
+                event->width = xevent.xconfigure.width;
+                event->height = xevent.xconfigure.height;
             }break;
             
             case KeymapNotify:{
@@ -242,18 +253,109 @@ void WSetTitleX11(WWindowContext* context,const s8* title){
 }
 
 
-void X11CreateBackBuffer(WWindowContext* context){
+void GetWindowSizeX11(WWindowContext* window,u32* w,u32* h){
+    
+    auto XGetWindowAttributes_fptr = (Status (*)(Display*,Window,XWindowAttributes*))LGetLibFunction(wwindowlib_handle,"XGetWindowAttributes");
+    
+    XWindowAttributes attribs = {};
+    
+    XGetWindowAttributes_fptr((Display*)window->handle,(Window)window->window,&attribs);
+    
+    *w = attribs.width;
+    *h = attribs.height;
+}
+
+
+WBackBufferContext InternalCreateBackBufferX11(WWindowContext* context){
+    
+    u32 width = 0;
+    u32 height = 0;
+    
+    GetWindowSizeX11(context,&width,&height);
+    
+    WBackBufferContext buffer = {};
+    
+    buffer.data = (InternalBackBufferData*)alloc(sizeof(InternalBackBufferData));
+    
+    buffer.width = width;
+    buffer.height = height;
     
     //Init
     //XInitImage //raw pixels
     //XCreatePixmap // pixmap to associate pixels to 
     //XCreateGC //backbuffer of the window
     
+    auto XInitImage_fptr = (Status (*)(XImage*))LGetLibFunction(wwindowlib_handle,"XInitImage");
+    
+    auto XCreatePixmap_fptr = (Pixmap (*)(Display*,Drawable,u32,u32,u32))LGetLibFunction(wwindowlib_handle,"XCreatePixmap");
+    auto XCreateGC_fptr = (GC (*)(Display*,Drawable,unsigned long,XGCValues*))LGetLibFunction(wwindowlib_handle,"XCreateGC");
+    
+    
+    s8* data = (s8*)alloc(width * height * 4);
+    
+    buffer.data->ximage = {
+        (s32)width,(s32)height,
+        0,	/* number of pixels offset in X direction */
+        ZPixmap,			/* XYBitmap, XYPixmap, ZPixmap */
+        data,			/* pointer to image data */
+        LSBFirst,		/* data byte order, LSBFirst, MSBFirst */
+        32, /* quant. of scanline 8, 16, 32 */
+        LSBFirst,		/* LSBFirst, MSBFirst */
+        32, /* 8, 16, 32 either XY or ZPixmap */
+        24,			/* depth of image */
+        (s32)(width * 4),		/* accelerator to next scanline */
+        32, /* bits per pixel (ZPixmap) */
+        0xFF0000,//red mask
+        0x00FF00,//green mask
+        0x0000FF,//blue mask
+    };
+    
+    
+    //for testing
+#if 0
+    auto XGetImage_fptr = (XImage* (*)(Display*,Drawable,s32,s32,u32,u32,unsigned long,s32))LGetLibFunction(wwindowlib_handle,"XGetImage");
+    
+    auto image = XGetImage_fptr((Display*)context->handle,(Window)context->window,0,0,width,height,AllPlanes,ZPixmap);
+    
+    auto res = XInitImage_fptr(&buffer.data->ximage);
+    
+    _kill("",1);
+    
+    _kill("Failed in init image\n",!res);
+    
+#endif
+    
+    buffer.data->pixmap = XCreatePixmap_fptr((Display*)context->handle,(Window)context->window,width,height,24);
+    
+    XGCValues values = {};
+    
+    buffer.data->gc = XCreateGC_fptr((Display*)context->handle,buffer.data->pixmap,0,&values);
+    
+    if(!wfptr_x11_xputimage){
+        wfptr_x11_xputimage = LGetLibFunction(wwindowlib_handle,"XPutImage");
+        wfptr_x11_xcopyarea = LGetLibFunction(wwindowlib_handle,"XCopyArea");
+    }
+    
+    buffer.pixels = (u32*)data;
+    
+    return buffer;
+}
+
+void InternalPresentBackBufferX11(WWindowContext* window,WBackBufferContext* buffer){
+    
+    //MARK: continue from here
     
     //for drawing
     //copy the image to the pixmap
-    //XPutImage //associate pixels to pixmap
-    //XCopyArea //blit pixmap to window
+    
+    XPutImage((Display*)window->handle,buffer->data->pixmap,buffer->data->gc,
+              &buffer->data->ximage,
+              0,0,0,0,
+              buffer->width,buffer->height
+              );
+    
+    XCopyArea((Display*)window->handle,buffer->data->pixmap,(Window)window->window,buffer->data->gc,0,0,buffer->width,buffer->height,0,0);
+    
 }
 
 
@@ -267,6 +369,9 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
     impl_wkeycodetoascii = WKeyCodeToASCIIX11;
     impl_wwaitforevent = WWaitForWindowEventX11;
     impl_wsettitle = WSetTitleX11;
+    impl_wcreatebackbuffer = InternalCreateBackBufferX11;
+    impl_getwindowsize = GetWindowSizeX11;
+    impl_wpresentbackbuffer = InternalPresentBackBufferX11;
     
     //get all the functions needed for init
     
@@ -286,8 +391,7 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
     auto XSelectInput_fptr =
         (s32 (*)(Display*,Window,long))LGetLibFunction(wwindowlib_handle,"XSelectInput");
     
-    auto XMapWindow_fptr =
-        (s32 (*)(Display*,Window))LGetLibFunction(wwindowlib_handle,"XMapWindow");
+    auto XMapRaised_fptr = (s32 (*)(Display*,Window))LGetLibFunction(wwindowlib_handle,"XMapRaised");
     
     auto XInternAtom_fptr =
         (Atom (*)(Display*,_Xconst char*,Bool))LGetLibFunction(wwindowlib_handle,"XInternAtom");
@@ -300,8 +404,6 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
     auto XFree_fptr = (void (*)(void*))LGetLibFunction(wwindowlib_handle,"XFree");
     
     context->data->type = _X11_WINDOW;
-    context->data->width = width;
-    context->data->height = height;
     
     context->handle = XOpenDisplay_fptr(0);
     
@@ -416,10 +518,10 @@ logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFla
     
     XSetClassHint_fptr((Display*)context->handle,(Window)context->window,&hint);
     
+    XMapRaised_fptr((Display*)context->handle,(Window)context->window);
+    
     
     XFlush((Display*)context->handle);
-    
-    XMapWindow_fptr((Display*)context->handle,(Window)context->window);
     
     //MARK: we can set multiple with XSetWMProperties
     

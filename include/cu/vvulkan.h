@@ -549,6 +549,8 @@ enum VPresentSyncType{
     VSYNC_CHOOSE_BEST = -1,
 };
 
+
+//TODO: we should'nt take in a width and height, but instead query for it from the window
 VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _in_ vdevice,
                                           u32 swapcount,
                                           WWindowContext* windowcontext,
