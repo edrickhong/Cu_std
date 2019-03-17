@@ -223,7 +223,7 @@ WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 
 
 void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
     
-    Rect rect = {};
+    RECT rect = {};
     GetWindowRect((HWND)window->window,&rect);
     
     *w = rect.right - rect.left;
