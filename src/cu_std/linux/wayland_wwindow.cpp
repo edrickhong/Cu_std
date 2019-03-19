@@ -1,5 +1,10 @@
 #pragma once
 
+#include "unistd.h"
+#include "fcntl.h"
+
+#include "ssys.h"
+
 /*
 TODO:
 fix the pointer to use the default pointer (requires dumb parsing)
@@ -71,6 +76,7 @@ const wl_interface* wl_data_source_interface_ptr = 0;
 const wl_interface* wl_data_device_interface_ptr = 0;
 const wl_interface* wl_touch_interface_ptr = 0;
 const wl_interface* wl_subsurface_interface_ptr = 0;
+const wl_interface* wl_shm_interface_ptr = 0;
 
 
 logic InternalLoadLibraryWayland(){
@@ -318,7 +324,15 @@ void WaylandPointerAxis(void* data,wl_pointer* pointer,u32 time,u32 axis,wl_fixe
     /*MARK: fill mouse scroll events here*/
 }
 
+void WaylandSHMFormat(void* data,wl_shm* shm,u32 format){
+    
+    //NOTE: I think this prints the formats available
+    //printf("shm %p has format %d\n",(void*)shm,format);
+}
 
+_persist wl_shm_listener shm_listener = {
+	WaylandSHMFormat
+};
 
 _persist wl_pointer_listener pointer_listener = {
     WaylandPointerEnter,
@@ -366,24 +380,29 @@ void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry, u32
     
     auto w = (WaylandData*)(&((WWindowContext*)data)->data->wayland_data);
     
-    
     if(PHashString(interface) == PHashString("wl_compositor")){
-        
         w->compositor = (wl_compositor*)wl_registry_bind(registry,id,&wl_compositor_interface,1);
     }
     
     if(PHashString(interface) == PHashString("wl_shell")){
-        
         w->shell = (wl_shell*)wl_registry_bind(registry,id,&wl_shell_interface,1);
     }
     
     if(PHashString(interface) == PHashString("wl_seat")){
-        
         w->seat = (wl_seat*)wl_registry_bind(registry,id,&wl_seat_interface,1);
-        
         wl_seat_add_listener(w->seat,&seat_listener,data);
         
     }
+    
+#if 1
+    
+    //MARK: this is needed for sw rendering
+    if(PHashString(interface) == PHashString("wl_shm")){
+        w->shm = (wl_shm*)wl_registry_bind(registry, id,&wl_shm_interface, 1);
+        wl_shm_add_listener(w->shm,&shm_listener,0);
+    }
+    
+#endif
     
 }
 
@@ -480,6 +499,8 @@ void InternalLoadWaylandSymbols(){
     
     wl_subsurface_interface_ptr = (wl_interface*)LGetLibFunction(wwindowlib_handle,"wl_subsurface_interface");
     
+    wl_shm_interface_ptr = (wl_interface*)LGetLibFunction(wwindowlib_handle,"wl_shm_interface");
+    
 }
 
 void InternalLoadXkbSymbols(){
@@ -491,6 +512,72 @@ void InternalLoadXkbSymbols(){
 void GetWindowSizeWayland(WWindowContext* window,u32* w,u32* h){
     *w = window->data->wayland_data.width;
     *h = window->data->wayland_data.height;
+}
+
+//MARK: this could actually be useful
+FileHandle InternalCreateTempAnonymouseFile(){
+    
+    //create temp file descriptor (mkstemp) (unlink to hide the file)
+    
+    s8 string[32] = {"wayland-anon-file-XXXXXX"};
+    
+    auto fd = mkstemp(string);
+    
+    _kill("failed to make the file\n",fd == -1);
+    
+    auto flags = fcntl(fd,F_GETFD);
+    
+    _kill("failed to get flags\n",flags == -1);
+    
+    auto res = fcntl(fd,F_SETFD,flags | FD_CLOEXEC);
+    
+    _kill("failed to set flags\n",res == -1);
+    
+    unlink(string);
+    
+    
+    return fd;
+}
+
+WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext){
+    
+    auto width = windowcontext->data->wayland_data.width;
+    auto height = windowcontext->data->wayland_data.height;
+    auto shm = windowcontext->data->wayland_data.shm;
+    auto size = width * height * 4;
+    
+    WBackBufferContext backbuffer = {};
+    backbuffer.data = (InternalBackBufferData*)malloc(sizeof(InternalBackBufferData));
+    
+    backbuffer.width = width;
+    backbuffer.height = height;
+    
+    auto fd = InternalCreateTempAnonymouseFile();
+    
+    //MARK: we cannot mmap an empty file
+    ftruncate(fd,size);
+    
+    //mmap the file
+    backbuffer.pixels = (u32*)mmap(0,size,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+    
+    _kill("failed to map file\n",backbuffer.pixels == MAP_FAILED);
+    
+    auto pool = wl_shm_create_pool(shm,fd,size);
+    
+    
+    //MARK: format is always xrgb
+    backbuffer.data->buffer = 
+        wl_shm_pool_create_buffer(pool, 0,width,height,width * 4,WL_SHM_FORMAT_ARGB8888);
+    
+    wl_shm_pool_destroy(pool);
+    
+    return backbuffer;
+}
+
+void WPresentBackBufferWayland(WWindowContext* windowcontext,WBackBufferContext* buffer){
+    
+    wl_surface_attach((wl_surface*)windowcontext->window,buffer->data->buffer,0,0);
+    wl_surface_commit((wl_surface*)windowcontext->window);
 }
 
 logic InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
@@ -589,6 +676,8 @@ wl_shell_surface_move allows dragging windows
     impl_wwaitforevent = WWaitForWindowEventWayland;
     impl_wsettitle = WSetTitleWayland;
     impl_getwindowsize = GetWindowSizeWayland;
+    impl_wpresentbackbuffer = WPresentBackBufferWayland;
+    impl_wcreatebackbuffer = WCreateBackBufferWayland;
     
     
     context->data->type = _WAYLAND_WINDOW;

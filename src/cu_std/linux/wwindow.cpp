@@ -16,6 +16,9 @@ struct WaylandData{
     wl_seat* seat;
     wl_pointer* pointer;
     wl_keyboard* keyboard;
+    
+    //for sw rendering
+    wl_shm* shm;
 };
 
 struct InternalWindowData{
@@ -42,6 +45,10 @@ struct InternalBackBufferData{
             XImage ximage;
             Pixmap pixmap;
             GC gc;
+        };
+        
+        struct{
+            wl_buffer* buffer;
         };
     };
     

@@ -99,6 +99,7 @@ extern "C" const wl_interface* wl_data_source_interface_ptr;
 extern "C" const wl_interface* wl_data_device_interface_ptr;
 extern "C" const wl_interface* wl_touch_interface_ptr;
 extern "C" const wl_interface* wl_subsurface_interface_ptr;
+extern "C" const wl_interface* wl_shm_interface_ptr;
 
 #define wl_display_interface *wl_display_interface_ptr
 #define wl_registry_interface *wl_registry_interface_ptr
@@ -117,6 +118,7 @@ extern "C" const wl_interface* wl_subsurface_interface_ptr;
 #define wl_data_device_interface *wl_data_device_interface_ptr
 #define wl_touch_interface *wl_touch_interface_ptr
 #define wl_subsurface_interface *wl_subsurface_interface_ptr
+#define wl_shm_interface *wl_shm_interface_ptr
 
 
 #define WAYLAND_CLIENT_CORE_H
