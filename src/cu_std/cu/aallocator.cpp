@@ -74,6 +74,8 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
     if(!alloc_context){
         return;
     }
+
+	//TODO: go thru the list and try to reserve a block by replacing that value with our ptr with a lockedcmpxchg
     
     auto actual_count = TGetEntryIndexD(&alloc_context->malloc_count,_arraycount( alloc_context->malloc_array));
     
