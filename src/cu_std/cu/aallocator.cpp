@@ -75,9 +75,31 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
         return;
     }
     
-    auto actual_count = TGetEntryIndexD(&alloc_context->malloc_count,_arraycount( alloc_context->malloc_array));
+    __asm__ volatile("int $3\n"::);
     
-    alloc_context->malloc_array[actual_count] = {base_ptr,TGetThisThreadID(),size,file,function,line};
+    u32 total_count = _arraycount(alloc_context->malloc_array);
+    AAllocatorContext::DebugAllocEntry* d = 0;
+    
+    for(u32 i = 0; i < total_count; i++){
+        
+        auto entry = &alloc_context->malloc_array[i];
+        auto ptr = (u64)entry->ptr;
+        
+        if(ptr == 0){
+            
+            auto actual_ptr = LockedCmpXchg64((u64*)&entry->ptr,(u64)ptr,(u64)base_ptr);
+            
+            if(actual_ptr == ptr){
+                d = entry;
+                break;
+            }
+        }
+    }
+    
+    _kill("Could not get a valid entry\n",!d);
+    
+    *d = {base_ptr,TGetThisThreadID(),size,file,function,line
+    };
     
 }
 
