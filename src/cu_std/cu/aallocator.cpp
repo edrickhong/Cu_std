@@ -28,7 +28,6 @@ struct AAllocatorContext{
     volatile u32 alloc_count = 0;
     
     DebugAllocEntry malloc_array[1024] = {};
-    volatile u32 malloc_count = 0;
     
 #endif
 };
@@ -74,10 +73,6 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
     if(!alloc_context){
         return;
     }
-
-	//TODO: go thru the list and try to reserve a block by replacing that value with our ptr with a lockedcmpxchg
-    
-    __asm__ volatile("int $3\n"::);
     
     u32 total_count = _arraycount(alloc_context->malloc_array);
     AAllocatorContext::DebugAllocEntry* d = 0;
@@ -111,7 +106,9 @@ void DebugRemoveMalloc(void* base_ptr){
         return;
     }
     
-    for(u32 i = 0; i < alloc_context->malloc_count; i++){
+    u32 total_count = _arraycount(alloc_context->malloc_array);
+    
+    for(u32 i = 0; i < total_count; i++){
         
         auto entry = &alloc_context->malloc_array[i];
         
@@ -132,8 +129,9 @@ u32 DebugDumpTotalMallocSize(){
     }
     
     u32 size = 0;
+    u32 total_count = _arraycount(alloc_context->malloc_array);
     
-    for(u32 i = 0; i < alloc_context->malloc_count; i++){
+    for(u32 i = 0; i < total_count; i++){
         
         auto entry = &alloc_context->malloc_array[i];
         
@@ -150,7 +148,22 @@ u32 DebugDumpTotalMallocCount(){
     if(!alloc_context){
         return (u32)-1;
     }
-    return alloc_context->malloc_count;
+    
+    u32 total_count = _arraycount(alloc_context->malloc_array);
+    u32 count = 0;
+    
+    for(u32 i = 0; i < total_count; i++){
+        
+        auto entry = &alloc_context->malloc_array[i];
+        
+        if(entry->ptr){
+            count++;
+        }
+        
+    }
+    
+    
+    return count;
 }
 
 void DebugDumpMallocs(){
@@ -159,11 +172,16 @@ void DebugDumpMallocs(){
         return;
     }
     
-    for(u32 i = 0; i < alloc_context->malloc_count; i++){
+    u32 total_count = _arraycount(alloc_context->malloc_array);
+    
+    for(u32 i = 0; i < total_count; i++){
+        
         auto entry = alloc_context->malloc_array[i];
         
-        printf("%d %d %s %s %d: base_ptr %p %d\n",i,(u32)entry.tid,entry.file,entry.function,
-               entry.line,entry.ptr,entry.size);
+        if(entry.ptr){
+            printf("%d %d %s %s %d: base_ptr %p %d\n",i,(u32)entry.tid,entry.file,entry.function,
+                   entry.line,entry.ptr,entry.size);
+        }
     }
     
 }
@@ -201,7 +219,8 @@ void* DebugRealloc(void* old_ptr,size_t size,const s8* file,const s8* function,u
     
     _kill("alloc size cannot be 0\n",!size);
     
-    for(u32 i = 0; i < alloc_context->malloc_count; i++){
+    u32 total_count = _arraycount(alloc_context->malloc_array);
+    for(u32 i = 0; i < total_count; i++){
         
         auto entry = &alloc_context->malloc_array[i];
         
