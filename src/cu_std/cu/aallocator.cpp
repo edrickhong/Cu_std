@@ -80,11 +80,11 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
     for(u32 i = 0; i < total_count; i++){
         
         auto entry = &alloc_context->malloc_array[i];
-        auto ptr = (u64)entry->ptr;
+        auto ptr = (s64)entry->ptr;
         
         if(ptr == 0){
             
-            auto actual_ptr = LockedCmpXchg64((u64 volatile*)&entry->ptr,(u64)ptr,(u64)base_ptr);
+            auto actual_ptr = LockedCmpXchg64((s64 volatile*)&entry->ptr,(s64)ptr,(s64)base_ptr);
             
             if(actual_ptr == ptr){
                 d = entry;

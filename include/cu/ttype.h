@@ -3,17 +3,27 @@
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
-typedef unsigned long long u64;
 
 typedef  char s8;
 typedef  short s16;
 typedef  int s32;
-typedef  long long s64;
 
 typedef char logic; //MARK:should we make this 4 bytes long?
 
 typedef float f32;
 typedef double f64;
+
+#ifdef __WIN32
+
+typedef unsigned __int64 u64;
+typedef  __int64 s64;
+
+#else
+
+typedef unsigned long long u64;
+typedef  long long s64;
+
+#endif
 
 #if __x86_64__ || _M_X64
 
