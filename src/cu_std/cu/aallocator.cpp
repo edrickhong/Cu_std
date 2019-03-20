@@ -162,7 +162,6 @@ u32 DebugDumpTotalMallocCount(){
         
     }
     
-    
     return count;
 }
 
@@ -337,3 +336,15 @@ AAllocatorContext* GetAAllocatorContext(){
 void SetAAllocatorContext(AAllocatorContext* this_context){
     alloc_context = this_context;
 }
+
+#ifdef DEBUG
+
+#pragma message ("MALLOC TRACKING ENABLED")
+
+#if  _enable_allocboundscheck
+
+#pragma message ("TALLOC BOUNDS CHECKING ENABLED")
+
+#endif
+
+#endif
