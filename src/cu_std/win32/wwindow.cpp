@@ -22,10 +22,6 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     LRESULT result = 0;
     
     switch (uMsg){
-        case WM_SIZE:
-        {
-            
-        } break;
         
         case WM_DESTROY:
         {
@@ -112,7 +108,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             event.type = W_EVENT_RESIZE;
             
             union U32_PACKED{
-                u32 u;
+                u64 u;
                 
                 struct{
                     u16 w;
@@ -120,7 +116,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
                 };
             };
             
-            U32_PACKED p = {lParam};
+            U32_PACKED p = {(u64)lParam};
             
             event.width = p.w;
             event.height = p.h;
@@ -152,7 +148,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     wndclass.style = flags;
     wndclass.lpfnWndProc = WindowCallback;
     wndclass.hInstance = (HMODULE)context.handle;
-    wndclass.lpszClassName = "WIN32WNDCLASSEX";
+    wndclass.lpszClassName = title;
     wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
     
     auto res = RegisterClassEx(&wndclass);
@@ -228,4 +224,69 @@ void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
     
     *w = rect.right - rect.left;
     *h = rect.bottom - rect.top;
+}
+
+struct InternalBackBufferData{
+    HDC devicecontext;
+    BITMAPINFO info;
+};
+
+
+WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
+    
+	WBackBufferContext buffer = {};
+    
+    u32 width = 0;
+    u32 height= 0;
+    
+    InternalGetWindowSize(windowcontext,&width,&height);
+    
+    u32 size = width * height * 4;
+    
+    buffer.pixels = (u32*)alloc(size);
+    buffer.width = width;
+    buffer.height = height;
+    
+    buffer.data = 
+        (InternalBackBufferData*)alloc(sizeof(InternalBackBufferData));
+    
+    buffer.data->info = {
+        {
+            sizeof(BITMAPINFOHEADER),
+            (s32)width,
+            (s32)height,
+            1,
+            32,
+            BI_RGB
+        }
+    };
+    
+    buffer.data->devicecontext = GetDC((HWND)windowcontext->window);
+    
+    //MARK: maybe set the pixel format?? (Seems like the default is already ARBG)
+    
+    _kill("failed to get a hdc\n",!buffer.data->devicecontext);
+    
+	return buffer;
+}
+
+void WPresentBackBuffer(WWindowContext* windowcontext, WBackBufferContext* buffer) {
+    
+    auto res = StretchDIBits(
+        buffer->data->devicecontext,
+        0,
+        0,
+        buffer->width,
+        buffer->height,
+        0,
+        0,
+        buffer->width,
+        buffer->height,
+        (void*)buffer->pixels,
+        &buffer->data->info,
+        DIB_RGB_COLORS,
+        SRCCOPY);
+    
+    _kill("failed to present backbuffer\n",!res);
+    
 }

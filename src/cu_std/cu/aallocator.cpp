@@ -74,6 +74,8 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
     if(!alloc_context){
         return;
     }
+
+	//TODO: go thru the list and try to reserve a block by replacing that value with our ptr with a lockedcmpxchg
     
     __asm__ volatile("int $3\n"::);
     
