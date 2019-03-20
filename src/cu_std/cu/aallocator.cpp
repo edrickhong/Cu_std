@@ -84,7 +84,7 @@ void DebugSubmitMalloc(void* base_ptr,u32 size,const s8* file,const s8* function
         
         if(ptr == 0){
             
-            auto actual_ptr = LockedCmpXchg64((u64*)&entry->ptr,(u64)ptr,(u64)base_ptr);
+            auto actual_ptr = LockedCmpXchg64((u64 volatile*)&entry->ptr,(u64)ptr,(u64)base_ptr);
             
             if(actual_ptr == ptr){
                 d = entry;
