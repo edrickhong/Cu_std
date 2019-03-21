@@ -1119,3 +1119,6 @@ void VInitVulkan();
 void InitInstance(VkInstance instance);
 
 void VInitDevice(VkDevice device);
+
+//DeviceMemory allocator
+//VkDeviceMemory VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index);
