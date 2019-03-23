@@ -1,5 +1,6 @@
 #pragma  once
 
+#include "string.h"
 #include "mode.h"
 #include "ttype.h"
 

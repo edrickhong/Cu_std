@@ -526,7 +526,7 @@ struct GUIContext{
     
     s8 internal_prevkeystate[256];
     s8 internal_curkeystate[256];
-    logic to_restore_window;
+    b32 to_restore_window;
     
     u32 combobox_options_count;
     const s8* combobox_options_array[128];
@@ -599,19 +599,19 @@ void SetGUIContext(GUIContext* context){
   Instead of using normalized coords, use unit coords
 */
 
-logic GUIMouseClickL(){
+b32 GUIMouseClickL(){
     return gui->internal_mouse_curleft & !gui->internal_mouse_prevleft;
 }
 
-logic GUIMouseUnclickL(){
+b32 GUIMouseUnclickL(){
     return !(gui->internal_mouse_curleft & gui->internal_mouse_prevleft);
 }
 
-logic GUIMouseDownL(){
+b32 GUIMouseDownL(){
     return gui->internal_mouse_curleft;
 }
 
-logic GUIMouseUpL(){
+b32 GUIMouseUpL(){
     return !gui->internal_mouse_curleft;
 }
 
@@ -916,7 +916,7 @@ GUIVec2 InternalLayoutPos(GUIDim2* dim,u32 behavior = GUILAYOUT_NONE){
     
     return {x,y};
 }
-logic InternalIsWithinBounds(const GUIBoundingRect* rect){
+b32 InternalIsWithinBounds(const GUIBoundingRect* rect){
     
     u32 mouse_x = gui->internal_mouse_x;
     u32 mouse_y = gui->internal_mouse_y;
@@ -1391,7 +1391,7 @@ void GUIUpdate(VSwapchainContext* swapchain,KeyboardState* keyboardstate,s8* key
     
 }
 
-logic GUIButton(const s8* string){
+b32 GUIButton(const s8* string){
     
     GUISetRenderMode(GUI_RENDER_SOLID);
     GUISetCameraMode(GUI_CAMERA_NONE);
@@ -1887,7 +1887,7 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
     
 }
 
-logic GUITextBox(const s8* label,const s8* buffer,logic fill_w,GUIDim2 dim){
+b32 GUITextBox(const s8* label,const s8* buffer,b32 fill_w,GUIDim2 dim){
     
     u32 options = GUILAYOUT_NONE;
     
@@ -1992,14 +1992,14 @@ logic GUITextBox(const s8* label,const s8* buffer,logic fill_w,GUIDim2 dim){
 }
 
 
-logic GUITextField(const s8* label,const s8* buffer,logic fill_w,f32 w){
+b32 GUITextField(const s8* label,const s8* buffer,b32 fill_w,f32 w){
     
     return GUITextBox(label,buffer,fill_w,{w,-1.0f});
 }
 
 
-logic GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* index,
-                  logic fill_w){
+b32 GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* index,
+                b32 fill_w){
     
     u32 options = GUILAYOUT_NONE;
     
@@ -2057,7 +2057,7 @@ logic GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32
             gui->combobox_options_count = 0;
             gui->internal_active_state = 0;
             
-            //just adds the bounding box logic for the options, doesn't actually draw them
+            //just adds the bounding box b32 for the options, doesn't actually draw them
             
             auto tpos = pos;
             
@@ -2110,10 +2110,10 @@ logic GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32
 }
 
 
-logic GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
-                   u32* out_entry_index,f32* max,GUIDim2 dim,u32* highlight_index){
+b32 GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
+                 u32* out_entry_index,f32* max,GUIDim2 dim,u32* highlight_index){
     
-    logic ret = false;
+    b32 ret = false;
     
     GUISetRenderMode(GUI_RENDER_SOLID);
     GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2143,7 +2143,7 @@ logic GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 d
         highest_value = *max;
     }
     
-    logic set_active = false;
+    b32 set_active = false;
     
     for(u32 i = 0; i < data_count; i++){
         
@@ -2260,13 +2260,13 @@ f32 InternalGUIGetStackPositionY(StackEntry* array,u32* count,
     return start_y;
 }
 
-logic GUIProfileView(const s8* profilename,const DebugTable* table,GUIDim2 dim){
+b32 GUIProfileView(const s8* profilename,const DebugTable* table,GUIDim2 dim){
     
     gui->graph_hover = GUITYPE_NONE;
     
 #define _upperlimit 16.0f
     
-    logic ret = false;
+    b32 ret = false;
     
     GUISetRenderMode(GUI_RENDER_SOLID);
     GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2296,7 +2296,7 @@ logic GUIProfileView(const s8* profilename,const DebugTable* table,GUIDim2 dim){
     
     auto start_time = table->timestamp;
     
-    logic set_active = false;
+    b32 set_active = false;
     
     for(u32 i = 0; i < table->thread_count; i++){
         
@@ -2356,12 +2356,12 @@ logic GUIProfileView(const s8* profilename,const DebugTable* table,GUIDim2 dim){
     return ret;
 }
 
-logic GUIIsElementActive(const s8* element_name){
+b32 GUIIsElementActive(const s8* element_name){
     return gui->internal_active_state == PHashString(element_name);
 }
 
-logic GUIIsAnyElementActive(){
-    return (logic)gui->internal_active_state;
+b32 GUIIsAnyElementActive(){
+    return (b32)gui->internal_active_state;
 }
 
 
@@ -2373,7 +2373,7 @@ void InternalGUIDrawLine(GUIVec2 a,GUIVec2 b,Color color = White){
     InternalGUIDrawLine(GUIVec3{a.x,a.y,0},GUIVec3{b.x,b.y,0},color);
 }
 
-logic GUITranslateGizmo(GUIVec3* world_pos){
+b32 GUITranslateGizmo(GUIVec3* world_pos){
     
     auto token = PHashString("GUI3DTranslate");
     
@@ -2474,7 +2474,7 @@ logic GUITranslateGizmo(GUIVec3* world_pos){
 }
 
 
-logic GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
+b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
     
     auto token = PHashString("GUI3DScale");
     
@@ -2610,7 +2610,7 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
 }
 
 void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
-                            logic draw_unselected){
+                            b32 draw_unselected){
     
     struct DrawRotAxisData{
         u32 axis_index;
@@ -2680,7 +2680,7 @@ void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
 }
 
 
-logic GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
+b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
     
     auto ret = false;
     
@@ -2723,7 +2723,7 @@ logic GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
     Point3 retpi = {};
     Point3 curpi = {};
     
-    logic draw_unselected = true;
+    b32 draw_unselected = true;
     
     for(u32 i = 0; i < 3; i++){
         

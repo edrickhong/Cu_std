@@ -532,7 +532,7 @@ enum V_VDeviceContext_Flags{
     V_VDEVICECONTEXT_FLAGS_ENABLE_RENDER_TO_WINDOW = 1,
 };
 
-u32 VCreateInstance(const s8* applicationname_string,logic validation_enable,u32 api_version,WWindowContext* window = 0,u32 v_inst_flags = V_INSTANCE_FLAGS_NONE);
+u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 api_version,WWindowContext* window = 0,u32 v_inst_flags = V_INSTANCE_FLAGS_NONE);
 
 VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array = 0,u32 physdevice_count = 1,u32 vdevice_flags = V_VDEVICECONTEXT_FLAGS_ENABLE_RENDER_TO_WINDOW,
                                     u32 createqueue_bits = VCREATEQUEUEBIT_ALL);
@@ -633,12 +633,12 @@ VTextureContext VCreateTextureImage(const  VDeviceContext* _restrict vdevice,
 
 
 VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
-                                u32 width,u32 height,u32 usage,logic is_device_local = true,
+                                u32 width,u32 height,u32 usage,b32 is_device_local = true,
                                 VMappedBufferProperties prop = VMAPPED_COHERENT,VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
                                 VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
 
 VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vdevice,
-                                            u32 width,u32 height,u32 usage,logic is_device_local = true,
+                                            u32 width,u32 height,u32 usage,b32 is_device_local = true,
                                             VMappedBufferProperties prop = VMAPPED_COHERENT,
                                             VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
                                             VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
@@ -831,7 +831,7 @@ void VCreateComputePipelineArray(const  VDeviceContext* _restrict vdevice,
 
 VBufferContext VCreateShaderStorageBufferContext(
 const  VDeviceContext* _restrict vdevice,
-u32 data_size,logic is_devicelocal,VMappedBufferProperties prop = VMAPPED_COHERENT);
+u32 data_size,b32 is_devicelocal,VMappedBufferProperties prop = VMAPPED_COHERENT);
 
 VkDescriptorBufferInfo _ainline VGetBufferInfo(const VBufferContext* buffer,
                                                VkDeviceSize offset = 0,
@@ -866,10 +866,10 @@ VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice
                                         ptrsize data_size,u32 ind_size = sizeof(u32));
 
 VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         ptrsize data_size,u32 bindingno,logic isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT);
+                                         ptrsize data_size,u32 bindingno,b32 isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT);
 
 VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        ptrsize data_size,logic isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT,u32 ind_size = sizeof(u32));
+                                        ptrsize data_size,b32 isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT,u32 ind_size = sizeof(u32));
 
 
 u32 _ainline VFormatHash(VkFormat* format_array,u32 count){
@@ -1013,7 +1013,7 @@ void VSetDepthStencilGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
 
 void VSetColorBlend(VGraphicsPipelineSpecObj* spec,
                     VkPipelineColorBlendAttachmentState* attachment_array,u32 attachment_count,
-                    VkBool32 logicop_enable = VK_FALSE,VkLogicOp logic_op = VK_LOGIC_OP_CLEAR,
+                    VkBool32 b32op_enable = VK_FALSE,VkLogicOp b32_op = VK_LOGIC_OP_CLEAR,
                     f32 blendconstants[4] = {});
 
 void VEnableColorBlendTransparency(VGraphicsPipelineSpecObj* spec,
@@ -1122,3 +1122,35 @@ void VInitDevice(VkDevice device);
 
 //DeviceMemory allocator
 //VkDeviceMemory VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index);
+
+/*
+
+src/cu_std/cu/vvulkan.cpp:754:    context.memory = deviceallocator(device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:886:    context.memory = deviceallocator(vdevice->device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:1393:            deviceallocator(device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:1497:    deviceallocator = allocator;
+src/cu_std/cu/vvulkan.cpp:2308:        deviceallocator(vdevice->device,memreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:2355:        deviceallocator(vdevice->device,memreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:2418:        deviceallocator(vdevice->device,_mapalign(memoryreq.size),typeindex);
+src/cu_std/cu/vvulkan.cpp:2477:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:2515:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:2631:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
+src/cu_std/cu/vvulkan.cpp:2726:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
+
+
+DEVICEALLOCED: TYPE 0 SIZE 4988936
+DEVICEALLOCED: TYPE 0 SIZE 23068672
+DEVICEALLOCED: TYPE 1 SIZE 16777216
+DEVICEALLOCED: TYPE 1 SIZE 16777216
+DEVICEALLOCED: TYPE 0 SIZE 67108864
+DEVICEALLOCED: TYPE 0 SIZE 61440
+DEVICEALLOCED: TYPE 1 SIZE 57600
+DEVICEALLOCED: TYPE 1 SIZE 540672
+DEVICEALLOCED: TYPE 1 SIZE 36992
+DEVICEALLOCED: TYPE 0 SIZE 1024
+DEVICEALLOCED: TYPE 0 SIZE 1024
+DEVICEALLOCED: TYPE 1 SIZE 199500
+DEVICEALLOCED: TYPE 0 SIZE 256000
+DEVICEALLOCED: TYPE 1 SIZE 147456
+
+*/

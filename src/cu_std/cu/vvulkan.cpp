@@ -527,15 +527,13 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     
 #ifdef DEBUG
     
-#if 0
-    
-    PRINTTIMEBLOCK();
+#if 1
     printf("DEVICEALLOCED: TYPE %d SIZE %d\n",memorytype_index,(u32)alloc_size);
 #endif
     
 #endif
     
-    VkDeviceMemory memory;
+    VkDeviceMemory memory = {};
     
     VkMemoryAllocateInfo info = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -809,7 +807,7 @@ VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice
 
 
 VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         ptrsize data_size,u32 bindingno,logic isdevice_local,VMappedBufferProperties prop){
+                                         ptrsize data_size,u32 bindingno,b32 isdevice_local,VMappedBufferProperties prop){
     
     u32 memtype = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
@@ -832,7 +830,7 @@ VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevic
 }
 
 VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        ptrsize size,logic isdevice_local,VMappedBufferProperties prop,u32 ind_size){
+                                        ptrsize size,b32 isdevice_local,VMappedBufferProperties prop,u32 ind_size){
     
     u32 memtype = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
@@ -1202,7 +1200,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
     
     else{
         
-        logic found = false;
+        b32 found = false;
         
         for(ptrsize i = 0; i < surfaceformat_count; i++){
             
@@ -1459,7 +1457,7 @@ _persist u32 global_queuefamilyinfo_count = 0;
 
 
 
-_persist logic global_validation_enable = false;
+_persist b32 global_validation_enable = false;
 
 
 void VEnumerateCreatedFamilyQueues(VCreatedQueueFamilyInfo* info_array,u32* count){
@@ -1497,7 +1495,7 @@ void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32))
     deviceallocator = allocator;
 }
 
-u32 VCreateInstance(const s8* applicationname_string,logic validation_enable,u32 api_version,WWindowContext* window,u32 v_inst_flags){
+u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 api_version,WWindowContext* window,u32 v_inst_flags){
     
     _kill("instance already active\n",global_instance);
     
@@ -2316,7 +2314,7 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
 
 VBufferContext VCreateShaderStorageBufferContext(
 const  VDeviceContext* _restrict vdevice,
-u32 data_size,logic is_devicelocal,VMappedBufferProperties prop){
+u32 data_size,b32 is_devicelocal,VMappedBufferProperties prop){
     VBufferContext context;
     VkMemoryRequirements memreq;
     
@@ -2377,7 +2375,7 @@ void VUpdateUniformBuffer(const  VDeviceContext* _restrict vdevice,VBufferContex
 
 VImageMemoryContext VCreateColorImageMemory(
 const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 usage,
-logic is_device_local,VMappedBufferProperties prop,VkImageTiling tiling,
+b32 is_device_local,VMappedBufferProperties prop,VkImageTiling tiling,
 VkFormat format){
     
     VImageMemoryContext context = {};
@@ -2424,7 +2422,7 @@ VkFormat format){
 
 
 VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
-                                u32 width,u32 height,u32 usage,logic is_device_local,VMappedBufferProperties prop,
+                                u32 width,u32 height,u32 usage,b32 is_device_local,VMappedBufferProperties prop,
                                 VkImageTiling tiling,VkFormat format){
     
     VImageContext context = {};

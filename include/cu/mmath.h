@@ -476,11 +476,11 @@ enum IntersectType : u8{
     INTERSECT_INFINITE = 2,
 };
 
-logic Intersect(Line2 a,Line2 b);
+b32 Intersect(Line2 a,Line2 b);
 
-logic Intersect(Line2 a,Line2 b,Point2* out_point);
+b32 Intersect(Line2 a,Line2 b,Point2* out_point);
 
-logic TypedIntersect(Line2 a,Line2 b);
+b32 TypedIntersect(Line2 a,Line2 b);
 
 f32 Magnitude(Vector3 vec);
 Vector3 Cross(Vector3 vec1,Vector3 vec2);
@@ -499,20 +499,20 @@ Vector3 ProjectVectorOntoPlane(Vector3 vec,Plane plane);
 
 //line intersections
 
-logic Intersect(Line3 a,Line3 b);
+b32 Intersect(Line3 a,Line3 b);
 
-logic Intersect(Line3 a,Line3 b,Point3* out_point);
+b32 Intersect(Line3 a,Line3 b,Point3* out_point);
 
-logic TypedIntersect(Line3 a,Line3 b);
+b32 TypedIntersect(Line3 a,Line3 b);
 
 
 //plane intersections
 
-logic Intersect(Line3 a,Plane b);
+b32 Intersect(Line3 a,Plane b);
 
-logic TypedIntersect(Line3 a,Plane b);
+b32 TypedIntersect(Line3 a,Plane b);
 
-logic Intersect(Line3 a,Plane b,Point3* out_point);
+b32 Intersect(Line3 a,Plane b,Point3* out_point);
 
 Vector4 Normalize(Vector4 vec);
 f32 Magnitude(Vector4 vec);

@@ -68,7 +68,7 @@ FileNode FGetFileNode(const s8* file){
     return node;
 }
 
-logic FFileChanged(const s8* file,FileNode* n){
+b32 FFileChanged(const s8* file,FileNode* n){
     
     auto node = *n;
     auto new_node = FGetFileNode(file);

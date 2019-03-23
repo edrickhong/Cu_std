@@ -1,8 +1,9 @@
-#define _test__matrices 1
+
 
 #ifdef DEBUG
 
 #if (_test__matrices)
+#pragma message ("MATRIX TESTING ENABLED")
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE 1
 #define GLM_FORCE_RIGHT_HANDED 1
@@ -51,6 +52,9 @@ void InternalCmpMatrix(f32* f1,f32* f2){
     
 }
 
+#endif
+#endif
+
 void _ainline GetMinorMatrix(f32* in__matrix,u32 n,u32 k_x,u32 k_y,f32* out__matrix){
     
     u32 index = 0;
@@ -93,10 +97,6 @@ Matrix3b3 CompMul(Matrix3b3 a,Matrix3b3 b){
     
     return matrix;
 }
-
-#endif
-
-#endif
 
 Matrix2b2 operator+(Matrix2b2 lhs,Matrix2b2 rhs){
     
@@ -1561,7 +1561,7 @@ Vector3 ProjectVectorOntoPlane(Vector3 vec,Plane plane){
 
 #define _f32_error_offset  0.0001f
 
-logic Intersect(Line3 a,Line3 b){
+b32 Intersect(Line3 a,Line3 b){
     
     /*
       the form of a vector as a line is as follows:
@@ -1595,7 +1595,7 @@ logic Intersect(Line3 a,Line3 b){
     return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
-logic Intersect(Line3 a,Line3 b,Point3* out_point){
+b32 Intersect(Line3 a,Line3 b,Point3* out_point){
     
     auto cross_ab = Cross(a.dir,b.dir);
     auto cross_diff = Cross(b.pos - a.pos,b.dir);
@@ -1626,11 +1626,11 @@ logic Intersect(Line3 a,Line3 b,Point3* out_point){
     return true;
 }
 
-logic TypedIntersect(Line3 a,Line3 b){
+b32 TypedIntersect(Line3 a,Line3 b){
     
     auto dir = Normalize(b.pos - a.pos);//checks if the lines are the same
     
-    logic res =
+    b32 res =
         (u32)(fabsf(Dot(Normalize(a.dir),dir)) + _f32_error_offset) +
         Intersect(a,b);
     
@@ -1641,7 +1641,7 @@ logic TypedIntersect(Line3 a,Line3 b){
     return false;
 }
 
-logic Intersect(Line2 a_2,Line2 b_2){
+b32 Intersect(Line2 a_2,Line2 b_2){
     
     a_2.dir = Normalize(a_2.dir);
     b_2.dir = Normalize(b_2.dir);
@@ -1651,7 +1651,7 @@ logic Intersect(Line2 a_2,Line2 b_2){
     return !(u32)(fabsf(dot) + _f32_error_offset);
 }
 
-logic Intersect(Line2 a_2,Line2 b_2,Point2* out_point){
+b32 Intersect(Line2 a_2,Line2 b_2,Point2* out_point){
     
     a_2.dir = Normalize(a_2.dir);
     b_2.dir = Normalize(b_2.dir);
@@ -1678,14 +1678,14 @@ logic Intersect(Line2 a_2,Line2 b_2,Point2* out_point){
     return true;
 }
 
-logic TypedIntersect(Line2 a_2,Line2 b_2){
+b32 TypedIntersect(Line2 a_2,Line2 b_2){
     
     Line3 a = {Vector3{a_2.pos.x,a_2.pos.y,1.0f},Vector3{a_2.dir.x,a_2.dir.y,1.0f}};
     Line3 b = {Vector3{b_2.pos.x,b_2.pos.y,1.0f},Vector3{b_2.dir.x,b_2.dir.y,1.0f}};
     
     auto dir = Normalize(b.pos - a.pos);//checks if the lines are the same
     
-    logic res =
+    b32 res =
         (u32)(fabsf(Dot(Normalize(a.dir),dir)) + _f32_error_offset) +
         Intersect(a,b);
     
@@ -1696,7 +1696,7 @@ logic TypedIntersect(Line2 a_2,Line2 b_2){
     return false;
 }
 
-logic Intersect(Line3 a,Plane b){
+b32 Intersect(Line3 a,Plane b){
     
     m32 fi1;
     
@@ -1706,7 +1706,7 @@ logic Intersect(Line3 a,Plane b){
     return fi1.u != 0;
 }
 
-logic TypedIntersect(Line3 a,Plane b){
+b32 TypedIntersect(Line3 a,Plane b){
     
     /*
       if the dir of a line is perpendicular to a plane normal, it will never intersect unless the line is on the
@@ -1734,7 +1734,7 @@ logic TypedIntersect(Line3 a,Plane b){
     return INTERSECT_FINITE;
 }
 
-logic Intersect(Line3 a,Plane b,Point3* out_point){
+b32 Intersect(Line3 a,Plane b,Point3* out_point){
     
     /*
       we first imagine a line (A) from our plane normal position (B) to any position on our line (L).

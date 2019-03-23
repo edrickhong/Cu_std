@@ -234,7 +234,7 @@ void PGetFileExtension(s8* dst_string,const s8* file,u32* len){
 }
 
 
-logic PSkipWhiteSpace(s8* src_string,ptrsize* pos){
+b32 PSkipWhiteSpace(s8* src_string,ptrsize* pos){
     
     u32 start = *pos;
     u32 cur = *pos;
@@ -369,7 +369,7 @@ void PSanitizeStringC(s8* buffer,ptrsize* k){
     
     for(;;){
         
-        logic reparse = false;
+        b32 reparse = false;
         
         if(PIsCommentC(buffer[cur],buffer[cur + 1])){
             PSkipLine(buffer,&cur);
@@ -484,7 +484,7 @@ s8 PFillEvalBufferC(s8* buffer,ptrsize* a,EvalChar* evaluation_buffer,u32* k,s8*
     u32 symbol_len = 0;
     s8 symbol_buffer[128] = {};
     
-    logic ret = false;
+    b32 ret = false;
     
     PGetSymbol(&symbol_buffer[0],buffer,&cur,&symbol_len);
     
@@ -712,7 +712,7 @@ m64 OpDiv_S64(m64 a,m64 b){
     return {(u64)(a.i / b.i)};
 }
 
-logic IsMathOp(OpCharType type){
+b32 IsMathOp(OpCharType type){
     
     OpCharType array[] = {
         OpChar_SUB,

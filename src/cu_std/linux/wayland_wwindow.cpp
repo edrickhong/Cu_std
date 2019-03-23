@@ -79,7 +79,7 @@ const wl_interface* wl_subsurface_interface_ptr = 0;
 const wl_interface* wl_shm_interface_ptr = 0;
 
 
-logic InternalLoadLibraryWayland(){
+b32 InternalLoadLibraryWayland(){
     
     if(wwindowlib_handle){
         
@@ -580,8 +580,8 @@ void WPresentBackBufferWayland(WWindowContext* windowcontext,WBackBufferContext*
     wl_surface_commit((wl_surface*)windowcontext->window);
 }
 
-logic InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
-                                  WCreateFlags flags,u32 x,u32 y,u32 width,u32 height){
+b32 InternalCreateWaylandWindow(WWindowContext* context,const s8* title,
+                                WCreateFlags flags,u32 x,u32 y,u32 width,u32 height){
     
     if(!InternalLoadLibraryWayland()){
         return false;    

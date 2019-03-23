@@ -187,7 +187,7 @@ struct PrintTimeBlock : TimeBlock{
 
 
 
-void BuildGraph(logic to_draw);
+void BuildGraph(b32 to_draw);
 
 
 void PrintEntries();

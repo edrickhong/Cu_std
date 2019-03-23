@@ -98,7 +98,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,
     
     memset(context.data,0,sizeof(InternalWindowData));
     
-    logic res = 0;
+    b32 res = 0;
     
     if(!(flags & W_CREATE_BACKEND_XLIB)){
         res = InternalCreateWaylandWindow(&context,title,flags,x,y,width,height);
@@ -134,7 +134,7 @@ WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 
     
     vkEnumerateInstanceExtensionProperties(0,&count,&extension_array[0]);
     
-    logic wayland_enabled = false;
+    b32 wayland_enabled = false;
     
     for(u32 i = 0; i < count; i++){
         

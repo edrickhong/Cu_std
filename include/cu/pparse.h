@@ -2,6 +2,7 @@
 
 //MARK: C STDLIB
 #include "string.h"
+#include "ttype.h"
 
 /*
 This is for general string parsing and to support the general parsing of C-like functions
@@ -125,24 +126,24 @@ void _ainline PCharToHexString(u8 c,s8* dst_buffer){
 }
 
 
-logic _ainline PIsWhiteSpace(s8 c){
+b32 _ainline PIsWhiteSpace(s8 c){
     return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r');
 }
 
-logic _ainline PIsAlphabet(s8 c){
+b32 _ainline PIsAlphabet(s8 c){
     
     return ((c > 64) && (c < 91)) || ((c > 96) && (c < 123));
 }
 
-logic _ainline PIsNumeric(s8 c){
+b32 _ainline PIsNumeric(s8 c){
     return (c > 47) && (c < 58);
 }
 
-logic _ainline PIsSymbol(s8 c){
+b32 _ainline PIsSymbol(s8 c){
     return PIsAlphabet(c) || PIsNumeric(c) || c == '$' || c == '#' || c == '_';
 }
 
-logic _ainline PIsVisibleChar(s8 c){
+b32 _ainline PIsVisibleChar(s8 c){
     return (c > 32) && (c < 127);
 }
 
@@ -226,7 +227,7 @@ void PGetLine(s8* dst_string,s8* src_string,ptrsize* pos,u32* len);
 
 void PSkipLine(s8* src_string,ptrsize* pos);
 
-logic PSkipWhiteSpace(s8* src_string,ptrsize* pos);
+b32 PSkipWhiteSpace(s8* src_string,ptrsize* pos);
 
 void PSkipUntilChar(s8* src_string,ptrsize* pos,s8 c);
 
@@ -234,9 +235,9 @@ void PParseUntilChar(s8* dst_string,s8* src_string,ptrsize* pos,s8 c,u32* len);
 
 void PGetFileExtension(s8* dst_string,const s8* file,u32* len);
 
-logic _ainline PIsStringInt(s8* string){
+b32 _ainline PIsStringInt(s8* string){
     
-    logic is_numeric = true;
+    b32 is_numeric = true;
     
     auto len = strlen(string);
     
@@ -256,9 +257,9 @@ logic _ainline PIsStringInt(s8* string){
     return is_numeric;
 }
 
-logic _ainline PIsStringFloat(s8* string){
+b32 _ainline PIsStringFloat(s8* string){
     
-    logic is_numeric = true;
+    b32 is_numeric = true;
     
     u32 dot_count = 0;
     
@@ -336,7 +337,7 @@ void PBufferToByteArrayString(s8* array_name,s8* src_buffer,ptrsize src_size,s8*
 
 void PBufferListToArrayString(s8* array_name,s8* src_buffer,ptrsize src_size,s8* dst_buffer,ptrsize* dst_size,u32* arraycount = 0);
 
-constexpr logic PStringCmp(const s8* string1,const s8* string2){
+constexpr b32 PStringCmp(const s8* string1,const s8* string2){
     
     auto len = PStrLen(string1);
     
@@ -355,19 +356,19 @@ constexpr logic PStringCmp(const s8* string1,const s8* string2){
     return true;
 }
 
-logic _ainline PIsPreprocessorC(s8 c){
+b32 _ainline PIsPreprocessorC(s8 c){
     return c == '#';
 }
 
-logic  _ainline PIsCommentC(s8 c1,s8 c2){
+b32  _ainline PIsCommentC(s8 c1,s8 c2){
     return c1 == '/'  && c2 == '/';
 }
 
-logic  _ainline PIsStartCommentC(s8 c1,s8 c2){
+b32  _ainline PIsStartCommentC(s8 c1,s8 c2){
     return c1 == '/'  && c2 == '*';
 }
 
-logic  _ainline PIsEndCommentC(s8 c1,s8 c2){
+b32  _ainline PIsEndCommentC(s8 c1,s8 c2){
     return c1 == '*'  && c2 == '/';
 }
 

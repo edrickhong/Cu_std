@@ -15,7 +15,7 @@ _persist void* wfptr_x11_xconfigurewindow = 0;
 _persist void* wfptr_x11_xputimage = 0;
 _persist void* wfptr_x11_xcopyarea = 0;
 
-logic InternalLoadLibraryX11(){
+b32 InternalLoadLibraryX11(){
     
     
     if(wwindowlib_handle){
@@ -359,8 +359,8 @@ void InternalPresentBackBufferX11(WWindowContext* window,WBackBufferContext* buf
 }
 
 
-logic InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
-                              u32 x,u32 y,u32 width,u32 height){
+b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
+                            u32 x,u32 y,u32 width,u32 height){
     
     if(!InternalLoadLibraryX11()){
         return false;

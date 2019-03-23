@@ -30,7 +30,7 @@ void _ainline Clear(ThreadWorkQueue* queue){
 void PushThreadWorkQueue(ThreadWorkQueue* queue,WorkProc proc,void* data,
                          TSemaphore sem);
 
-logic ExecuteThreadWorkQueue(ThreadWorkQueue* queue,void* thread_data);
+b32 ExecuteThreadWorkQueue(ThreadWorkQueue* queue,void* thread_data);
 
 void inline MainThreadDoWorkQueue(ThreadWorkQueue* queue,void* thread_data){
     

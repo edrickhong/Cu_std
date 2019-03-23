@@ -83,14 +83,14 @@ void GUIBeginWindow(const s8* title,GUIVec2* pos = 0,GUIDim2* dim = 0);
 
 void GUIString(const s8* string);
 
-logic GUITextBox(const s8* label,const s8* buffer,logic fill_w = true,GUIDim2 dim = {0.5f,0.5f});
+b32 GUITextBox(const s8* label,const s8* buffer,b32 fill_w = true,GUIDim2 dim = {0.5f,0.5f});
 
-logic GUITextField(const s8* label,const s8* buffer,logic fill_w = true,f32 w = 0.5f);
+b32 GUITextField(const s8* label,const s8* buffer,b32 fill_w = true,f32 w = 0.5f);
 
-logic GUIButton(const s8* title);
+b32 GUIButton(const s8* title);
 
-logic GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* index,
-                  logic fill_w = true);
+b32 GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* index,
+                b32 fill_w = true);
 
 void GUISlider();
 
@@ -98,17 +98,17 @@ void GUI3DTranslate(f32* x,f32* y,f32* z);
 void GUI3DScale(f32* x);
 void GUI3DRotate(f32* x,f32* y,f32* z);
 
-logic GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
-                   u32* out_entry_index,f32* max = 0,GUIDim2 dim = {0.5f,0.5f},u32* highlight_index = 0);
+b32 GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
+                 u32* out_entry_index,f32* max = 0,GUIDim2 dim = {0.5f,0.5f},u32* highlight_index = 0);
 
 
 
-logic GUIProfileView(const s8* profilename,const DebugTable* table,
-                     GUIDim2 dim = {0.5f,0.5f});
+b32 GUIProfileView(const s8* profilename,const DebugTable* table,
+                   GUIDim2 dim = {0.5f,0.5f});
 
-logic GUIIsElementActive(const s8* element_name);
+b32 GUIIsElementActive(const s8* element_name);
 
-logic GUIIsAnyElementActive();
+b32 GUIIsAnyElementActive();
 
 void GUILineGraph();
 
@@ -118,11 +118,11 @@ void GUILineGraph();
 #define GUIDEFAULT_W 0.25f
 #define GUIDEFAULT_H 0.25f
 
-logic GUITranslateGizmo(GUIVec3* world_pos);
+b32 GUITranslateGizmo(GUIVec3* world_pos);
 
-logic GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
+b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
 
-logic GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot);
+b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot);
 
 void GUIDrawPosMarker(GUIVec3 world_pos,Color color);
 

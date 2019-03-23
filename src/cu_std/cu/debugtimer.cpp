@@ -75,7 +75,7 @@ void InternalClearDebugTable(DebugTable* table){
     }  
 }
 
-void BuildGraph(logic to_draw){
+void BuildGraph(b32 to_draw){
     
     static GUIVec2 pos = {-1.0f,0.898333f};
     static GUIDim2 dim = {GUIDEFAULT_W * 2.5f,GUIDEFAULT_H * 1.4f};

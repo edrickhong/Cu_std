@@ -22,7 +22,7 @@ void PushThreadWorkQueue(ThreadWorkQueue* queue,WorkProc proc,void* data,
     TSignalSemaphore(sem);
 }
 
-logic ExecuteThreadWorkQueue(ThreadWorkQueue* queue,void* thread_data){
+b32 ExecuteThreadWorkQueue(ThreadWorkQueue* queue,void* thread_data){
     
     
     u32 index = queue->index;
