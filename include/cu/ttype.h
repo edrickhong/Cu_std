@@ -51,25 +51,25 @@ typedef unsigned int ptrsize;
 
 #define _deprecated __declspec(deprecated)
 #define _restrict __restrict
-#define _optnone
 #define _ainline __forceinline
 #define _align(alignment) __declspec( align(alignment) )
 #define _membarrier() MemoryBarrier()
 #define _winapi __stdcall
 #define _dllexport __declspec(dllexport)
-#define _packed
+#define _packed //MARK: we need this to work on windows as well
+#define _breakpoint() DebugBreak()
 
 #else
 
 #define _deprecated __attribute__ ((deprecated))
 #define _restrict __restrict__
-#define _optnone __attribute__((optimize("O0")))
 #define _ainline inline __attribute__((always_inline))
 #define _align(alignment) __attribute__ ((aligned (alignment)))
 #define _membarrier() asm volatile ("" : : : "memory")
 #define _winapi
 #define _dllexport __attribute__ ((visibility ("default")))
 #define _packed __attribute__((packed))
+#define _breakpoint() __asm__ volatile ("int $3\n")
 
 #endif
 
