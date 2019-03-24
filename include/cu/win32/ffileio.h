@@ -1,6 +1,7 @@
 #pragma once
 
 #pragma once
+#include "ttype.h"
 #include <Windows.h>
 #include "string.h"
 
@@ -55,9 +56,9 @@ void _ainline FCloseFile(FileHandle filehandle){
     CloseHandle(filehandle);
 }
 
-logic _ainline FIsFileExists(const s8* filepath){
+b32 _ainline FIsFileExists(const s8* filepath){
     auto file = FOpenFile(filepath,F_FLAG_READONLY);
-    logic ret = file != F_FILE_INVALID;
+    b32 ret = file != F_FILE_INVALID;
     FCloseFile(file);
     return ret;
 }
@@ -103,7 +104,7 @@ u32 FFindNextFile(DirectoryHandle* dirhandle,FileInfo* info);
 
 FileNode FGetFileNode(const s8* file);
 
-logic FFileChanged(const s8* file,FileNode* node);
+b32 FFileChanged(const s8* file,FileNode* node);
 
 #ifdef DEBUG
 

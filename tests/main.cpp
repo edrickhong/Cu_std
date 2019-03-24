@@ -42,7 +42,7 @@ void AddHash(HashEntry* table,u32* c,u64 hash,const s8* string){
     
 }
 
-logic PrintHashDiagnostics(HashEntry* table,u32 count){
+b32 PrintHashDiagnostics(HashEntry* table,u32 count){
     
     u32 collide_count = 0;
     
@@ -76,7 +76,7 @@ logic PrintHashDiagnostics(HashEntry* table,u32 count){
     return percent > 20.0;
 }
 
-logic HashTest(){
+b32 HashTest(){
     
     printf("RUNNING PHashString Collision test\n");
     
