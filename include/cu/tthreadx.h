@@ -79,15 +79,18 @@ void _ainline TSingleEntryUnlock(EntryMutex* mutex){
 
 
 u32 TGetEntryIndex(volatile u32* cur_index);
+u32 TGetEntryIndexD(volatile u32* cur_index,u32 max_count);
 
-u32 TGetEntryIndex(volatile u32* cur_index,u32 max_count);
+u32 TGetEntryOffset(volatile u32* cur_offset,u32 size);
+u32 TGetEntryOffsetD(volatile u32* cur_offset,u32 size,u32 max_size);
 
-#ifdef DEBUG
+u32 TGetEntryAlignedOffset(volatile u32* cur_offset,u32 size,u32 alignment);
+u32 TGetEntryAlignedOffsetD(volatile u32* cur_offset,u32 size,u32 alignment,u32 max_size);
 
-#define TGetEntryIndexD(a,b) TGetEntryIndex(a,b)
-
-#else
+#ifndef DEBUG
 
 #define TGetEntryIndexD(a,b) TGetEntryIndex(a)
+#define TGetEntryOffsetD(a,b,c) TGetEntryOffset(a,b)
+#define TGetEntryAlignedOffsetD(a,b,c,d) TGetEntryAlignedOffset(a,b,c)
 
 #endif

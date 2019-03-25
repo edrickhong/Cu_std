@@ -77,7 +77,7 @@ typedef unsigned int ptrsize;
 #define _cachealign _align(64)
 
 #define _either(condition,value1,value2) ((condition) ? value1: value2)
-#define _internal static
+#define _intern static
 #define _persist static
 #define _global static
 #define _countsize(size,type) size/(sizeof(type))
@@ -93,8 +93,11 @@ typedef unsigned int ptrsize;
 #define _zerotop16(m64t) (m64t.u ^= 0xFFFF000000000000)
 
 
-//MARK:Does this even work??
 #define _unsigned_max(value) (((u64)1 << (sizeof(value) * 8)) - 1)
+#define _unsigned_max8 _unsigned_max(u8)
+#define _unsigned_max16 _unsigned_max(u16)
+#define _unsigned_max32 _unsigned_max(u32)
+#define _unsigned_max64 _unsigned_max(u64)
 
 #define _kilobytes(value) ((value) * 1024)
 #define _megabytes(value) (_kilobytes(value) * 1024)

@@ -1,19 +1,19 @@
 #pragma once
 
-_persist void* wfptr_x11_xstorename = 0;
-_persist void* wfptr_x11_xflush = 0;
-_persist void* wfptr_x11_xpending = 0;
-_persist void* wfptr_x11_xnextevent = 0;
-_persist void* wfptr_x11_xsetwmnormalhints = 0;
-_persist void* wfptr_x11_xrefreshkeyboardmapping = 0;
-_persist void* wfptr_x11_xsync = 0;
-_persist void* wfptr_x11_xsetwmprotocols = 0;
-_persist void* wfptr_x11_xlookupstring = 0;
-_persist void* wfptr_x11_xconfigurewindow = 0;
+_global void* wfptr_x11_xstorename = 0;
+_global void* wfptr_x11_xflush = 0;
+_global void* wfptr_x11_xpending = 0;
+_global void* wfptr_x11_xnextevent = 0;
+_global void* wfptr_x11_xsetwmnormalhints = 0;
+_global void* wfptr_x11_xrefreshkeyboardmapping = 0;
+_global void* wfptr_x11_xsync = 0;
+_global void* wfptr_x11_xsetwmprotocols = 0;
+_global void* wfptr_x11_xlookupstring = 0;
+_global void* wfptr_x11_xconfigurewindow = 0;
 
 //for presenting
-_persist void* wfptr_x11_xputimage = 0;
-_persist void* wfptr_x11_xcopyarea = 0;
+_global void* wfptr_x11_xputimage = 0;
+_global void* wfptr_x11_xcopyarea = 0;
 
 b32 InternalLoadLibraryX11(){
     

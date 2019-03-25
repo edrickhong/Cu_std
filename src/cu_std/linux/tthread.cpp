@@ -95,17 +95,17 @@ jumping to the address at the top of its stack(the function address we just wrot
 Since this requires a system call, we might as well use the one provided in libc*/
 
 
-// _persist LibHandle threadlib = 0;
+// _global LibHandle threadlib = 0;
 
-// _persist void* pthread_setaffinity_np_ptr = 0;
-// _persist void* pthread_attr_setstacksize_ptr = 0;
-// _persist void* pthread_create_ptr = 0;
-// _persist void* sem_init_ptr = 0;
-// _persist void* sem_destroy_ptr = 0;
-// _persist void* sem_timedwait_ptr = 0;
-// _persist void* sem_post_ptr = 0;
-// _persist void* pthread_self_ptr = 0;
-// _persist void* sem_wait_ptr = 0;
+// _global void* pthread_setaffinity_np_ptr = 0;
+// _global void* pthread_attr_setstacksize_ptr = 0;
+// _global void* pthread_create_ptr = 0;
+// _global void* sem_init_ptr = 0;
+// _global void* sem_destroy_ptr = 0;
+// _global void* sem_timedwait_ptr = 0;
+// _global void* sem_post_ptr = 0;
+// _global void* pthread_self_ptr = 0;
+// _global void* sem_wait_ptr = 0;
 
 // #define pthread_setaffinity_np ((int (*)(pthread_t,size_t,const cpu_set_t*))pthread_setaffinity_np_ptr)
 

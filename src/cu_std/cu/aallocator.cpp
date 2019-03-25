@@ -32,7 +32,7 @@ struct AAllocatorContext{
 #endif
 };
 
-_persist AAllocatorContext* alloc_context = 0;
+_global AAllocatorContext* alloc_context = 0;
 
 #ifdef DEBUG
 
@@ -264,6 +264,7 @@ void* TAlloc(u32 size){
     
     _kill("this happened for some reason\n",aligned_size < size);
     
+    //TODO: replace this with get offset
     u32 expected_curframe_count;
     u32 actual_curframe_count;
     u32 new_curframe_count;

@@ -2,6 +2,8 @@
 #include "ttype.h"
 /*
 TODO: We should log and do bounds checking for our regular mallocs as well
+
+rename DebugAllocedPtr to BoundsPtr
  */
 
 void* TAlloc(u32 size);
@@ -58,6 +60,16 @@ struct DebugAllocedPtr{
     
     DebugAllocedPtr(){}
     
+    DebugAllocedPtr(T* in_ptr,u32 f_alloc_size,s8* in_file,s8* in_function,u32 in_line){
+        ptr = in_ptr;
+        forward_size = f_alloc_size - sizeof(T);
+        backward_size = 0;
+        this->file = in_file;
+        this->function = in_function;
+        this->line = in_line;
+    }
+    
+    //TODO: remove this and use the constructor above
     DebugAllocedPtr(u32 f_alloc_size,s8* in_file,s8* in_function,u32 in_line){
         ptr = (T*)DebugTAlloc(f_alloc_size,file,function,line);
         forward_size = f_alloc_size - sizeof(T);
@@ -150,6 +162,12 @@ struct DebugAllocedPtr{
 template <class T>
 DebugAllocedPtr<T> MakeDebugPtr(u32 f_alloc_size,s8* file,s8* function,u32 line){
     DebugAllocedPtr<T> a(f_alloc_size,file,function,line);
+    return a;
+}
+
+template <class T>
+DebugAllocedPtr<T> MakeDebugPtr(T* ptr,u32 f_alloc_size,s8* file,s8* function,u32 line){
+    DebugAllocedPtr<T> a(ptr,f_alloc_size,file,function,line);
     return a;
 }
 

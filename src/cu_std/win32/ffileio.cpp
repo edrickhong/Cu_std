@@ -93,7 +93,7 @@ struct DebugFileEntry{
     s8 filename[_short_file_len];
 };
 
-_persist DebugFileEntry file_array[1024] = {};
+_global DebugFileEntry file_array[1024] = {};
 
 void DebugDumpOpenFiles(){
     

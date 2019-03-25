@@ -3,10 +3,14 @@
 #include "wwindow.h"
 
 /*
+
+TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
+
 #define VK_VERSION_MAJOR(version) ((uint32_t)(version) >> 22)
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 */
+
 
 
 void* vkenumerateinstanceextensionproperties;
@@ -140,14 +144,65 @@ void* vkenumeratephysicaldevicegroups;
 #endif
 
 
+//we can optimize this (make this a pointer)
+u32 VGetMemoryTypeIndex(VkPhysicalDeviceMemoryProperties properties,
+                        u32 typebits,u32 flags){
+    
+    //typebits is a bitfield that lists all usable memory types
+    //we iterate over each bit until we find one that is supported and fits
+    //the specifications we set in flags
+    
+    for (u32 i = 0; i < properties.memoryTypeCount; i++){
+        if (typebits & (1 << i)){
+            if ((properties.memoryTypes[i].propertyFlags & flags) == 
+                flags){
+                return i;
+            }
+        }
+    }
+    
+    return -1;
+}
 
-//MARK: every function that uses VCreateImage/Buffer etc does not handle for shared resources
-//Look for VkSharingMode
+u32 VGetMemoryTypeIndex(VkPhysicalDeviceMemoryProperties properties,u32 flags){
+    
+    //we iterate over each bit until we find one that is supported and fits
+    //the specifications we set in flags
+    
+    for (u32 i = 0; i < properties.memoryTypeCount; i++){
+        if ((properties.memoryTypes[i].propertyFlags & flags) == 
+            flags){
+            return i;
+        }
+    }
+    
+    return -1;
+}
 
+struct VDeviceMemoryBlock{
+    VkDeviceMemory memory;
+    u32 offset;
+    u32 size;
+    
+#ifdef DEBUG
+    u32 type;
+    
+    u64* res;
+    
+#endif
+};
 
-_persist VkAllocationCallbacks* global_allocator = 0;
+/*
+NOTE: There are 3 blocks gauranteed with an optional direct pool
 
-//MARK: Implementation code
+device - device memory that gives the best gpu read and write speeds
+write - host memory that is best for transfering data to the gpu
+readwrite - host memory best for reading back writes from the gpu. Can also write
+direct - direct write to gpu memory. the pool is very small and is not supported by all hw
+
+*/
+
+#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
 
 void ErrorString(VkResult errorCode){
     switch (errorCode)
@@ -182,8 +237,476 @@ void ErrorString(VkResult errorCode){
     }
 }
 
+_global VkAllocationCallbacks* global_allocator = 0;
 
-#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
+VkBuffer CreateBuffer(VkDevice device,VkBufferCreateFlags flags,
+                      VkDeviceSize size,VkBufferUsageFlags usage,
+                      VkSharingMode sharingmode,
+                      u32* queuefamilyindex_array ,
+                      ptrsize queuefamilyindex_count){
+    
+    VkBuffer buffer;
+    
+    VkBufferCreateInfo info = {};
+    
+    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    info.flags = flags;
+    info.size = size;
+    info.usage = usage;
+    info.sharingMode = sharingmode;
+    info.queueFamilyIndexCount = queuefamilyindex_count;
+    info.pQueueFamilyIndices = queuefamilyindex_array;
+    
+    _vktest(vkCreateBuffer(device,&info,global_allocator,&buffer));
+    
+    return buffer;
+}
+
+_global VDeviceMemoryBlock device_block = {};
+_global VDeviceMemoryBlock write_block = {};
+_global VDeviceMemoryBlock readwrite_block = {};
+_global VDeviceMemoryBlock direct_block = {};
+
+
+_global u64 write_array[256] = {};
+_global u32 write_count = 0;
+
+_global u64 readwrite_array[256] = {};
+_global u32 readwrite_count = 0;
+
+_global u64 direct_array[256] = {};
+_global u32 direct_count = 0;
+
+
+//NOTE: this is a rolling buffer
+struct VTransferBuffer{
+    //NOTE: base offset is the same value as offset
+    VkBuffer buffer;
+    u32 size;
+    u32 offset;
+    u32 volatile alloc_offset = 0;
+};
+
+_global VTransferBuffer transferbuffer = {};
+
+_global s8* write_ptr = 0;
+_global s8* readwrite_ptr = 0;
+_global s8* direct_ptr = 0;
+
+s8* VGetWriteBlockPtr(VBufferContext* _restrict buffer){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < write_count;i++){
+        if(write_array[i] == (u64)buffer->buffer){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return write_ptr + buffer->mapid;
+}
+
+s8* VGetReadWriteBlockPtr(VBufferContext* _restrict buffer){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < readwrite_count;i++){
+        if(readwrite_array[i] == (u64)buffer->buffer){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return readwrite_ptr + buffer->mapid;
+}
+
+s8* VGetDirectBlockPtr(VBufferContext* _restrict buffer){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < direct_count;i++){
+        if(direct_array[i] == (u64)buffer->buffer){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return direct_ptr + buffer->mapid;
+}
+
+s8* VGetWriteBlockPtr(VImageMemoryContext* _restrict image){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < write_count;i++){
+        if(write_array[i] == (u64)image->image){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return write_ptr + image->mapid;
+}
+
+s8* VGetReadWriteBlockPtr(VImageMemoryContext* _restrict image){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < readwrite_count;i++){
+        if(readwrite_array[i] == (u64)image->image){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return readwrite_ptr + image->mapid;
+}
+
+s8* VGetDirectBlockPtr(VImageMemoryContext* _restrict image){
+    
+#ifdef DEBUG
+    u64 res = 0;
+    
+    for(u32 i = 0; i < direct_count;i++){
+        if(direct_array[i] == (u64)image->image){
+            res = true;
+        }
+    }
+    _kill("resources is not bound to this block\n",!res);
+    
+#endif
+    
+    return direct_ptr + image->mapid;
+}
+
+VkDeviceMemory VGetDeviceBlockMemory(){
+    return device_block.memory;
+}
+
+VkDeviceMemory VGetWriteBlockMemory(){
+    return write_block.memory;
+}
+
+VkDeviceMemory VGetReadWriteBlockMemory(){
+    return readwrite_block.memory;
+}
+
+VkDeviceMemory VGetDirectBlockMemory(){
+    return direct_block.memory;
+}
+
+s8* VGetTransferBufferPtr(u32 size){
+    
+    size = _mapalign(size);
+    
+    s8* base_ptr = write_ptr + transferbuffer.offset;
+    
+    
+    auto offset = TGetEntryOffset(&transferbuffer.alloc_offset,size);
+    
+    
+    //we reroll
+    if((offset - transferbuffer.offset) + size > transferbuffer.size){
+        
+        //We try to set the transferbuffer to transferbuffer.offset, then get a new offset
+        LockedCmpXchg(&transferbuffer.alloc_offset,transferbuffer.alloc_offset,transferbuffer.offset);
+        
+        offset = TGetEntryOffset(&transferbuffer.alloc_offset,size);
+        
+#ifdef DEBUG
+        printf("REROLLING BUFFER! Make this bigger if we are rerolling too often\n");
+#endif
+    }
+    
+    return base_ptr + offset;
+}
+
+
+void VPushBackCopyBuffer(s8* _restrict transferbufferptr,VBufferCopy* _restrict copy,VkDeviceSize dst_offset,VkDeviceSize size){
+    
+    _kill("Too many entries\n",copy->count >= _arraycount(copy->array));
+    
+    copy->array[copy->count] = {(VkDeviceSize)(transferbufferptr - (write_ptr + transferbuffer.offset)),dst_offset,size};
+    
+    printf("BUFFERCOPY::SRCOFF %d DSTOFF %d SIZE %d\n",(u32)copy->array[copy->count].srcOffset,(u32)copy->array[copy->count].dstOffset,(u32)copy->array[copy->count].size);
+    
+    copy->count++;
+}
+
+void VCmdCopyBuffer(VkCommandBuffer cmdbuffer,VkBuffer dst_buffer,VBufferCopy* _restrict copy){
+    
+    vkCmdCopyBuffer(cmdbuffer,transferbuffer.buffer,dst_buffer,copy->count,copy->array);
+}
+
+void VPushBackCopyBufferImage(s8* _restrict transferbufferptr,VBufferImageCopy* _restrict copy,VkExtent3D extent,VkOffset3D offset,VkImageSubresourceLayers layers,u32 buffer_rowlength,u32 buffer_imageheight){
+    
+    _kill("Too many entries\n",copy->count >= _arraycount(copy->array));
+    
+    
+    copy->array[copy->count].bufferOffset = (VkDeviceSize)(transferbufferptr - (write_ptr + transferbuffer.offset));
+    copy->array[copy->count].bufferRowLength = buffer_rowlength;
+    copy->array[copy->count].bufferImageHeight = buffer_imageheight;
+    copy->array[copy->count].imageSubresource = layers;
+    copy->array[copy->count].imageOffset = offset;
+    copy->array[copy->count].imageExtent = extent;
+    
+    
+    printf("IMAGE::SRCOFF %d\n",(u32)copy->array[copy->count].bufferOffset);
+    
+    copy->count++;
+    
+}
+
+VkBuffer VGetTransferBuffer(){
+    return transferbuffer.buffer;
+}
+
+VkDeviceSize VGetTransferBufferOffset(s8* _restrict transferbufferptr){
+    return (VkDeviceSize)(transferbufferptr - (write_ptr + transferbuffer.offset));
+}
+
+void VCmdBufferImageCopy(VkCommandBuffer cmdbuffer,VkImage dst_image,VkImageLayout layout,VBufferImageCopy* _restrict copy){
+    
+    vkCmdCopyBufferToImage(cmdbuffer,transferbuffer.buffer,dst_image,layout,copy->count,copy->array);
+}
+
+
+
+_intern VDeviceMemoryBlock VWriteBlockAlloc(u32 size,u32 alignment){
+    
+    auto offset = TGetEntryAlignedOffsetD(&write_block.offset,size,alignment,write_block.size);
+    
+    VDeviceMemoryBlock block = {};
+    block.memory = write_block.memory;
+    block.offset = offset;
+    block.size = size;
+    
+#if DEBUG
+    _kill("too many resources bound\n",write_count >= _arraycount(write_array));
+    block.res = &write_array[write_count];
+    write_count++;
+#endif
+    
+    return block;
+}
+
+_intern VDeviceMemoryBlock VReadWriteBlockAlloc(u32 size,u32 alignment){
+    
+    auto offset = TGetEntryAlignedOffsetD(&readwrite_block.offset,size,alignment,readwrite_block.size);
+    
+    VDeviceMemoryBlock block = {};
+    block.memory = readwrite_block.memory;
+    block.offset = offset;
+    block.size = size;
+    
+#if DEBUG
+    _kill("too many resources bound\n",readwrite_count >= _arraycount(readwrite_array));
+    block.res = &readwrite_array[readwrite_count];
+    readwrite_count++;
+#endif
+    
+    return block;
+}
+
+_intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment){
+    
+    auto offset = TGetEntryAlignedOffsetD(&direct_block.offset,size,alignment,direct_block.size);
+    
+    VDeviceMemoryBlock block = {};
+    block.memory = direct_block.memory;
+    block.offset = offset;
+    block.size = size;
+    
+#if DEBUG
+    _kill("too many resources bound\n",direct_count >= _arraycount(direct_array));
+    block.res = &direct_array[direct_count];
+    direct_count++;
+#endif
+    
+    return block;
+}
+
+_intern VDeviceMemoryBlock VDeviceBlockAlloc(u32 size,u32 alignment){
+    
+    auto offset = TGetEntryAlignedOffsetD(&device_block.offset,size,alignment,device_block.size);
+    
+    
+    return {device_block.memory,offset,size};
+}
+
+#ifdef DEBUG
+
+_intern VDeviceMemoryBlock VWriteBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+    
+    auto type = VGetMemoryTypeIndex(prop,typebits,flags);
+    _kill("required type does not match\n",type != write_block.type);
+    
+    return VWriteBlockAlloc(size,alignment);
+}
+
+_intern VDeviceMemoryBlock VReadWriteBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+    
+    auto type = VGetMemoryTypeIndex(prop,typebits,flags);
+    _kill("required type does not match\n",type != readwrite_block.type);
+    
+    return VReadWriteBlockAlloc(size,alignment);
+}
+
+_intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+    
+    auto type = VGetMemoryTypeIndex(prop,typebits,flags);
+    _kill("required type does not match\n",type != direct_block.type);
+    
+    return VDirectBlockAlloc(size,alignment);
+}
+
+_intern VDeviceMemoryBlock VDeviceBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+    
+    auto type = VGetMemoryTypeIndex(prop,typebits,flags);
+    _kill("required type does not match\n",type != device_block.type);
+    
+    return VDeviceBlockAlloc(size,alignment);
+}
+
+
+void VDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset){
+    
+    auto block = VDeviceBlockAlloc(size,256);
+    
+    *memory = block.memory;
+    *offset = block.offset;
+}
+
+#define VDeviceBlockAlloc(a,b,c,d,e) VDeviceBlockAlloc(a,b,c,d,e)
+#define VWriteBlockAlloc(a,b,c,d,e) VWriteBlockAlloc(a,b,c,d,e)
+#define VReadWriteBlockAlloc(a,b,c,d,e) VReadWriteBlockAlloc(a,b,c,d,e)
+#define VDirectBlockAlloc(a,b,c,d,e) VDirectBlockAlloc(a,b,c,d,e)
+
+#else
+
+#define VDeviceBlockAlloc(a,b,c,d,e) VDeviceBlockAlloc(a,b)
+#define VWriteBlockAlloc(a,b,c,d,e) VWriteBlockAlloc(a,b)
+#define VReadWriteBlockAlloc(a,b,c,d,e) VReadWriteBlockAlloc(a,b)
+#define VDirectBlockAlloc(a,b,c,d,e) VDirectBlockAlloc(a,b)
+
+#endif
+
+void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
+    
+#if DEBUG
+    if(block.res){
+        *block.res = (u64)buffer;
+    }
+#endif
+    
+    _vktest(vkBindBufferMemory(vdevice->device,buffer,block.memory,block.offset));
+}
+
+void _ainline VBindImageMemoryBlock(const VDeviceContext* _restrict vdevice,VkImage image,VDeviceMemoryBlock block){
+    
+#if DEBUG
+    if(block.res){
+        *block.res = (u64)image;
+    }
+#endif
+    
+    _vktest(vkBindImageMemory(vdevice->device,image,block.memory,block.offset));
+}
+
+VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size,u32 write_size,u32 transferbuffer_size,u32 readwrite_size,
+                                  u32 direct_size){
+    
+    _kill("transferbuffer_size has to be smaller than write_size\n",transferbuffer_size >= write_size);
+    
+    _kill("Max transferbuffer size is 64MB\n",transferbuffer_size > _megabytes(64));
+    
+    VResult res = V_SUCCESS;
+    
+    auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    
+    device_block = {VRawDeviceAlloc(vdevice->device,device_size,type),
+        0,device_size,type};
+    
+    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_write_block_flags);
+    
+    //should we used cached here??
+    write_block = {VRawDeviceAlloc(vdevice->device,write_size,type),0,write_size,type};
+    
+    
+    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_readwrite_block_flags);
+    
+    readwrite_block = {VRawDeviceAlloc(vdevice->device,readwrite_size,type),0,readwrite_size,
+        type};
+    
+    
+    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_direct_block_flags);
+    
+    if(type != (u32)-1){
+        
+        direct_block = {VRawDeviceAlloc(vdevice->device,direct_size,type),0,direct_size,
+            type};
+        
+        VMapMemory(vdevice->device,direct_block.memory,0,VK_WHOLE_SIZE,(void**)&direct_ptr);
+    }
+    
+    else{
+        res = V_NO_DIRECT_MEMORY;
+    }
+    
+    //map blocks
+    VMapMemory(vdevice->device,write_block.memory,0,VK_WHOLE_SIZE,(void**)&write_ptr);
+    VMapMemory(vdevice->device,readwrite_block.memory,0,VK_WHOLE_SIZE,(void**)&readwrite_ptr);
+    
+    
+    //NOTE: create transfer buffer
+    {
+        
+        transferbuffer.buffer = CreateBuffer(vdevice->device,0,transferbuffer_size,VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                             VK_SHARING_MODE_EXCLUSIVE,0,0);
+        
+        VkMemoryRequirements memoryreq = {};
+        
+        vkGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer,
+                                      &memoryreq);
+        
+        transferbuffer.size = memoryreq.size;
+        
+        auto block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
+        
+        
+        transferbuffer.offset = block.offset;
+        transferbuffer.alloc_offset = block.offset;
+        
+        VBindBufferMemoryBlock(vdevice,transferbuffer.buffer,block);
+        
+    }
+    
+    return res;
+}
+
+
+
+//MARK: every function that uses VCreateImage/Buffer etc does not handle for shared resources
+//Look for VkSharingMode
+
+
 
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
@@ -208,7 +731,7 @@ void ErrorString(VkResult errorCode){
 
 //MARK: Implementation
 
-_persist LibHandle vklib = 0;
+_global LibHandle vklib = 0;
 
 void VInitVulkan(){
     
@@ -280,11 +803,11 @@ void VInitVulkan(){
     
 }
 
-_persist VkInstance global_instance = 0;
-_persist u32 global_version_no = 0;
+_global VkInstance global_instance = 0;
+_global u32 global_version_no = 0;
 
 #ifdef DEBUG 
-_persist VkDevice global_device = 0;
+_global VkDevice global_device = 0;
 #endif
 
 void InternalLoadVulkanInstanceLevelFunctions(){
@@ -454,26 +977,26 @@ VkBool32 VkDebugMessageCallback(VkDebugReportFlagsEXT flags,
     
 #ifdef _WIN32 //we leave some items in our desc set empty
     
-    auto tokill = msgCode != 59 && msgCode != 61;
+    auto to_ignore = msgCode != 59 && msgCode != 61;
     
 #else
     
-    auto tokill = msgCode != 61;
+    auto to_ignore = msgCode != 61 && msgCode != 8 && msgCode != (u32)-1;
     
 #endif
     
     
     
-    if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT && tokill){
+    if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT && to_ignore){
         
         printf("ERROR: %s Code: %d:%s\n\n",pLayerPrefix,msgCode,pMsg);
         
-        _kill("",tokill);
+        _breakpoint();
     }
     else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT){
         
         printf("WARNING: %s Code: %d:%s\n\n",pLayerPrefix,msgCode,pMsg);
-        _kill("",tokill);
+        _breakpoint();
     }
     
     else
@@ -547,7 +1070,7 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     return memory;
 }
 
-_persist VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32) = VRawDeviceAlloc;
+_global VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32) = VRawDeviceAlloc;
 
 VkSampler CreateSampler(VkDevice device,VkSamplerCreateFlags flags,
                         VkFilter mag_filter,VkFilter min_filter,
@@ -588,27 +1111,6 @@ VkSampler CreateSampler(VkDevice device,VkSamplerCreateFlags flags,
     return sampler;
 }
 
-
-//we can optimize this
-u32 VGetMemoryTypeIndex(VkPhysicalDeviceMemoryProperties properties,
-                        u32 typebits,u32 flags){
-    
-    //typebits is a bitfield that lists all usable memory types
-    //we iterate over each bit until we find one that is supported and fits
-    //the specifications we set in flags
-    
-    for (u32 i = 0; i < properties.memoryTypeCount; i++){
-        if (typebits & (1 << i)){
-            if ((properties.memoryTypes[i].propertyFlags & flags) == 
-                flags){
-                return i;
-            }
-        }
-    }
-    
-    return -1;
-}
-
 VkShaderModule VCreateShaderModule(VkDevice device,void* data,
                                    ptrsize size,
                                    VkShaderModuleCreateFlags flags){
@@ -625,30 +1127,6 @@ VkShaderModule VCreateShaderModule(VkDevice device,void* data,
     _vktest(vkCreateShaderModule(device,&info,global_allocator,&shader));
     
     return shader;
-}
-
-
-VkBuffer CreateBuffer(VkDevice device,VkBufferCreateFlags flags,
-                      VkDeviceSize size,VkBufferUsageFlags usage,
-                      VkSharingMode sharingmode,
-                      u32* queuefamilyindex_array ,
-                      ptrsize queuefamilyindex_count){
-    
-    VkBuffer buffer;
-    
-    VkBufferCreateInfo info = {};
-    
-    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.flags = flags;
-    info.size = size;
-    info.usage = usage;
-    info.sharingMode = sharingmode;
-    info.queueFamilyIndexCount = queuefamilyindex_count;
-    info.pQueueFamilyIndices = queuefamilyindex_array;
-    
-    _vktest(vkCreateBuffer(device,&info,global_allocator,&buffer));
-    
-    return buffer;
 }
 
 VkBuffer VRawCreateBuffer(const  VDeviceContext* _restrict vdevice,
@@ -668,28 +1146,77 @@ VkBuffer VRawCreateBuffer(VkDevice device,
                           VkSharingMode sharingmode,
                           u32* queuefamilyindex_array ,
                           ptrsize queuefamilyindex_count){
+    
     return CreateBuffer(device,flags,size,usage,sharingmode,
                         queuefamilyindex_array ,queuefamilyindex_count);
+    
+}
+
+_intern VBufferContext CreateStaticBufferContext(
+const  VDeviceContext* _restrict vdevice,
+ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
+    
+    if(flag == VBLOCK_DIRECT && !direct_block.size){
+        return {};
+    }
+    
+    VBufferContext context = {};
+    
+    auto device = vdevice->device;
+    
+    VkPhysicalDeviceMemoryProperties 
+        memoryproperties = *(vdevice->phys_info->memoryproperties);
+    
+    context.buffer = 
+        CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
+    
+    VkMemoryRequirements memoryreq = {};
+    
+    vkGetBufferMemoryRequirements(device,context.buffer,
+                                  &memoryreq);
+    
+    context.size = memoryreq.size;
+    
+    VDeviceMemoryBlock block = {};
+    
+    if(flag == VBLOCK_DEVICE){
+        
+        block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    }
+    
+    else if(flag == VBLOCK_READWRITE){
+        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
+    }
+    
+    else if(flag == VBLOCK_WRITE){
+        
+        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
+    }
+    
+    else{
+        
+        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
+    }
+    
+    VBindBufferMemoryBlock(vdevice,context.buffer,block);
+    
+    context.mapid = block.offset;
+    
+    return context;
 }
 
 
 
-VBufferContext InternalCreateStaticBufferContext(
+//NOTE: this takes preallocated memory and creates and binds a buffer to it
+_intern VBufferContext CreateStaticBufferContext(
 const  VDeviceContext* _restrict vdevice,
-VkCommandBuffer commandbuffer,
-VBufferContext src,VkDeviceSize src_offset,
-VkDeviceMemory memory,
-VkDeviceSize offset,
-void* data,ptrsize data_size,
-VkBufferUsageFlags usage){
+VkDeviceMemory memory,VkDeviceSize offset,u32 data_size,VkBufferUsageFlags usage){
     
     auto device = vdevice->device;
     
-    VBufferContext context;
+    VBufferContext context = {};
     
-    VkMemoryRequirements memoryreq;
-    
-    void* mappedmemory_ptr;
+    VkMemoryRequirements memoryreq = {};
     
     context.buffer =
         CreateBuffer(device,0,
@@ -700,82 +1227,20 @@ VkBufferUsageFlags usage){
     
     context.size = memoryreq.size;
     
-    context.memory = memory;
-    
-    vkBindBufferMemory(device,context.buffer,context.memory,offset);
-    
-    VMapMemory(device,src.memory,src_offset,context.size,&mappedmemory_ptr);
-    
-    memcpy(mappedmemory_ptr,data,data_size);
-    
-    vkUnmapMemory(device,src.memory);
-    
-    
-    VkBufferCopy copyregion;
-    
-    copyregion.srcOffset = src_offset;
-    copyregion.dstOffset = 0;
-    copyregion.size = context.size;
-    
-    vkCmdCopyBuffer(commandbuffer,src.buffer,context.buffer,1,&copyregion);
+    _vktest(vkBindBufferMemory(device,context.buffer,memory,offset));
     
     return context;
 }
-
-VBufferContext InternalCreateStaticBufferContext(
-const  VDeviceContext* _restrict vdevice,
-ptrsize data_size,VkBufferUsageFlags usage,
-u32 memtype = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT){
-    
-    VBufferContext context;
-    
-    auto device = vdevice->device;
-    
-    VkPhysicalDeviceMemoryProperties 
-        memoryproperties = *(vdevice->phys_info->memoryproperties);
-    
-    context.buffer = 
-        CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    VkMemoryRequirements memoryreq;
-    
-    vkGetBufferMemoryRequirements(device,context.buffer,
-                                  &memoryreq);
-    
-    context.size = memoryreq.size;
-    
-    auto typeindex = VGetMemoryTypeIndex(memoryproperties,
-                                         memoryreq.memoryTypeBits,memtype);
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    context.memory = deviceallocator(device,memoryreq.size,typeindex);
-    
-    vkBindBufferMemory(device,context.buffer,context.memory,0);
-    
-    return context;
-}
-
-
 
 
 VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         VkCommandBuffer commandbuffer,
+                                         u32 data_size,
                                          VkDeviceMemory memory,
                                          VkDeviceSize offset,
-                                         VBufferContext src,VkDeviceSize src_offset,void* data,
-                                         ptrsize data_size,u32 bindingno){
+                                         u32 bindingno){
     
-    auto context =
-        InternalCreateStaticBufferContext(
-        vdevice,
-        commandbuffer,
-        src,src_offset,
-        memory,
-        offset,
-        data,data_size,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    auto context = CreateStaticBufferContext(vdevice,memory,offset,data_size,VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     
     context.bind_no = bindingno;
     
@@ -783,23 +1248,14 @@ VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevic
 }
 
 VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        VkCommandBuffer commandbuffer,
                                         VkDeviceMemory memory,
                                         VkDeviceSize offset,
-                                        VBufferContext src,VkDeviceSize src_offset,void* data,
                                         ptrsize data_size,u32 ind_size){
     
-    auto context =
-        InternalCreateStaticBufferContext(vdevice,
-                                          commandbuffer,
-                                          src,src_offset,
-                                          memory,
-                                          offset,
-                                          data,data_size,
-                                          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    auto context = CreateStaticBufferContext(vdevice,memory,offset,data_size,VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     
-    context.ind_count = _countsize(data_size,ind_size);
+    context.ind_count = data_size/ind_size;
     
     return context;
     
@@ -807,22 +1263,10 @@ VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice
 
 
 VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         ptrsize data_size,u32 bindingno,b32 isdevice_local,VMappedBufferProperties prop){
-    
-    u32 memtype = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    
-    if(!isdevice_local){
-        memtype = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            prop;
-        
-        data_size = _mapalign(data_size);
-    }
+                                         ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag){
     
     
-    
-    auto context = InternalCreateStaticBufferContext(vdevice,data_size,
-                                                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,memtype);
+    auto context = CreateStaticBufferContext(vdevice,data_size,VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |VK_BUFFER_USAGE_TRANSFER_DST_BIT,flag);
     
     context.bind_no = bindingno;
     
@@ -830,61 +1274,16 @@ VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevic
 }
 
 VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        ptrsize size,b32 isdevice_local,VMappedBufferProperties prop,u32 ind_size){
+                                        ptrsize size,u32 ind_size,VMemoryBlockHintFlag flag){
     
-    u32 memtype = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
-    if(!isdevice_local){
-        memtype = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            prop;
-        size = _mapalign(size);
-    }
+    auto context = CreateStaticBufferContext(vdevice,size,VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT,flag);
     
-    auto context = InternalCreateStaticBufferContext(vdevice,size,
-                                                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,memtype);
-    
-    context.ind_count = _countsize(size,ind_size);
+    context.ind_count = size/ind_size;
     
     return context;
     
-}
-
-VBufferContext VCreateTransferBuffer(const  VDeviceContext* _restrict vdevice,
-                                     ptrsize size,VMappedBufferProperties prop){
-    
-    auto flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | prop;
-    
-    VBufferContext context = {};
-    
-    size = _mapalign(size);
-    
-    context.buffer = 
-        CreateBuffer(vdevice->device,0,size,VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
-                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    VkMemoryRequirements memoryreq;
-    
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,
-                                  &memoryreq);
-    
-    context.size = memoryreq.size;
-    
-    auto typeindex = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,
-                                         memoryreq.memoryTypeBits,flags);
-    
-    if(typeindex == (u32)-1 && (prop == VMAPPED_AMD_DEVICE_HOST_VISIBLE)){
-        typeindex = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,
-                                        memoryreq.memoryTypeBits,flags);
-    }
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    context.memory = deviceallocator(vdevice->device,memoryreq.size,typeindex);
-    vkBindBufferMemory(vdevice->device,context.buffer,context.memory,0);
-    
-    return context;
 }
 
 
@@ -1377,21 +1776,13 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         
         
         VkMemoryRequirements memoryreq = {};
-        
         vkGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image,
                                      &memoryreq);
         
-        auto typeindex =
-            VGetMemoryTypeIndex(memoryproperties,memoryreq.memoryTypeBits,
-                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
-        _kill("invalid memory type\n",typeindex == (u32)-1);
-        
-        swapchain.internal->depthstencil.memory = 
-            deviceallocator(device,memoryreq.size,typeindex);
-        
-        vkBindImageMemory(device,swapchain.internal->depthstencil.image,
-                          swapchain.internal->depthstencil.memory,0);
+        _vktest(vkBindImageMemory(device,swapchain.internal->depthstencil.image,
+                                  block.memory,block.offset));
         
         swapchain.internal->depthstencil.view = 
             CreateImageView(device,0,swapchain.internal->depthstencil.image,
@@ -1452,12 +1843,12 @@ struct VCreatedQueueFamilyInfo{
     u32 createdqueue_count;
 };
 
-_persist VCreatedQueueFamilyInfo global_queuefamilyinfo_array[5] = {};
-_persist u32 global_queuefamilyinfo_count = 0;
+_global VCreatedQueueFamilyInfo global_queuefamilyinfo_array[5] = {};
+_global u32 global_queuefamilyinfo_count = 0;
 
 
 
-_persist b32 global_validation_enable = false;
+_global b32 global_validation_enable = false;
 
 
 void VEnumerateCreatedFamilyQueues(VCreatedQueueFamilyInfo* info_array,u32* count){
@@ -1645,7 +2036,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     
     context.phys_info->physicaldevice_count = physdevice_count;
     
-#if 1
+#if DEBUG
     VkPhysicalDeviceProperties physproperties;
     vkGetPhysicalDeviceProperties(context.phys_info->physicaldevice_array[0],&physproperties);
     
@@ -2279,118 +2670,71 @@ VkSemaphore VCreateSemaphore(const  VDeviceContext* _restrict vdevice){
     return semaphore;
 }
 
-VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
-                                           u32 data_size,VMappedBufferProperties prop){
+VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vdevice,
+                                            u32 width,u32 height,u32 usage,VkFormat format,VMemoryBlockHintFlag flag){
     
-    VBufferContext context;
-    VkMemoryRequirements memreq;
+    if(flag == VBLOCK_DIRECT && !direct_block.size){
+        return {};
+    }
     
-    data_size = _mapalign(data_size);
+    VImageMemoryContext context = {};
     
-    context.buffer = CreateBuffer(vdevice->device,0,data_size,
-                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                  VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
-    
-    u32 flag = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | prop;
+    auto layout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    auto memory_property = (u32)flag;
     
     
-    u32 typeindex = 
-        VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                            memreq.memoryTypeBits,flag);
+    context.image =
+        CreateImage(vdevice->device,0,
+                    VK_IMAGE_TYPE_2D,format,
+                    {(u32)width,(u32)height,1},
+                    1,1,VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_LINEAR,
+                    usage,
+                    VK_SHARING_MODE_EXCLUSIVE,0,0,
+                    layout,vdevice->phys_info->physicaldevice_array[0]);
     
-    _kill("invalid memory type\n",typeindex == (u32)-1);
+    VkMemoryRequirements memoryreq = {};
     
-    context.memory = 
-        deviceallocator(vdevice->device,memreq.size,typeindex);
+    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
     
-    _vktest(vkBindBufferMemory(vdevice->device,context.buffer,context.memory,0));
+    _kill("this resource cannot be created with the specified flag\n",flag == VBLOCK_DEVICE);
     
-    context.size = memreq.size;
+    VDeviceMemoryBlock block = {};
     
-    return context;
-}
-
-VBufferContext VCreateShaderStorageBufferContext(
-const  VDeviceContext* _restrict vdevice,
-u32 data_size,b32 is_devicelocal,VMappedBufferProperties prop){
-    VBufferContext context;
-    VkMemoryRequirements memreq;
+    if(flag == VBLOCK_READWRITE){
+        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+    }
     
-    data_size = _mapalign(data_size);
-    
-    context.buffer = CreateBuffer(vdevice->device,0,data_size,
-                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                                  VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
-    
-    
-    u32 flag = 0;
-    
-    if(is_devicelocal){
-        flag |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    else if(flag == VBLOCK_WRITE){
+        
+        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     }
     
     else{
         
-        flag = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        
-        flag |= prop;
-        
+        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     }
     
     
-    u32 typeindex = 
-        VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                            memreq.memoryTypeBits,flag);
     
-    _kill("invalid memory type\n",typeindex == (u32)-1);
+    VBindImageMemoryBlock(vdevice,context.image,block);
     
-    context.memory = 
-        deviceallocator(vdevice->device,memreq.size,typeindex);
+    context.mapid = block.offset;
+    context.size = block.size;
     
-    _vktest(vkBindBufferMemory(vdevice->device,context.buffer,context.memory,0));
     
-    context.size = memreq.size;
     
     return context;
+    
 }
 
-void VUpdateUniformBuffer(const  VDeviceContext* _restrict vdevice,VBufferContext context,
-                          void* data,u32 data_size){
+VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
+                                u32 width,u32 height,u32 usage,
+                                VkImageTiling tiling,VkFormat format){
     
-    void* mapped_ptr;
-    
-    VMapMemory(vdevice->device,context.memory,0,context.size,&mapped_ptr);
-    
-    
-    memcpy(mapped_ptr,data,data_size);
-    
-    
-    vkUnmapMemory(vdevice->device,context.memory);
-}
-
-VImageMemoryContext VCreateColorImageMemory(
-const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 usage,
-b32 is_device_local,VMappedBufferProperties prop,VkImageTiling tiling,
-VkFormat format){
-    
-    VImageMemoryContext context = {};
+    VImageContext context = {};
     
     u32 memory_property = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     auto layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    
-    if(!is_device_local){
-        layout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-        memory_property = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        
-        memory_property |= prop;
-        
-    }
-    
     
     context.image =
         CreateImage(vdevice->device,0,
@@ -2401,37 +2745,13 @@ VkFormat format){
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
     
-    VkMemoryRequirements memoryreq;
     
+    VkMemoryRequirements memoryreq = {};
     vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
     
-    //MARK:
-    u32 typeindex = VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                                        memoryreq.memoryTypeBits,
-                                        memory_property);
+    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    context.memory = 
-        deviceallocator(vdevice->device,_mapalign(memoryreq.size),typeindex);
-    
-    _vktest(vkBindImageMemory(vdevice->device,context.image,context.memory,0));
-    
-    return context;
-}
-
-
-VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
-                                u32 width,u32 height,u32 usage,b32 is_device_local,VMappedBufferProperties prop,
-                                VkImageTiling tiling,VkFormat format){
-    
-    VImageContext context = {};
-    
-    auto img_mm =
-        VCreateColorImageMemory(vdevice,width,height,usage,is_device_local,prop,tiling,format);
-    
-    context.image = img_mm.image;
-    context.memory = img_mm.memory;
+    VBindImageMemoryBlock(vdevice,context.image,block);
     
     context.view = 
         CreateImageView(vdevice->device,0,context.image,VK_IMAGE_VIEW_TYPE_2D,
@@ -2445,228 +2765,10 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
 
 
 
-VTextureContext VCreateTextureImage(const  VDeviceContext* _restrict vdevice,void* data,
-                                    u32 width,u32 height,VkCommandBuffer commandbuffer,VkQueue queue){
-    
-    VTextureContext handle;
-    VBufferContext src;
-    VkMemoryRequirements memoryreq;
-    
-    u32 data_size = width * height * 4;
-    
-    src.buffer = CreateBuffer(vdevice->device,0,data_size,
-                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                              VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    vkGetBufferMemoryRequirements(vdevice->device,src.buffer,
-                                  &memoryreq);
-    
-    src.size = memoryreq.size;
-    
-    
-    
-    auto typeindex = VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                                         memoryreq.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    src.memory = 
-        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-    
-    vkBindBufferMemory(vdevice->device,src.buffer,src.memory,0);
-    
-    
-    
-    void* mappedmemory_ptr;
-    
-    VMapMemory(vdevice,src.memory,0,src.size,&mappedmemory_ptr);
-    
-    memcpy(mappedmemory_ptr,data,data_size);
-    
-    vkUnmapMemory(vdevice->device,src.memory);
-    
-    handle.image = 
-        CreateImage(vdevice->device,0,
-                    VK_IMAGE_TYPE_2D,VK_FORMAT_R8G8B8A8_UNORM,
-                    {(u32)width,(u32)height,1},
-                    1,1,VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
-                    vdevice->phys_info->physicaldevice_array[0]);
-    
-    
-    auto layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    
-    
-    vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
-    
-    typeindex = VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                                    memoryreq.memoryTypeBits,
-                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    //printf("image %d\n",typeindex);
-    
-    handle.memory = 
-        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-    
-    _vktest(vkBindImageMemory(vdevice->device,handle.image,handle.memory,0));
-    
-    //transfer data and transition image layouts
-    {
-        
-        VkImageMemoryBarrier transfer_imagebarrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            0,
-            0,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            handle.image,
-            {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1},
-        };
-        
-        VkImageMemoryBarrier shader_imagebarrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            0,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            layout,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            handle.image,
-            {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1},
-        };
-        
-        VStartCommandBuffer(commandbuffer,
-                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        
-        vkCmdPipelineBarrier(commandbuffer,
-                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,0,0,0,1,
-                             &transfer_imagebarrier);
-        
-        //copy image
-        
-        //mip level refers to the current one, not the total
-        VkBufferImageCopy copy = {
-            0,0,0,{VK_IMAGE_ASPECT_COLOR_BIT,0,0,1},
-            {},
-            {(u32)width,(u32)height,1},
-        };
-        
-        vkCmdCopyBufferToImage(commandbuffer,src.buffer,handle.image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               1,&copy);
-        
-        
-        vkCmdPipelineBarrier(commandbuffer,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,0,0,0,1,
-                             &shader_imagebarrier);
-        
-        
-        VEndCommandBuffer(commandbuffer);
-        
-        VSubmitCommandBuffer(queue,commandbuffer);
-        
-        vkQueueWaitIdle(queue);
-        
-    }
-    
-    handle.sampler = 
-        CreateSampler(vdevice->device,0,VK_FILTER_LINEAR,VK_FILTER_LINEAR,
-                      VK_SAMPLER_MIPMAP_MODE_LINEAR,
-                      VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                      VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                      VK_SAMPLER_ADDRESS_MODE_REPEAT,0.0f,
-                      VK_TRUE,8.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,0.0f,
-                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,VK_FALSE);
-    
-    handle.view = 
-        CreateImageView(vdevice->device,0,handle.image,VK_IMAGE_VIEW_TYPE_2D,
-                        VK_FORMAT_R8G8B8A8_UNORM,
-                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
-                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
-                        {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1});
-    
-    vkDestroyBuffer(vdevice->device,src.buffer,global_allocator);
-    vkFreeMemory(vdevice->device,src.memory,global_allocator);
-    
-    return handle;
-}
 
-//move to vvulkanx
-VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,VkFormat format){
-    
-    VTextureContext handle;
-    VkMemoryRequirements memoryreq;
-    
-    handle.image = 
-        CreateImage(vdevice->device,0,
-                    VK_IMAGE_TYPE_2D,format,
-                    {(u32)width,(u32)height,1},
-                    1,1,VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
-                    vdevice->phys_info->physicaldevice_array[0]);
-    
-    
-    vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
-    
-    auto typeindex = VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                                         memoryreq.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    handle.memory = 
-        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-    
-    _vktest(vkBindImageMemory(vdevice->device,handle.image,handle.memory,0));
-    
-    handle.view = 
-        CreateImageView(vdevice->device,0,handle.image,VK_IMAGE_VIEW_TYPE_2D,
-                        format,
-                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
-                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
-                        {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1});
-    
-    
-#if 1
-    
-    handle.sampler =
-        CreateSampler(vdevice->device,0,VK_FILTER_NEAREST,VK_FILTER_NEAREST,
-                      VK_SAMPLER_MIPMAP_MODE_NEAREST,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE  ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      0.0f,
-                      VK_FALSE,0.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,0.0f,
-                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,VK_FALSE);
-    
-#else
-    
-    
-    handle.sampler =
-        CreateSampler(vdevice->device,0,VK_FILTER_LINEAR,VK_FILTER_LINEAR,
-                      VK_SAMPLER_MIPMAP_MODE_NEAREST,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE  ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      0.0f,
-                      VK_FALSE,0.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,0.0f,
-                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,VK_FALSE);
-    
-#endif
-    
-    return handle;
-}
+
+
+
 
 void VDestroyPipeline(const  VDeviceContext* _restrict vdevice,VkPipeline pipeline){
     vkDestroyPipeline(vdevice->device,pipeline,global_allocator);
@@ -2678,71 +2780,10 @@ void VDestroyBuffer(const  VDeviceContext* _restrict vdevice,VkBuffer buffer){
 
 void VDestroyBufferContext(const  VDeviceContext* _restrict vdevice,VBufferContext buffer){
     VDestroyBuffer(vdevice,buffer.buffer);
-    VFreeMemory(vdevice,buffer.memory);
 }
 
 void VFreeMemory(const  VDeviceContext* _restrict vdevice,VkDeviceMemory memory){
     vkFreeMemory(vdevice->device,memory,global_allocator);
-}
-
-
-
-//MARK: this doesn't feel like it fits
-VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice,
-                                        u32 width,u32 height,u32 miplevels){
-    
-    auto format = VK_FORMAT_R8G8B8A8_UNORM;
-    
-    VTextureContext context;
-    VkMemoryRequirements memoryreq;
-    
-    auto pwidth = width/128;
-    auto pheight = height/128;
-    auto arraylayers = 1;
-    
-    context.image = 
-        CreateImage(vdevice->device,0,
-                    VK_IMAGE_TYPE_2D,format,
-                    {(u32)pwidth,(u32)pheight,1},
-                    miplevels,arraylayers,
-                    VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_SHARING_MODE_EXCLUSIVE,
-                    0,0,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    vdevice->phys_info->physicaldevice_array[0]);
-    
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
-    
-    auto typeindex = VGetMemoryTypeIndex(*(vdevice->phys_info->memoryproperties),
-                                         memoryreq.memoryTypeBits,
-                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    
-    _kill("invalid memory type\n",typeindex == (u32)-1);
-    
-    context.memory = 
-        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-    
-    _vktest(vkBindImageMemory(vdevice->device,context.image,context.memory,0));
-    
-    context.view = 
-        CreateImageView(vdevice->device,0,context.image,VK_IMAGE_VIEW_TYPE_2D,format,
-                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
-                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
-                        {VK_IMAGE_ASPECT_COLOR_BIT,0,miplevels,0,1});
-    
-    context.sampler = 
-        CreateSampler(vdevice->device,0,VK_FILTER_NEAREST,VK_FILTER_NEAREST,
-                      VK_SAMPLER_MIPMAP_MODE_NEAREST,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
-                      0.0f,
-                      VK_FALSE,0.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,
-                      (f32)miplevels,VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-                      VK_FALSE);
-    
-    return context;
 }
 
 void VSetComputePipelineSpecShader(VComputePipelineSpec* spec,void* shader_data,
@@ -3524,4 +3565,249 @@ void InitInstance(VkInstance instance){
     _instproc(vkgetphysicaldeviceimageformatproperties,instance,vkGetPhysicalDeviceImageFormatProperties);
     
     _instproc(vkdestroysurfacekhr,instance,vkDestroySurfaceKHR);
+}
+
+
+//TODO: fix the below stuff
+
+
+
+VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
+                                           u32 data_size,VMemoryBlockHintFlag flag){
+    
+    if(flag == VBLOCK_DIRECT && !direct_block.size){
+        return {};
+    }
+    
+    VBufferContext context = {};
+    VkMemoryRequirements memreq = {};
+    
+    context.buffer = CreateBuffer(vdevice->device,0,data_size,
+                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                  VK_SHARING_MODE_EXCLUSIVE,0,0);
+    
+    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
+    
+    VDeviceMemoryBlock block = {};
+    
+    if(flag == VBLOCK_DEVICE){
+        
+        block = VDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    }
+    
+    else if(flag == VBLOCK_READWRITE){
+        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
+    }
+    
+    else if(flag == VBLOCK_WRITE){
+        
+        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
+    }
+    
+    else{
+        
+        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
+    }
+    
+    VBindBufferMemoryBlock(vdevice,context.buffer,block);
+    
+    context.size = memreq.size;
+    context.mapid = block.offset;
+    
+    return context;
+}
+
+
+VBufferContext VCreateShaderStorageBufferContext(
+const  VDeviceContext* _restrict vdevice,
+u32 data_size,VMemoryBlockHintFlag flag){
+    
+    if(flag == VBLOCK_DIRECT && !direct_block.size){
+        return {};
+    }
+    
+    VBufferContext context = {};
+    VkMemoryRequirements memreq = {};
+    
+    context.buffer = CreateBuffer(vdevice->device,0,data_size,
+                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                  VK_SHARING_MODE_EXCLUSIVE,0,0);
+    
+    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
+    
+    
+    VDeviceMemoryBlock block = {};
+    
+    if(flag == VBLOCK_DEVICE){
+        
+        block = VDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    }
+    
+    else if(flag == VBLOCK_READWRITE){
+        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
+    }
+    
+    else if(flag == VBLOCK_WRITE){
+        
+        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
+    }
+    
+    else{
+        
+        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
+    }
+    
+    VBindBufferMemoryBlock(vdevice,context.buffer,block);
+    
+    context.size = memreq.size;
+    context.mapid = block.offset;
+    
+    return context;
+}
+
+
+
+//TODO: wtf we don't have a simple VCreateTextureContext call
+//TODO: replce this with a simple VCreateTextureContext
+//should we do this?? VkSamplerMipmapMode VK_SAMPLER_MIPMAP_MODE_LINEAR
+VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels,VkFormat format){
+    
+    VTextureContext context = {};
+    VkMemoryRequirements memoryreq = {};
+    
+    context.image = 
+        CreateImage(vdevice->device,0,
+                    VK_IMAGE_TYPE_2D,format,
+                    {(u32)width,(u32)height,1},
+                    miplevels,1,VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                    VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
+                    vdevice->phys_info->physicaldevice_array[0]);
+    
+    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    
+    
+    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    
+    VBindImageMemoryBlock(vdevice,context.image,block);
+    
+    context.view = 
+        CreateImageView(vdevice->device,0,context.image,VK_IMAGE_VIEW_TYPE_2D,
+                        format,
+                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
+                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
+                        {VK_IMAGE_ASPECT_COLOR_BIT,0,miplevels,0,1});
+    
+    
+    context.sampler = 
+        CreateSampler(vdevice->device,0,VK_FILTER_LINEAR,VK_FILTER_LINEAR,
+                      VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                      VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                      VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                      VK_SAMPLER_ADDRESS_MODE_REPEAT,0.0f,
+                      VK_TRUE,8.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,(f32)miplevels,
+                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,VK_FALSE);
+    
+    return context;
+}
+
+
+
+//move this to vt
+VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,VkFormat format){
+    
+    VTextureContext handle;
+    VkMemoryRequirements memoryreq = {};
+    
+    handle.image = 
+        CreateImage(vdevice->device,0,
+                    VK_IMAGE_TYPE_2D,format,
+                    {(u32)width,(u32)height,1},
+                    1,1,VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                    VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
+                    vdevice->phys_info->physicaldevice_array[0]);
+    
+    
+    vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
+    
+    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    
+    VBindImageMemoryBlock(vdevice,handle.image,block);
+    
+    handle.view = 
+        CreateImageView(vdevice->device,0,handle.image,VK_IMAGE_VIEW_TYPE_2D,
+                        format,
+                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
+                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
+                        {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1});
+    
+    
+    handle.sampler =
+        CreateSampler(vdevice->device,0,VK_FILTER_NEAREST,VK_FILTER_NEAREST,
+                      VK_SAMPLER_MIPMAP_MODE_NEAREST,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE  ,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
+                      0.0f,
+                      VK_FALSE,0.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,0.0f,
+                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,VK_FALSE);
+    
+    return handle;
+}
+
+
+//move this to vt
+VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice,
+                                        u32 width,u32 height,u32 miplevels){
+    
+    auto format = VK_FORMAT_R8G8B8A8_UNORM;
+    
+    VTextureContext context = {};
+    VkMemoryRequirements memoryreq = {};
+    
+    auto pwidth = width/128;
+    auto pheight = height/128;
+    auto arraylayers = 1;
+    
+    context.image = 
+        CreateImage(vdevice->device,0,
+                    VK_IMAGE_TYPE_2D,format,
+                    {(u32)pwidth,(u32)pheight,1},
+                    miplevels,arraylayers,
+                    VK_SAMPLE_COUNT_1_BIT,VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                    VK_SHARING_MODE_EXCLUSIVE,
+                    0,0,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    vdevice->phys_info->physicaldevice_array[0]);
+    
+    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    
+    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    
+    VBindImageMemoryBlock(vdevice,context.image,block);
+    
+    context.view = 
+        CreateImageView(vdevice->device,0,context.image,VK_IMAGE_VIEW_TYPE_2D,format,
+                        {VK_COMPONENT_SWIZZLE_R,VK_COMPONENT_SWIZZLE_G,
+                        VK_COMPONENT_SWIZZLE_B,VK_COMPONENT_SWIZZLE_A},
+                        {VK_IMAGE_ASPECT_COLOR_BIT,0,miplevels,0,1});
+    
+    context.sampler = 
+        CreateSampler(vdevice->device,0,VK_FILTER_NEAREST,VK_FILTER_NEAREST,
+                      VK_SAMPLER_MIPMAP_MODE_NEAREST,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE ,
+                      0.0f,
+                      VK_FALSE,0.0f,VK_FALSE,VK_COMPARE_OP_NEVER,0.0f,
+                      (f32)miplevels,VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+                      VK_FALSE);
+    
+    return context;
 }

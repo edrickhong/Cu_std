@@ -4,9 +4,9 @@
 #define _test(call) if(call < 0){_kill("",1);}
 
 
-_persist void* pcm_avail_update_fptr  = 0;
-_persist void* pcm_writei_fptr = 0;
-_persist void* pcm_recover_fptr = 0;
+_global void* pcm_avail_update_fptr  = 0;
+_global void* pcm_writei_fptr = 0;
+_global void* pcm_recover_fptr = 0;
 
 
 
@@ -23,7 +23,7 @@ snd_pcm_writei							\
 snd_pcm_recover					\
 ((s32 (*)(snd_pcm_t*,s32,s32))pcm_recover_fptr)
 
-_persist LibHandle audiolib = 0;
+_global LibHandle audiolib = 0;
 
 
 void _ainline InternalLoadAudioLib(){

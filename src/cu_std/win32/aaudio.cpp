@@ -2,7 +2,7 @@
 #include "aaudio.h"
 #include "aallocator.h"
 
-_persist bool audio_initialized;
+_global bool audio_initialized;
 
 #define COBJMACROS
 #include "mmdeviceapi.h"

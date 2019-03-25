@@ -55,17 +55,17 @@ struct InternalBackBufferData{
     
 };
 
-_persist LibHandle wwindowlib_handle = 0;
-_persist u32 loaded_lib_type = 0;
-_persist s8 wtext_buffer[256] ={};
+_global LibHandle wwindowlib_handle = 0;
+_global u32 loaded_lib_type = 0;
+_global s8 wtext_buffer[256] ={};
 
 //function implementations
-_persist s8 (*impl_wkeycodetoascii)(u32) = 0;
-_persist u32 (*impl_wwaitforevent)(WWindowContext*,WWindowEvent*) = 0;
-_persist void (*impl_wsettitle)(WWindowContext*,const s8*) = 0;
-_persist WBackBufferContext (*impl_wcreatebackbuffer)(WWindowContext*) = 0;
-_persist void (*impl_getwindowsize)(WWindowContext*,u32*,u32*) = 0;
-_persist void (*impl_wpresentbackbuffer)(WWindowContext*,WBackBufferContext*) = 0;
+_global s8 (*impl_wkeycodetoascii)(u32) = 0;
+_global u32 (*impl_wwaitforevent)(WWindowContext*,WWindowEvent*) = 0;
+_global void (*impl_wsettitle)(WWindowContext*,const s8*) = 0;
+_global WBackBufferContext (*impl_wcreatebackbuffer)(WWindowContext*) = 0;
+_global void (*impl_getwindowsize)(WWindowContext*,u32*,u32*) = 0;
+_global void (*impl_wpresentbackbuffer)(WWindowContext*,WBackBufferContext*) = 0;
 
 #include "x11_wwindow.cpp"
 #include "wayland_wwindow.cpp"

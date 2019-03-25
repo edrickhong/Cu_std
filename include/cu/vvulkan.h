@@ -1,5 +1,9 @@
 #pragma once
 
+/*
+TODO:
+*/
+
 #ifdef _WIN32
 
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -9,6 +13,10 @@
 #define VK_USE_PLATFORM_XLIB_KHR
 #define VK_USE_PLATFORM_WAYLAND_KHR
 
+#endif
+
+#ifdef DEBUG
+#include "aallocator.h"
 #endif
 
 
@@ -303,22 +311,29 @@ extern void* vkenumeratephysicaldevicegroups;
    
 */
 
-enum VMappedBufferProperties{
-    VMAPPED_NONE = 0,
-    VMAPPED_COHERENT = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-    VMAPPED_CACHED = VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-    VMAPPED_AMD_DEVICE_HOST_VISIBLE =(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+//NOTE:Those with the Memory label can be mapped
+struct VImageMemoryContext{
+    VkImage image;
     
+    u32 mapid;
+    u32 size;
 };
+
+struct VImageContext{
+    VkImage image;
+    VkImageView view;
+};
+
+struct VTextureContext : VImageContext{
+    VkSampler sampler;
+};
+
 
 
 struct VSwapchainContext{
     
-    struct DepthStencil{
-        VkImage image;
-        VkImageView view;
+    struct DepthStencil : VImageContext{
         VkFormat format;
-        VkDeviceMemory memory;
     };
     
     
@@ -349,7 +364,6 @@ struct VSwapchainContext{
 
 struct VBufferContext{
     VkBuffer buffer;
-    VkDeviceMemory memory;
     u32 size;
     
     //unique attrib according to buffer type. binding no on vertex buffer/instance,
@@ -358,38 +372,19 @@ struct VBufferContext{
     union{
         
         struct{
-            
-            u16 bind_no;
-            u16 inst_count;
+            u16 bind_no;//NOTE: vertex and instance buffers only
+            u16 inst_count;//NOTE: instance buffers only
         };
         
-        //NOTE: we will set the top most bit if 32bit, else it is 16bit
+        //NOTE: index buffers only we will set the top most bit if 32bit, else it is 16bit
         u32 ind_count;
+        
+        
+        //NOTE: mapped buffers only (eg uniform/storage buffers)
+        u32 mapid; 
     };
     
-#ifdef DEBUG
     
-#if 0
-    u32 max_inst = 0; // for instance buffer checking only
-#endif
-    
-#endif
-    
-};
-
-//TODO: fold all the texture/image functions
-
-struct VImageMemoryContext{
-    VkImage image;
-    VkDeviceMemory memory;
-};
-
-struct VImageContext : VImageMemoryContext{
-    VkImageView view;
-};
-
-struct VTextureContext : VImageContext{
-    VkSampler sampler;
 };
 
 #define VCREATEQUEUEBIT_ALL (u32)-1
@@ -476,7 +471,17 @@ struct VSubmitBatch{
 };
 
 
+#define _write_block_flags (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+#define _readwrite_block_flags (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
 
+#define _direct_block_flags (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+
+enum VMemoryBlockHintFlag{
+    VBLOCK_DEVICE,
+    VBLOCK_WRITE = _write_block_flags,
+    VBLOCK_READWRITE = _readwrite_block_flags,
+    VBLOCK_DIRECT = _direct_block_flags,
+};
 
 
 void VDescPushBackPoolSpec(VDescriptorPoolSpec* poolspec,VkDescriptorType type,u32 count);
@@ -539,7 +544,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array = 0,u32 p
 
 VkQueue VGetQueue(const VDeviceContext* _in_ vdevice,VQueueType type);
 
-u32  VGetQueueFamilyIndex(VQueueType type);
+u32 VGetQueueFamilyIndex(VQueueType type);
 
 enum VPresentSyncType{
     VSYNC_NONE = VK_PRESENT_MODE_IMMEDIATE_KHR,
@@ -625,23 +630,34 @@ void VSubmitCommandBufferArray(VkQueue queue,VkCommandBuffer* commandbuffer,
 void VSubmitCommandBufferBatch(VkQueue queue,VSubmitBatch batch,VkFence fence);
 
 
-VTextureContext VCreateTextureImage(const  VDeviceContext* _restrict vdevice,void* data,
-                                    u32 width,u32 height,VkCommandBuffer commandbuffer,VkQueue queue);
+VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
+                                         u32 data_size,
+                                         VkDeviceMemory memory,
+                                         VkDeviceSize offset,
+                                         u32 bindingno);
 
-VTextureContext VCreateTextureImage(const  VDeviceContext* _restrict vdevice,
-                                    const s8* filepath,VkCommandBuffer commandbuffer,VkQueue queue);
+VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
+                                        VkDeviceMemory memory,
+                                        VkDeviceSize offset,
+                                        ptrsize data_size,u32 ind_size = sizeof(u32));
+
+VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
+                                         ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag = VBLOCK_DEVICE);
+
+VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
+                                        ptrsize size,u32 ind_size = sizeof(u32),
+                                        VMemoryBlockHintFlag flag = VBLOCK_DEVICE);
 
 
 VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
-                                u32 width,u32 height,u32 usage,b32 is_device_local = true,
-                                VMappedBufferProperties prop = VMAPPED_COHERENT,VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
+                                u32 width,u32 height,u32 usage,
+                                VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
                                 VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
 
+
 VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vdevice,
-                                            u32 width,u32 height,u32 usage,b32 is_device_local = true,
-                                            VMappedBufferProperties prop = VMAPPED_COHERENT,
-                                            VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
-                                            VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+                                            u32 width,u32 height,u32 usage,VkFormat format = VK_FORMAT_R8G8B8A8_UNORM,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
+
 
 void VQueuePresentArray(VkQueue queue,u32* imageindex_array,
                         VkSwapchainKHR* swapchain_array,
@@ -728,18 +744,10 @@ void VEndRenderPass(VkCommandBuffer commandbuffer);
 
 VkSemaphore VCreateSemaphore(const  VDeviceContext* _restrict vdevice);
 
-VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
-                                           u32 data_size,VMappedBufferProperties prop = VMAPPED_COHERENT);
-
-void VUpdateUniformBuffer(const  VDeviceContext* _restrict vdevice,
-                          VBufferContext context,void* data,u32 data_size);
 
 void VSetDriverAllocator(VkAllocationCallbacks allocator);
 void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32,
                                                      VkAllocationCallbacks*));
-
-VBufferContext VCreateTransferBuffer(const  VDeviceContext* _restrict vdevice,
-                                     ptrsize data_size,VMappedBufferProperties prop = VMAPPED_COHERENT);
 
 
 struct _cachealign CacheAlignedCommandbuffer{
@@ -794,15 +802,6 @@ enum VFilter{
 
 VkSampler VCreateSampler(u32 filtering);
 
-VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,
-                                    u32 height,VkFormat format);
-
-void VUpdatePages();
-
-
-VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice,
-                                        u32 width,u32 height,u32 miplevels);
-
 
 struct VComputePipelineSpec{
     
@@ -829,9 +828,6 @@ void VCreateComputePipelineArray(const  VDeviceContext* _restrict vdevice,
                                  VkPipelineCache cache,VComputePipelineSpec* spec_array,u32 spec_count,
                                  VkPipeline* pipeline_array);
 
-VBufferContext VCreateShaderStorageBufferContext(
-const  VDeviceContext* _restrict vdevice,
-u32 data_size,b32 is_devicelocal,VMappedBufferProperties prop = VMAPPED_COHERENT);
 
 VkDescriptorBufferInfo _ainline VGetBufferInfo(const VBufferContext* buffer,
                                                VkDeviceSize offset = 0,
@@ -850,26 +846,6 @@ VkBuffer VRawCreateBuffer(const  VDeviceContext* _restrict vdevice,
                           u32* queuefamilyindex_array = 0 ,
                           ptrsize queuefamilyindex_count = 0);
 
-
-VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         VkCommandBuffer commandbuffer,
-                                         VkDeviceMemory memory,
-                                         VkDeviceSize offset,
-                                         VBufferContext src,VkDeviceSize src_offset,void* data,
-                                         ptrsize data_size,u32 bindingno);
-
-VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        VkCommandBuffer commandbuffer,
-                                        VkDeviceMemory memory,
-                                        VkDeviceSize offset,
-                                        VBufferContext src,VkDeviceSize src_offset,void* data,
-                                        ptrsize data_size,u32 ind_size = sizeof(u32));
-
-VBufferContext VCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
-                                         ptrsize data_size,u32 bindingno,b32 isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT);
-
-VBufferContext VCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
-                                        ptrsize data_size,b32 isdevice_local = true,VMappedBufferProperties prop = VMAPPED_COHERENT,u32 ind_size = sizeof(u32));
 
 
 u32 _ainline VFormatHash(VkFormat* format_array,u32 count){
@@ -1120,37 +1096,82 @@ void InitInstance(VkInstance instance);
 
 void VInitDevice(VkDevice device);
 
+
+//we only use vkDeviceMemory for mapping
+//
+
+
+enum VResult{
+    V_SUCCESS = 0,
+    V_NO_DIRECT_MEMORY = 1,
+};
+
 //DeviceMemory allocator
-//VkDeviceMemory VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index);
 
-/*
+VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size = _megabytes(128),u32 write_size = _megabytes(192),
+                                  u32 transferbuffer_size = _megabytes(64),
+                                  u32 readwrite_size = _megabytes(64),
+                                  u32 direct_size = _megabytes(32));
 
-src/cu_std/cu/vvulkan.cpp:754:    context.memory = deviceallocator(device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:886:    context.memory = deviceallocator(vdevice->device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:1393:            deviceallocator(device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:1497:    deviceallocator = allocator;
-src/cu_std/cu/vvulkan.cpp:2308:        deviceallocator(vdevice->device,memreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:2355:        deviceallocator(vdevice->device,memreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:2418:        deviceallocator(vdevice->device,_mapalign(memoryreq.size),typeindex);
-src/cu_std/cu/vvulkan.cpp:2477:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:2515:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:2631:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
-src/cu_std/cu/vvulkan.cpp:2726:        deviceallocator(vdevice->device,memoryreq.size,typeindex);
+VkDeviceMemory VGetDeviceBlockMemory();
+VkDeviceMemory VGetWriteBlockMemory();
+VkDeviceMemory VGetReadWriteBlockMemory();
+VkDeviceMemory VGetDirectBlockMemory();
+
+//TODO: do bounds checking here and should we track these??
+
+s8* VGetWriteBlockPtr(VBufferContext* _restrict buffer);
+s8* VGetReadWriteBlockPtr(VBufferContext* _restrict buffer);
+s8* VGetDirectBlockPtr(VBufferContext* _restrict buffer);
+
+s8* VGetWriteBlockPtr(VImageMemoryContext* _restrict image);
+s8* VGetReadWriteBlockPtr(VImageMemoryContext* _restrict image);
+s8* VGetDirectBlockPtr(VImageMemoryContext* _restrict image);
+
+struct VBufferCopy{
+    VkBufferCopy array[32] = {};
+    u32 count = 0;
+};
+
+struct VBufferImageCopy{
+    VkBufferImageCopy array[32] = {};
+    u32 count = 0;
+};
+
+s8* VGetTransferBufferPtr(u32 size);
+
+//NOTE: this takes in a ptr returned by VGetTransferBufferPtr and offsets from it
+VkDeviceSize VGetTransferBufferOffset(s8* _restrict transferbufferptr);
+VkBuffer VGetTransferBuffer();
+
+//NOTE: this takes in a ptr returned by VGetTransferBufferPtr and offsets from it. it has to be within the size range requested.
+void VPushBackCopyBuffer(s8* _restrict transferbufferptr,VBufferCopy* _restrict copy,VkDeviceSize dst_offset,VkDeviceSize size);
+
+void VCmdCopyBuffer(VkCommandBuffer cmdbuffer,VkBuffer dst_buffer,VBufferCopy* _restrict copy);
+
+//NOTE: this takes in a ptr returned by VGetTransferBufferPtr and offsets from it. it has to be within the size range requested.
+void VPushBackCopyBufferImage(s8* _restrict transferbufferptr,VBufferImageCopy* _restrict copy,VkExtent3D extent,VkOffset3D offset = {},
+                              VkImageSubresourceLayers layers = {VK_IMAGE_ASPECT_COLOR_BIT,0,0,1},
+                              u32 buffer_rowlength = 0,u32 buffer_imageheight = 0);
+
+void VCmdBufferImageCopy(VkCommandBuffer cmdbuffer,VkImage dst_image,VkImageLayout layout,VBufferImageCopy* _restrict copy);
 
 
-DEVICEALLOCED: TYPE 0 SIZE 4988936
-DEVICEALLOCED: TYPE 0 SIZE 23068672
-DEVICEALLOCED: TYPE 1 SIZE 16777216
-DEVICEALLOCED: TYPE 1 SIZE 16777216
-DEVICEALLOCED: TYPE 0 SIZE 67108864
-DEVICEALLOCED: TYPE 0 SIZE 61440
-DEVICEALLOCED: TYPE 1 SIZE 57600
-DEVICEALLOCED: TYPE 1 SIZE 540672
-DEVICEALLOCED: TYPE 1 SIZE 36992
-DEVICEALLOCED: TYPE 0 SIZE 1024
-DEVICEALLOCED: TYPE 0 SIZE 1024
-DEVICEALLOCED: TYPE 1 SIZE 199500
-DEVICEALLOCED: TYPE 0 SIZE 256000
-DEVICEALLOCED: TYPE 1 SIZE 147456
+VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
+                                           u32 data_size,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
 
-*/
+VBufferContext VCreateShaderStorageBufferContext(
+const  VDeviceContext* _restrict vdevice,
+u32 data_size,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
+
+VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels = 1,VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+
+
+//TODO: remove these
+VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,
+                                    u32 height,VkFormat format);
+
+VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice,
+                                        u32 width,u32 height,u32 miplevels);
+
+void VDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);

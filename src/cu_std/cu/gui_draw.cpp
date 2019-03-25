@@ -457,7 +457,6 @@ struct GUIContext{
     GUIVertex guivert_array[_reserve_count];
     
     GUIVertex* vert_mptr;
-    
     u16 vert_offset;
     
     u16 internal_width;//of the screen
@@ -984,9 +983,65 @@ GUIFont GUICreateFont(void* src_data,VkCommandBuffer cmdbuffer,
     
     auto image_data = data;
     
-    //Create texture
-    font.texture =
-        VCreateTextureImage(vdevice,image_data,font.width,font.height,cmdbuffer,queue);
+    
+    
+    {
+        auto size = font.width * font.height * 4;
+        
+        font.texture =
+            VCreateTexture(vdevice,font.width,font.height);
+        
+        auto ptr = VGetTransferBufferPtr(size);
+        
+        memcpy(ptr,image_data,size);
+        
+        VBufferImageCopy copy = {};
+        
+        VPushBackCopyBufferImage(ptr,&copy,{font.width,font.height,1});
+        
+        VkImageMemoryBarrier copy_barrier[] = {
+            {
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                0,
+                0,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                font.texture.image,
+                {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1}
+            },
+            {
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                0,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                font.texture.image,
+                {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1}
+            }
+        };
+        
+        VStartCommandBuffer(cmdbuffer);
+        
+        vkCmdPipelineBarrier(cmdbuffer,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                             0,0,0,0,0,1,&copy_barrier[0]);
+        
+        VCmdBufferImageCopy(cmdbuffer,font.texture.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&copy);
+        
+        vkCmdPipelineBarrier(cmdbuffer,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             0,0,0,0,0,1,&copy_barrier[1]);
+        
+        VEndCommandBuffer(cmdbuffer);
+        
+        VSubmitCommandBuffer(queue,cmdbuffer);
+        
+        vkQueueWaitIdle(queue);
+    }
     
     if(!gui->desclayout){
         
@@ -1048,8 +1103,63 @@ GUIFont GUICreateFontFromFile(const s8* filepath,VkCommandBuffer cmdbuffer,
     FRead(file,image_data,sizeof(u32) * font.width * font.height);
     
     //Create texture
-    font.texture =
-        VCreateTextureImage(vdevice,image_data,font.width,font.height,cmdbuffer,queue);
+    {
+        auto size = font.width * font.height * 4;
+        
+        font.texture =
+            VCreateTexture(vdevice,font.width,font.height);
+        
+        auto ptr = VGetTransferBufferPtr(size);
+        
+        memcpy(ptr,image_data,size);
+        
+        VBufferImageCopy copy = {};
+        
+        VPushBackCopyBufferImage(ptr,&copy,{font.width,font.height,1});
+        
+        VkImageMemoryBarrier copy_barrier[] = {
+            {
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                0,
+                0,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                font.texture.image,
+                {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1}
+            },
+            {
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                0,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                font.texture.image,
+                {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1}
+            }
+        };
+        
+        VStartCommandBuffer(cmdbuffer);
+        
+        vkCmdPipelineBarrier(cmdbuffer,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                             0,0,0,0,0,1,&copy_barrier[0]);
+        
+        VCmdBufferImageCopy(cmdbuffer,font.texture.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&copy);
+        
+        vkCmdPipelineBarrier(cmdbuffer,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             0,0,0,0,0,1,&copy_barrier[1]);
+        
+        VEndCommandBuffer(cmdbuffer);
+        
+        VSubmitCommandBuffer(queue,cmdbuffer);
+        
+        vkQueueWaitIdle(queue);
+    }
     
     unalloc(image_data);
     
@@ -1217,11 +1327,23 @@ void GUIInit(VDeviceContext* vdevice,VSwapchainContext* swap,
     
     InitInternalComponents(vdevice,swap,renderpass,vertexbinding_no,cache);
     
-    
-    gui->vert_buffer =
-        VCreateStaticVertexBuffer(vdevice,sizeof(GUIVertex) * _reserve_count,0,false,VMAPPED_NONE);
-    
-    VMapMemory(gui->internal_device,gui->vert_buffer.memory,0,gui->vert_buffer.size,(void**)&gui->vert_mptr);
+    {
+        auto buffer = VCreateStaticVertexBuffer(vdevice,
+                                                sizeof(GUIVertex) * _reserve_count,0,VBLOCK_DIRECT);
+        
+        if(!buffer.buffer){
+            buffer = VCreateStaticVertexBuffer(vdevice,
+                                               sizeof(GUIVertex) * _reserve_count,0,VBLOCK_WRITE);
+            
+            gui->vert_mptr = (GUIVertex*)VGetWriteBlockPtr(&buffer);
+        }
+        
+        else{
+            gui->vert_mptr = (GUIVertex*)VGetDirectBlockPtr(&buffer);
+        }
+        
+        gui->vert_buffer = buffer;
+    }
 }
 
 
@@ -1795,12 +1917,6 @@ void GUIEnd(){
     GUIInternalEndWindow();
     
     memcpy(gui->vert_mptr,&gui->guivert_array[0],gui->vert_offset * sizeof(GUIVertex));
-    
-    VMemoryRangesArray ranges = {};
-    
-    VPushBackMemoryRanges(&ranges,gui->vert_buffer.memory,0,gui->vert_offset * sizeof(GUIVertex));
-    
-    VFlushMemoryRanges(gui->internal_device,&ranges);
 }
 
 

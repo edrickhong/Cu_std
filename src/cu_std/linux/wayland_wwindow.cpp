@@ -16,16 +16,16 @@ xdg-shell-client-protocol.h
 #include "ssys.h"
 #include "xkbcommon/xkbcommon.h"
 
-_persist LibHandle xkb_lib = 0;
-_persist xkb_context* xkb_ctx = 0;
-_persist xkb_keymap* xkb_kbmap = 0;
-_persist xkb_state* xkb_kbstate = 0;
+_global LibHandle xkb_lib = 0;
+_global xkb_context* xkb_ctx = 0;
+_global xkb_keymap* xkb_kbmap = 0;
+_global xkb_state* xkb_kbstate = 0;
 
 s32 (*xkb_state_key_get_utf8_fptr)(xkb_state*,xkb_keycode_t,s8*,size_t) = 0;
 
 
-_persist WWindowEvent wayland_event_array[32] = {};
-_persist u32 wayland_event_count = 0;
+_global WWindowEvent wayland_event_array[32] = {};
+_global u32 wayland_event_count = 0;
 
 wl_proxy* (*wl_proxy_marshal_constructor_fptr)(wl_proxy*,u32,const wl_interface*,...) = 0;
 
@@ -330,11 +330,11 @@ void WaylandSHMFormat(void* data,wl_shm* shm,u32 format){
     //printf("shm %p has format %d\n",(void*)shm,format);
 }
 
-_persist wl_shm_listener shm_listener = {
+_global wl_shm_listener shm_listener = {
 	WaylandSHMFormat
 };
 
-_persist wl_pointer_listener pointer_listener = {
+_global wl_pointer_listener pointer_listener = {
     WaylandPointerEnter,
     WaylandPointerLeave,
     WaylandPointerMotion,
@@ -342,7 +342,7 @@ _persist wl_pointer_listener pointer_listener = {
     WaylandPointerAxis
 };
 
-_persist wl_keyboard_listener keyboard_listener = {
+_global wl_keyboard_listener keyboard_listener = {
     WaylandKeyboardMap,
     WaylandKeyboardEnter,
     WaylandKeyboardLeave,
@@ -372,7 +372,7 @@ void SeatCapabilities(void* data,wl_seat* seat,u32 caps){
     }
 }
 
-_persist const wl_seat_listener seat_listener = {
+_global const wl_seat_listener seat_listener = {
     SeatCapabilities
 };
 
@@ -406,7 +406,7 @@ void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry, u32
     
 }
 
-_persist const wl_registry_listener registry_listener = {Wayland_Display_Handle_Global,0};
+_global const wl_registry_listener registry_listener = {Wayland_Display_Handle_Global,0};
 
 void Wayland_Ping(void* data,wl_shell_surface* shell_surface,u32 serial){
     
@@ -420,7 +420,7 @@ void Wayland_Configure(void* data,wl_shell_surface* shell_surface,u32 edges,s32 
 void Wayland_Popupdone(void* data,wl_shell_surface* shell_surface){}
 
 
-_persist const wl_shell_surface_listener shell_surface_listener =
+_global const wl_shell_surface_listener shell_surface_listener =
 { Wayland_Ping, Wayland_Configure, Wayland_Popupdone };
 
 

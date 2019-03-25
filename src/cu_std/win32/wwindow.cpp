@@ -4,8 +4,8 @@
 #include "Windowsx.h"
 
 
-_persist WWindowEvent event_array[32];
-_persist u32 event_count = 0;
+_global WWindowEvent event_array[32];
+_global u32 event_count = 0;
 
 void _ainline PostEvent(WWindowEvent event){
     

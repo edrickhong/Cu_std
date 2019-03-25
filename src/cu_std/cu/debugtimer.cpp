@@ -30,7 +30,7 @@ struct DebugTimerContext{
     
 };
 
-_persist DebugTimerContext* context = 0;
+_global DebugTimerContext* context = 0;
 
 void InitDebugTimer(){
     
