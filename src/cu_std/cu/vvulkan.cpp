@@ -638,36 +638,79 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     VResult res = V_SUCCESS;
     
-    auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    
-    device_block = {VRawDeviceAlloc(vdevice->device,device_size,type),
-        0,device_size,type};
-    
-    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_write_block_flags);
-    
-    //should we used cached here??
-    write_block = {VRawDeviceAlloc(vdevice->device,write_size,type),0,write_size,type};
     
     
-    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_readwrite_block_flags);
-    
-    readwrite_block = {VRawDeviceAlloc(vdevice->device,readwrite_size,type),0,readwrite_size,
-        type};
-    
-    
-    type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_direct_block_flags);
-    
-    if(type != (u32)-1){
+    //device
+    {
+        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
-        direct_block = {VRawDeviceAlloc(vdevice->device,direct_size,type),0,direct_size,
-            type};
+        device_block.memory = VRawDeviceAlloc(vdevice->device,device_size,type);
+        device_block.offset = 0;
+        device_block.size = device_size;
         
-        VMapMemory(vdevice->device,direct_block.memory,0,VK_WHOLE_SIZE,(void**)&direct_ptr);
+#ifdef DEBUG
+        device_block.type = type;
+        device_block.res = 0;
+#endif
+        
     }
     
-    else{
-        res = V_NO_DIRECT_MEMORY;
+    //write
+    {
+        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_write_block_flags);
+        
+        write_block.memory = VRawDeviceAlloc(vdevice->device,write_size,type);
+        write_block.offset = 0;
+        write_block.size = write_size;
+        
+#ifdef DEBUG
+        device_block.type = type;
+        device_block.res = 0;
+#endif
+        
     }
+    
+    
+    //readwrite
+    {
+        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_readwrite_block_flags);
+        
+        readwrite_block.memory = VRawDeviceAlloc(vdevice->device,readwrite_size,type);
+        readwrite_block.offset = 0;
+        readwrite_block.size = readwrite_size;
+        
+#ifdef DEBUG
+        device_block.type = type;
+        device_block.res = 0;
+#endif
+        
+    }
+    
+    
+    //direct
+    {
+        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_direct_block_flags);
+        
+        if(type != (u32)-1){
+            
+            direct_block.memory = VRawDeviceAlloc(vdevice->device,direct_size,type);
+            direct_block.offset = 0;
+            direct_block.size = direct_size;
+            
+#ifdef DEBUG
+            device_block.type = type;
+            device_block.res = 0;
+#endif
+            
+            VMapMemory(vdevice->device,direct_block.memory,0,VK_WHOLE_SIZE,(void**)&direct_ptr);
+        }
+        
+        else{
+            res = V_NO_DIRECT_MEMORY;
+        }
+        
+    }
+    
     
     //map blocks
     VMapMemory(vdevice->device,write_block.memory,0,VK_WHOLE_SIZE,(void**)&write_ptr);

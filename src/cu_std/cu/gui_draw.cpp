@@ -1445,9 +1445,13 @@ void DebugGUIInternalMakeSubmission(WindowClipState to_make_window,GUIVec2 pos,G
     
     auto sub = InternalGetLastSubmission();
     
+#ifdef DEBUG
+    
     sub->file = (s8*)file;
     sub->line = line;
     sub->function = function;
+    
+#endif
 }
 
 #ifdef DEBUG
