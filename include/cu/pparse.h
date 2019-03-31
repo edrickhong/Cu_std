@@ -507,7 +507,9 @@ s8 PFillEvalBufferC(s8* buffer,ptrsize* cur,EvalChar* eval_buffer,u32* eval_coun
 
 
 
-s8 PFillEvalBufferC(s8* buffer,ptrsize* cur,EvalChar* eval_buffer,u32* eval_count,s8 terminator,void (*tagevalbuffer)(EvalChar*,u32));
+s8 _ainline PFillEvalBufferC(s8* buffer,ptrsize* cur,EvalChar* eval_buffer,u32* eval_count,s8 terminator,void (*tagevalbuffer)(EvalChar*,u32)){
+    return PFillEvalBufferC(buffer,cur,eval_buffer,eval_count,&terminator,1,tagevalbuffer);
+}
 
 
 

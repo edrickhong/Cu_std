@@ -670,13 +670,6 @@ s8 PFillEvalBufferC(s8* buffer,ptrsize* a,EvalChar* evaluation_buffer,u32* k,s8*
 
 
 
-s8 PFillEvalBufferC(s8* buffer,ptrsize* a,EvalChar* evaluation_buffer,u32* k,s8 terminator,void (*tagevalbuffer)(EvalChar*,u32)){
-    
-    return PFillEvalBufferC(buffer,a,evaluation_buffer,k,&terminator,1,tagevalbuffer);
-}
-
-
-
 //string execution
 
 m64 OpAdd_U64(m64 a,m64 b){
