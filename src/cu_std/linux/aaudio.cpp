@@ -1,6 +1,8 @@
 #include "aaudio.h"
 #include "libload.h"
 
+#include "dbus/dbus.h"
+
 #define _test(call) if(call < 0){_kill("",1);}
 
 
@@ -24,6 +26,7 @@ snd_pcm_recover					\
 ((s32 (*)(snd_pcm_t*,s32,s32))pcm_recover_fptr)
 
 _global LibHandle audiolib = 0;
+_global LibHandle dbuslib = 0;
 
 
 void _ainline InternalLoadAudioLib(){
@@ -37,30 +40,138 @@ void _ainline InternalLoadAudioLib(){
         "libasound.so",
     };
     
-    LibHandle lib = 0;
-    
     for(u32 i = 0; i < _arraycount(audio_libs); i++){
-        lib = LLoadLibrary(audio_libs[i]);
-        if(lib){
+        audiolib = LLoadLibrary(audio_libs[i]);
+        if(audiolib){
             break;
         }
     }
     
-    _kill("can't load audio lib\n",!lib);
+    _kill("can't load audio lib\n",!audiolib);
     
     {
         pcm_avail_update_fptr =
-            LGetLibFunction(lib,"snd_pcm_avail_update");
+            LGetLibFunction(audiolib,"snd_pcm_avail_update");
         
         pcm_writei_fptr =
-            LGetLibFunction(lib,"snd_pcm_writei");
+            LGetLibFunction(audiolib,"snd_pcm_writei");
         
         pcm_recover_fptr =
-            LGetLibFunction(lib,"snd_pcm_recover");  
+            LGetLibFunction(audiolib,"snd_pcm_recover");  
     }
     
+    const s8* dbus_libs[] = {
+        "libdbus-1.so.3",
+        "libdbus-1.so",
+    };
     
-    audiolib = lib;
+    for(u32 i = 0; i < _arraycount(dbus_libs); i++){
+        dbuslib = LLoadLibrary(dbus_libs[i]);
+        if(dbuslib){
+            break;
+        }
+    }
+    
+    _kill("can't load dbus lib\n",!dbuslib);
+}
+
+_intern _ainline void RegisterDBus(){}
+
+_intern void GetExclusvieAccess(){
+    
+#define _audiodev(str,dev) str #dev
+#define _reserveaudio_dev(str) _audiodev(str,Audio0)
+#define _reserveaudio_priority 0x7FFFFFFF
+#define _reserveaudio_debug 1 
+#define _reserveaudio_timeout 5000
+    
+#define _dbustest(call) {auto res = call;_kill("",res == -1);}
+    
+    auto dbus_error_init_fptr = (void (*)(DBusError*))LGetLibFunction(dbuslib,"dbus_error_init");
+    
+    auto dbus_bus_get_fptr = (DBusConnection* (*)(DBusBusType,DBusError*))LGetLibFunction(dbuslib,"dbus_bus_get");
+    
+    auto dbus_message_new_method_call_fptr = (DBusMessage* (*)(const s8*,const s8*,const s8*,const s8*))
+        LGetLibFunction(dbuslib,"dbus_message_new_method_call");
+    
+    auto dbus_message_append_args_fptr = (dbus_bool_t (*)(DBusMessage*,s32,...))LGetLibFunction(dbuslib,"dbus_message_append_args");
+    
+    auto dbus_connection_send_with_reply_and_block_fptr = (DBusMessage* (*)(DBusConnection*,DBusMessage*,s32,DBusError*))LGetLibFunction(dbuslib,"dbus_connection_send_with_reply_and_block");
+    
+    auto dbus_message_get_args_fptr = (dbus_bool_t (*)(DBusMessage*,DBusError*,s32...))
+        LGetLibFunction(dbuslib,"dbus_message_get_args");
+    
+    auto dbus_bus_request_name_fptr = (s32 (*)(DBusConnection*,const s8*,u32,DBusError*))
+        LGetLibFunction(dbuslib,"dbus_bus_request_name");
+    
+    auto dbus_connection_try_register_object_path_fptr = (dbus_bool_t (*)(DBusConnection*,const s8*,const DBusObjectPathVTable*,void*,DBusError*))LGetLibFunction(dbuslib,"dbus_connection_try_register_object_path");
+    
+    auto dbus_connection_add_filter_fptr = (dbus_bool_t (*)(DBusConnection*,DBusHandleMessageFunction,void*,DBusFreeFunction))LGetLibFunction(dbuslib,"dbus_connection_add_filter");
+    
+    DBusConnection* connection = 0;
+    
+#if _reserveaudio_debug
+    DBusError error_s = {};
+    DBusError* error = &error_s;
+#else
+    DBusError* error = 0;
+#endif
+    
+    dbus_error_init_fptr(error);//MARK: need to free if set (on error code)
+    connection = dbus_bus_get_fptr(DBUS_BUS_SESSION,error);
+    
+    auto service_name = _reserveaudio_dev("org.freedesktop.ReserveDevice1.");
+    auto object_path = _reserveaudio_dev("/org/freedesktop/ReserveDevice1/");
+    auto interface_name = "org.freedesktop.ReserveDevice1";
+    
+#if (_reserveaudio_priority == 0x7FFFFFFF)
+#define _dbus_flag 0
+#else
+#define _dbus_flag DBUS_NAME_FLAG_ALLOW_REPLACEMENT
+#endif
+    
+    auto ret = dbus_bus_request_name_fptr(connection,service_name,_dbus_flag | DBUS_NAME_FLAG_DO_NOT_QUEUE,error);
+    
+    _dbustest(ret);
+    
+    _kill("not a valid return value\n",ret != DBUS_REQUEST_NAME_REPLY_EXISTS && ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER && ret != DBUS_REQUEST_NAME_REPLY_ALREADY_OWNER);
+    
+    if(ret == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER || ret == DBUS_REQUEST_NAME_REPLY_ALREADY_OWNER){
+        //don't have to do shit?? how often do we hit this case??
+        RegisterDBus();
+        _kill("",1);
+        return;
+    }
+    
+    //MARK: need to free if this message
+    auto send_msg = dbus_message_new_method_call_fptr(service_name,object_path,interface_name,"RequestRelease");
+    
+    _kill("cannot create message\n",!send_msg);
+    
+    auto priority = _reserveaudio_priority;
+    ret = dbus_message_append_args_fptr(send_msg,DBUS_TYPE_INT32,&priority,DBUS_TYPE_INVALID);
+    
+    _kill("failed to append msg\n",!ret);
+    
+    //MARK: unref this??
+    auto reply_msg = dbus_connection_send_with_reply_and_block_fptr(connection,send_msg,_reserveaudio_timeout,error);
+    _kill("no reply msg\n",!reply_msg);
+    
+    b32 name_request = false;
+    ret = dbus_message_get_args_fptr(reply_msg,error,DBUS_TYPE_BOOLEAN,&name_request,DBUS_TYPE_INVALID);
+    
+    _kill("failed to get msg\n",!ret);
+    
+    //TODO: register our app to dbus
+    
+    //FIXME: after registering w highest priority, no other app can reconnect to the device
+    //It looks like we HAVE to release this right after we are done
+    //if we segfault, the device becomes free again!!
+    
+    RegisterDBus();
+    
+    exit(0);
+    _breakpoint();
 }
 
 
@@ -73,6 +184,8 @@ AAudioContext ACreateAudioDevice(const s8* device_string,u32 frequency,u32 chann
     */
     
     InternalLoadAudioLib();
+    
+    GetExclusvieAccess();
     
     auto snd_pcm_open_fptr = (s32 (*)(snd_pcm_t**,const s8*,snd_pcm_stream_t,s32 mode))
         LGetLibFunction(audiolib,"snd_pcm_open");

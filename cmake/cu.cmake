@@ -46,6 +46,8 @@ endif()
 
    set(PLATFORM_INCLUDES
     "${CU_STD_DIR}/include/cu/linux"
+	"/usr/include/dbus-1.0/"
+	"/usr/lib/x86_64-linux-gnu/dbus-1.0/include/"
     )
 
 else(UNIX)
