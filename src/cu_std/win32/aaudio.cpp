@@ -19,7 +19,7 @@ static IMMDeviceEnumerator* device_enum = 0;
 
 //WASAPI allows us to change the sample rate of a stream but not the stream format
 AAudioContext ACreateAudioDevice(const s8* device_name,u32 frequency,u32 channels,
-                                 u32 format){
+                                 u32 format,AAccessMode mode){
     
     AAudioContext context = {};
     
