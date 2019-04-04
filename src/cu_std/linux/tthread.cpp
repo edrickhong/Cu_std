@@ -6,7 +6,7 @@
 void TWaitSemaphore(TSemaphore sem,f32 time_ms){
     
     timespec time = {};
-    time.tv_nsec = time_ms * 1000000.0f;
+    time.tv_nsec = (long)(time_ms * 1000000.0f);
     
     sem_timedwait(sem,&time); 
 }
@@ -19,9 +19,11 @@ ThreadID TGetThisThreadID(){
     return pthread_self();
 }
 
-void TSetThreadAffinity(ThreadID threadid,u32 cpu_mask){
+void TSetThreadAffinity(u32 cpu_mask){
     
     _kill("mask of 0 used\n",!cpu_mask);
+    
+    ThreadID threadid = TGetThisThreadID();
     
     u32 count = 32 - BSR(cpu_mask);
     

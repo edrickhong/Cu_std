@@ -5,6 +5,8 @@
 
 #include "wayland_dyn.hpp"
 
+//TODO: file dialog -- looks like we have to check through gtk2. we might be able to just step through and find out how it figures out the default file manager
+
 struct WaylandData{
     
     u16 width;

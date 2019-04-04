@@ -4,8 +4,19 @@
 
 #include "debugtimer.h"
 
+#ifndef _WIN32
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
+
+#ifndef _WIN32
+#pragma GCC diagnostic pop
+#endif
+
+
 
 #include "kkeycode.h"
 #include "pparse.h"
@@ -879,7 +890,8 @@ GUIVec2 InternalLayoutPos(GUIDim2* dim,u32 behavior = GUILAYOUT_NONE){
     
     if(behavior == GUILAYOUT_OCCUPY_WIDTH){
         
-        if(gui->put_x != (-1.0f + InternalGetPaddingX())){
+        //TODO:gui->put_x != (-1.0f + InternalGetPaddingX())
+        if(gui->put_x > (-1.0f + InternalGetPaddingX())){
             InternalNextLinePutPos();
         }
         
@@ -1808,8 +1820,8 @@ void InternalGUIActiveHistogram(){
         s8 string1[256] = {};
         s8 string2[256] = {};
         
-        sprintf(&string1[0]," %s : %f",gui->graph_string_x,gui->graph_value_x);
-        sprintf(&string2[0]," %s : %f",gui->graph_string_y,gui->graph_value_y);
+        sprintf(&string1[0]," %s : %f",gui->graph_string_x,(f64)gui->graph_value_x);
+        sprintf(&string2[0]," %s : %f",gui->graph_string_y,(f64)gui->graph_value_y);
         
         s8* longest_string = &string1[0];
         
@@ -1859,7 +1871,7 @@ void InternalGUIActiveProfiler(){
         sprintf(&string_array[1][0],"  FILE %s",gui->p_record.file);
         sprintf(&string_array[2][0],"  FUNCTION %s",gui->p_record.function);
         sprintf(&string_array[3][0],"  LINE %d",gui->p_record.line);
-        sprintf(&string_array[4][0],"  MS %f",gui->p_record.timelen);
+        sprintf(&string_array[4][0],"  MS %f",(f64)gui->p_record.timelen);
         sprintf(&string_array[5][0],"  CYCLES %llu",gui->p_record.cyclelen);
         
         for(u32 i = 0; i < 6; i++){

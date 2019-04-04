@@ -1,4 +1,9 @@
-
+/*
+TODO: 
+move glm compare to tests
+make quaternions xyzw
+have automatic conversions between f32* to our types for better integration with external code bases
+*/
 
 #ifdef DEBUG
 
@@ -25,7 +30,7 @@ void InternalCmpMatrix(f32* f1,f32* f2){
         auto a = f1[i];
         auto b = f2[i];
         
-        if(a == 0 && b == 0){
+        if(a == 0.0f && b == 0.0f){
             f1[i] = 0;
             f2[i] = 0;
         }
@@ -924,7 +929,7 @@ Vector3 ProjectOnto(Vector3 a,Vector3 b){
 
 f32 AngleQuadrant(f32 x,f32 y){
     
-    if(x == 0 && y == 0){
+    if(x == 0.0f && y == 0.0f){
         return 0.0f;
     }
     
@@ -933,7 +938,7 @@ f32 AngleQuadrant(f32 x,f32 y){
     
 #if 0
     
-    if(teeter < 0){
+    if(teeter < 0.0f){
         teeter += _twopi;
     }
     
@@ -997,7 +1002,7 @@ void PrintMatrix(Matrix4b4 matrix){
         if(i % 4 == 0)
             printf("\n");
         
-        printf("%f   ",matrix[i]);
+        printf("%f   ",(f64)matrix[i]);
         
     }
     
@@ -1013,7 +1018,7 @@ void PrintMatrix(Matrix3b3 matrix){
         if(i % 3 == 0)
             printf("\n");
         
-        printf("%f   ",matrix[i]);
+        printf("%f   ",(f64)matrix[i]);
         
     }
     
@@ -1021,19 +1026,19 @@ void PrintMatrix(Matrix3b3 matrix){
 }
 
 void PrintVector4(Vector4 vec){
-    printf("%f   %f   %f   %f\n",vec.x,vec.y,vec.z,vec.w);
+    printf("%f   %f   %f   %f\n",(f64)vec.x,(f64)vec.y,(f64)vec.z,(f64)vec.w);
 }
 
 void PrintVector3(Vector3 vec){
-    printf("%f   %f   %f\n",vec.x,vec.y,vec.z);
+    printf("%f   %f   %f\n",(f64)vec.x,(f64)vec.y,(f64)vec.z);
 }
 
 void PrintVector2(Vector2 vec){
-    printf("%f   %f\n",vec.x,vec.y);
+    printf("%f   %f\n",(f64)vec.x,(f64)vec.y);
 }
 
 void PrintQuaternion(Quaternion vec){
-    printf("%f   %f   %f   %f\n",vec.w,vec.x,vec.y,vec.z);
+    printf("%f   %f   %f   %f\n",(f64)vec.w,(f64)vec.x,(f64)vec.y,(f64)vec.z);
 }
 
 
@@ -1229,7 +1234,7 @@ void DeconstructQuaternion(Quaternion quaternion,Vector3* vector,f32* angle){
     f32 scale = sinf(anglew);
     
     //we should handle the case scale == 0
-    if(scale == 0){
+    if(scale == 0.0f){
         *vector = Vector3{1,0,0};
         *angle = 0;
         return;

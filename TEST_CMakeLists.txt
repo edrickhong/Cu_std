@@ -2,53 +2,45 @@ cmake_minimum_required(VERSION 2.8)
 
 project(tests)
 
+execute_process(COMMAND echo DOWNLOADING...
+                COMMAND curl -L https://edrickhong.github.io/Pages/testfiles.zip
+                        -o testfiles.zip)
 
-execute_process(
-COMMAND echo DOWNLOADING...
-COMMAND curl -L https://edrickhong.github.io/Pages/testfiles.zip -o testfiles.zip
-)
-
-execute_process(
-COMMAND unzip -x testfiles.zip
-)
-
+execute_process(COMMAND unzip -x testfiles.zip)
 
 option(DEBUG "" ON)
 
 if(DEBUG)
 
-add_definitions(-DDEBUG)
+  add_definitions(-DDEBUG)
 
 endif()
 
-# set(CMAKE_C_COMPILER /usr/bin/clang)
-# set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+# set(CMAKE_C_COMPILER /usr/bin/clang) set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 
-set(PLATFORM_INCLUDES
-  "${CMAKE_BINARY_DIR}/../include/cu/linux"
-  )
+set(PLATFORM_INCLUDES "${CMAKE_BINARY_DIR}/../include/cu/linux")
 
 # Include Directory
-include_directories(
-  ${PLATFORM_INCLUDES}
-  "${CMAKE_BINARY_DIR}/../include/cu/mode/"
-  "${CMAKE_BINARY_DIR}/../include"
-  "${CMAKE_BINARY_DIR}/../include/cu"
-  "${CMAKE_BINARY_DIR}/../include/cu/amd64/"
-  "${CMAKE_BINARY_DIR}/../tests/"
-  )
+include_directories(${PLATFORM_INCLUDES}
+                    "${CMAKE_BINARY_DIR}/../include/cu/mode/"
+                    "${CMAKE_BINARY_DIR}/../include"
+                    "${CMAKE_BINARY_DIR}/../include/cu"
+                    "${CMAKE_BINARY_DIR}/../include/cu/amd64/"
+                    "${CMAKE_BINARY_DIR}/../tests/")
 
-#-fno-omit-frame-pointer is for profiling
-set(OPT_FLAGS "-O0 -march=x86-64 -fno-omit-frame-pointer -fno-fast-math -fno-exceptions -fno-rtti")
+# -fno-omit-frame-pointer is for profiling
+set(
+  OPT_FLAGS
+  "-O0 -march=x86-64 -fno-omit-frame-pointer -fno-fast-math -fno-exceptions -fno-rtti"
+  )
 set(STRICT_FLAGS "")
 
 set(FLAGS "-g -std=c++14 ${OPT_FLAGS} ${STRICT_FLAGS} ${CLANG_DEBUG}")
 
-#output with debug info
-set(CMAKE_CXX_FLAGS  ${FLAGS})
+# output with debug info
+set(CMAKE_CXX_FLAGS ${FLAGS})
 
-
-#disable wayland extensions. don't need it for ci tests
+# disable wayland extensions. don't need it for ci tests
 add_definitions(-DNO_WAYLAND_EXTENSIONS)
 
 file(GLOB CU_STD src/cu_std/cu/gui_bin.cpp src/cu_std/cu/main.cpp)
@@ -62,7 +54,6 @@ set(PLATFORM_LIBS ${DL_LIB} ${PTHREAD_LIB})
 file(GLOB TESTS "tests/main.cpp")
 
 add_executable(ci_test ${TESTS})
-
 
 add_library(cu_std STATIC ${CU_STD})
 

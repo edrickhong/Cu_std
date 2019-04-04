@@ -45,9 +45,9 @@ Vector4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 ani
     f32 step = (animationtime - current.time)/(next.time - current.time);
     
     printf("------------------------------------------------\n");
-    printf("%f\n",step);
-    printf("cur %f    %f    %f    \n",current.value.x,current.value.y,current.value.z);
-    printf("next %f    %f    %f    \n",next.value.x,next.value.y,next.value.z);
+    printf("%f\n",(f64)step);
+    printf("cur %f    %f    %f    \n",(f64)current.value.x,(f64)current.value.y,(f64)current.value.z);
+    printf("next %f    %f    %f    \n",(f64)next.value.x,(f64)next.value.y,(f64)next.value.z);
     
     return InterpolateVector(current.value,next.value,step);
 }
@@ -216,7 +216,7 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
     
     AAnimationSet animation = animation_array[animation_index];
     
-    f32 tps = _either(animation.tps != 0,animation.tps,25.0f);
+    f32 tps = _either(animation.tps != 0.0f,animation.tps,25.0f);
     f32 ticks = tps * _ms2s(time_ms);
     
     //returns the remainder of x divided by y

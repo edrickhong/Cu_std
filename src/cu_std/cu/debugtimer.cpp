@@ -65,7 +65,7 @@ void PrintEntries(){
     for(u32 i = 0; i < context->print_count; i++){
         auto ent = &context->print_array[i];
         
-        printf("%s : %f\n",ent->name,ent->time);
+        printf("%s : %f\n",ent->name,(f64)ent->time);
     }
 }
 
@@ -150,7 +150,7 @@ void BuildGraph(b32 to_draw){
             
         }
         
-        sprintf(&buffer[0],"Frame Time:%f",masterblock->timelen);
+        sprintf(&buffer[0],"Frame Time:%f",(f64)masterblock->timelen);
         
         GUIString(&buffer[0]);
     }

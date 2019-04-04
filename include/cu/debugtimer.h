@@ -181,7 +181,7 @@ struct PrintTimeBlock : TimeBlock{
         GetTime(&end);
         
         auto len = GetTimeDifferenceMS(start_stamp,end);
-        printf("%s %s %d : %f\n",file,function,line,len);
+        printf("%s %s %d : %f\n",file,function,line,(f64)len);
     }
 };
 

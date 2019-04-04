@@ -1,61 +1,67 @@
-cmake_minimum_required(VERSION 2.8)
-project(cu_std)
-
 option(IS_INDEPENDENT "" ON)
 
 if(IS_INDEPENDENT)
 
-message(STATUS "CU_STD STAND ALONE")
+  cmake_minimum_required(VERSION 3.9)
+  project(cu_std)
 
-set(CU_STD_DIR "${CMAKE_SOURCE_DIR}/")
+  message(STATUS "CU_STD STAND ALONE")
 
-option(BUILD_STEP "" ON)
-option(DEBUG "" ON)
+  set(CU_STD_DIR "${CMAKE_SOURCE_DIR}/")
 
-#kept because we change these often (Linux compiler flags)
-if(UNIX)
+  option(BUILD_STEP "" ON)
+  option(DEBUG "" ON)
 
-if(DEBUG)
-# -mavx
-  set(OPT_FLAGS "-g -O0 -fno-omit-frame-pointer")
+  # kept because we change these often (Linux compiler flags)
+  if(UNIX)
 
-endif()
+    if(DEBUG)
+      # -mavx
+    set(OPT_FLAGS "-g -O0 -fno-omit-frame-pointer -fstack-protector-strong")
 
-  set(FLAGS "-fvisibility=hidden -march=x86-64 -fno-fast-math -fno-exceptions -fno-rtti -std=c++14 ${OPT_FLAGS} ${STRICT_FLAGS} ${CLANG_DEBUG}")
-  
-endif(UNIX)
+    endif()
 
+    set(
+      FLAGS
+      "-fdiagnostics-absolute-paths -fvisibility=hidden -march=x86-64 -fno-fast-math -fno-exceptions -fno-rtti -std=c++14 ${OPT_FLAGS} ${STRICT_FLAGS} ${CLANG_DEBUG}"
+      )
+
+  endif(UNIX)
 
   set(CMAKE_CXX_FLAGS ${FLAGS})
 
- #Output Directory Variables
-   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
-   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
-   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+  # Output Directory Variables
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CU_STD_DIR}/bin)
+
+  #this adds LTO support
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT LTO_SUPPORTED)
+
+  if(LTO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  endif()
 
 else()
 
-message(STATUS "CU_STD DEPENDENT")
+  message(STATUS "CU_STD DEPENDENT")
 
 endif()
 
-
-
-#sets internal libs paths and flags
+# sets internal libs paths and flags
 include(${CU_STD_DIR}/cmake/cu.cmake)
-GenerateWaylandExtensionFiles()
+generatewaylandextensionfiles()
 
- #Include Directories
-  include_directories(
-  "${CU_STD_DIR}/include"
-  "${CU_STD_DIR}/include/cu"
-  "${CU_STD_DIR}/include/cu/amd64/"
-  ${MODE_INCLUDE}
-  ${PLATFORM_INCLUDES}
-  )
+# Include Directories
+include_directories("${CU_STD_DIR}/include"
+                    "${CU_STD_DIR}/include/cu"
+                    "${CU_STD_DIR}/include/cu/amd64/"
+                    ${MODE_INCLUDE}
+                    ${PLATFORM_INCLUDES})
 
-#source files. all unity builds
-file(GLOB CU_STD ${CU_STD_DIR}/src/cu_std/cu/gui_bin.cpp ${CU_STD_DIR}/src/cu_std/cu/main.cpp)
+# source files. all unity builds
+file(GLOB CU_STD ${CU_STD_DIR}/src/cu_std/cu/gui_bin.cpp
+          ${CU_STD_DIR}/src/cu_std/cu/main.cpp)
 
 add_library(cu_std STATIC ${CU_STD})
-
