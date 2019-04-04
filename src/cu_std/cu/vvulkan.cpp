@@ -634,8 +634,6 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     _kill("transferbuffer_size has to be smaller than write_size\n",transferbuffer_size >= write_size);
     
-    _kill("Max transferbuffer size is 64MB\n",transferbuffer_size > _megabytes(64));
-    
     VResult res = V_SUCCESS;
     
     
@@ -664,8 +662,8 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         write_block.size = write_size;
         
 #ifdef DEBUG
-        device_block.type = type;
-        device_block.res = 0;
+        write_block.type = type;
+        write_block.res = 0;
 #endif
         
     }
@@ -680,8 +678,8 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         readwrite_block.size = readwrite_size;
         
 #ifdef DEBUG
-        device_block.type = type;
-        device_block.res = 0;
+        readwrite_block.type = type;
+        readwrite_block.res = 0;
 #endif
         
     }
@@ -698,8 +696,8 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
             direct_block.size = direct_size;
             
 #ifdef DEBUG
-            device_block.type = type;
-            device_block.res = 0;
+            direct_block.type = type;
+            direct_block.res = 0;
 #endif
             
             VMapMemory(vdevice->device,direct_block.memory,0,VK_WHOLE_SIZE,(void**)&direct_ptr);
