@@ -1,4 +1,19 @@
 #pragma once
+
+#ifdef _WIN32
+
+#include "iintrin.h"
+#include "Windows.h"
+
+struct TThreadContext{
+    HANDLE handle;
+};
+
+typedef HANDLE TSemaphore;
+typedef DWORD ThreadID;
+
+#else
+
 #include "pthread.h"
 #include "semaphore.h"
 
@@ -7,6 +22,14 @@ struct TThreadContext{
 };
 
 typedef sem_t* TSemaphore;
+
+typedef pthread_t ThreadID;
+
+#endif
+
+
+
+
 
 TThreadContext TCreateThread(s64(*call_fptr)(void*),u32 stack_size,void* args);
 
@@ -20,8 +43,10 @@ void TWaitSemaphore(TSemaphore sem);
 
 void TWaitSemaphore(TSemaphore sem,f32 time_ms);
 
-typedef pthread_t ThreadID;
-
 ThreadID TGetThisThreadID();
 
-void TSetThreadAffinity(ThreadID threadid,u32 cpu_mask);
+void TSetThreadAffinity(u32 cpu_mask);
+
+void TRevertThreadPriority();
+void TSetThreadPriority();
+void TGetThreadPriority();

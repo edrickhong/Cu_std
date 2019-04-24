@@ -10,7 +10,7 @@ struct AAudioInternalData{
     
 };
 
-#define _test(call) if(call < 0){_kill("",1);}
+#define _test(call) {auto call_res = call;if(call_res < 0){_kill("",1);}}
 
 
 _global void* pcm_avail_update_fptr  = 0;
@@ -126,11 +126,6 @@ void _ainline InternalLoadAudioLib(){
     }
 }
 
-
-#ifdef DEBUG
-_global u64 reserved_logical_devices_hashe_array[16] = {};
-_global u32 reserved_logical_devices_hashe_count = 0;
-#endif
 
 _global u32 reserved_card_no_array[16] = {};
 _global u32 reserved_card_no_count = 0;
@@ -908,17 +903,23 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
 #ifdef DEBUG
     
     {
-        auto hash = PHashString(logical_name);
-        b32 is_found = false;
-        
-        for(u32 i = 0; i < reserved_logical_devices_hashe_count; i++){
-            if(hash == reserved_logical_devices_hashe_array[i]){
-                is_found = true;
-                break;
+        if(logical_name){
+            auto card = GetAudioCardNo(logical_name);
+            b32 is_found = false;
+            
+            for(u32 i = 0; i < reserved_card_no_count; i++){
+                if(card == reserved_card_no_array[i]){
+                    is_found = true;
+                    break;
+                }
             }
+            
+            _kill("device is not registered\n",!is_found);
         }
         
-        _kill("device is not registered\n",!is_found);
+        else{
+            logical_name = "default";
+        }
     }
 #endif
     
@@ -1033,13 +1034,13 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
     _test(snd_pcm_hw_params_set_channels_fptr(pcm_handle,hw_info,prop.min_channels));
     
-    snd_pcm_hw_params_get_period_size_max_fptr(hw_info,(snd_pcm_uframes_t*)&prop.max_properties.internal_period_size,&dir);
+    _test(snd_pcm_hw_params_get_period_size_max_fptr(hw_info,(snd_pcm_uframes_t*)&prop.max_properties.internal_period_size,&dir));
     
-    snd_pcm_hw_params_get_period_size_min_fptr(hw_info,(snd_pcm_uframes_t*)&prop.min_properties.internal_period_size,&dir);
+    _test(snd_pcm_hw_params_get_period_size_min_fptr(hw_info,(snd_pcm_uframes_t*)&prop.min_properties.internal_period_size,&dir));
     
-    snd_pcm_hw_params_get_buffer_size_max_fptr(hw_info,(snd_pcm_uframes_t*)&prop.max_properties.internal_buffer_size);
+    _test(snd_pcm_hw_params_get_buffer_size_max_fptr(hw_info,(snd_pcm_uframes_t*)&prop.max_properties.internal_buffer_size));
     
-    snd_pcm_hw_params_get_buffer_size_min_fptr(hw_info,(snd_pcm_uframes_t*)&prop.min_properties.internal_buffer_size);
+    _test(snd_pcm_hw_params_get_buffer_size_min_fptr(hw_info,(snd_pcm_uframes_t*)&prop.min_properties.internal_buffer_size));
     
     
     
@@ -1051,14 +1052,14 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     prop.min_properties.internal_period_size *= size * prop.min_channels;
     prop.min_properties.internal_buffer_size *= size * prop.min_channels;
     
-    prop.min_properties.internal_period_size = !prop.min_properties.internal_period_size ? 1 : prop.min_properties.internal_period_size;
+    prop.min_properties.internal_period_size = !prop.min_properties.internal_period_size ? prop.min_properties.internal_buffer_size : prop.min_properties.internal_period_size;
     
     prop.max_properties.internal_period_size = !prop.max_properties.internal_period_size ? prop.max_properties.internal_buffer_size : prop.max_properties.internal_period_size;
     
     
     snd_pcm_hw_params_free_fptr(hw_info);
     
-#if 1
+#if DEBUG
     
     printf("rate min %d max %d\n",prop.min_rate,prop.max_rate);
     printf("channels min %d max %d\n",prop.min_channels,prop.max_channels);
@@ -1067,6 +1068,8 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     printf("buffer min %d max %d\n",prop.min_properties.internal_buffer_size,prop.max_properties.internal_buffer_size);
     
 #endif
+    
+    _test(snd_pcm_close(pcm_handle));
     
     return prop;
 }
@@ -1178,7 +1181,7 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
     
     AAudioContext context = {};
     
-    snd_pcm_t* handle;
+    snd_pcm_t* handle = 0;
     
     snd_pcm_hw_params_t* hwparams = {};
     snd_pcm_sw_params_t* swparams = {};
