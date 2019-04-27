@@ -73,7 +73,11 @@ enum AAudioSampleRate : u32{
 enum AAudioFormat : u32{
     
 #ifdef _WIN32
-    AAUDIOFORMAT_S16 = WAVE_FORMAT_PCM,
+    AAUDIOFORMAT_S16 = 0,
+    AAUDIOFORMAT_S32 = 1,
+    
+    AAUDIOFORMAT_F32 = 2,
+    AAUDIOFORMAT_F64 = 3,
 #else
     
     AAUDIOFORMAT_S16 = SND_PCM_FORMAT_S16_LE,
@@ -105,6 +109,7 @@ struct AAudioDeviceProperties{
     AAudioSampleRate min_rate;
     AAudioSampleRate max_rate;
     
+    //TODO: apparently this is best expressed by an array
     AAudioChannels min_channels;
     AAudioChannels max_channels;
     

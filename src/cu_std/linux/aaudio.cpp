@@ -901,7 +901,6 @@ void AGetAudioDevices(AAudioDeviceNames* _restrict  array,u32* _restrict  c){
 AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
 #ifdef DEBUG
-    
     {
         if(logical_name){
             auto card = GetAudioCardNo(logical_name);
@@ -911,15 +910,16 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
                 if(card == reserved_card_no_array[i]){
                     is_found = true;
                     break;
+                    
                 }
+                
             }
-            
-            _kill("device is not registered\n",!is_found);
         }
         
         else{
             logical_name = "default";
         }
+        
     }
 #endif
     
