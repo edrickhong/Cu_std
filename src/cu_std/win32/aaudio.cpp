@@ -1,4 +1,4 @@
-
+#include "mmath.h"
 #include "aaudio.h"
 #include "aallocator.h"
 #include "Functiondiscoverykeys_devpkey.h"
@@ -536,7 +536,9 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
         
         prop.min_properties.internal_buffer_size = min_buffer_size * (u32)prop.min_channels * GetFormatSize(prop.format_array[0]);
         
-        prop.min_properties.internal_period_size = ((f32)min_period/10000.0f) * (u32)((f32)prop.min_rate/1000.0f) *  (u32)prop.min_channels * GetFormatSize(prop.format_array[0]);
+        
+        prop.min_properties.internal_period_size = (u32)ceilf((((f32)min_period/10000.0f) * 
+                                                               (f32)((((f32)prop.min_rate/1000.0f) * (f32)prop.min_channels * GetFormatSize(prop.format_array[0])))));
         
         prop.max_properties.internal_buffer_size = 0xFFFFFFFF;
         prop.max_properties.internal_period_size = 0xFFFFFFFF;
@@ -573,16 +575,19 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
 //WASAPI allows us to change the sample rate of a stream but not the stream format
 AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioChannels channels,AAudioSampleRate rate,AAudioPerformanceProperties prop){
     
-    _breakpoint();
+    InitWasapi();
     
     
     AAudioContext context = {};
     
     HRESULT res = 0;
     
-    InitWasapi();
-    
     auto sharemode = AUDCLNT_SHAREMODE_SHARED;
+    u32 flags = 0;
+    
+    //TODO: make the divide part f32 to handle 44_1
+    REFERENCE_TIME buffer_time = (prop.internal_buffer_size/(GetFormatSize(format) * (u32)channels * (u32)(rate/1000.0f))) * 10000;
+    REFERENCE_TIME period_time = 0;
     
     if (logical_name) {
         
@@ -591,16 +596,16 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
         }
         
         WCHAR buffer[512] = {};
-        mbtowc(&buffer[0],logical_name,sizeof(buffer));
+        mbstowcs(&buffer[0],logical_name,sizeof(buffer));
         res = device_enum->GetDevice(&buffer[0],&context.device);
+        
+        period_time = (prop.internal_period_size/(GetFormatSize(format) * (u32)channels * (u32)(rate/1000.0f))) * 10000;
     }
     
     else {
         res = device_enum->GetDefaultAudioEndpoint(eRender,eMultimedia, &context.device);
+        //TODO: set flags
     }
-    
-    //TODO: handle exclusive audio
-    _breakpoint();
     
     _kill("", res != S_OK);
     
@@ -608,38 +613,68 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
     
     _kill("", res != S_OK);
     
-    WAVEFORMATEX* wv_format = 0;
-    context.audioclient->GetMixFormat(&wv_format);
-    
-    
+    WAVEFORMATEXTENSIBLE wv = {};
     {
-        _kill("do not support this format\n", (((WAVEFORMATEXTENSIBLE*)wv_format)->SubFormat != KSDATAFORMAT_SUBTYPE_PCM) && ((WAVEFORMATEXTENSIBLE*)wv_format)->SubFormat != KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
+        wv.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+        wv.Format.wBitsPerSample = GetFormatSize(format) << 3;
+        wv.Format.nChannels = (u32)channels;
+        wv.Format.nSamplesPerSec = (u32)rate;
+        wv.Format.nBlockAlign = (wv.Format.nChannels * wv.Format.wBitsPerSample) >> 3;
+        wv.Format.nAvgBytesPerSec = wv.Format.nSamplesPerSec * wv.Format.nBlockAlign;
         
-        if (format == AAUDIOFORMAT_S16 && ((WAVEFORMATEXTENSIBLE*)wv_format)->SubFormat == KSDATAFORMAT_SUBTYPE_PCM) {
-            context.conversion_function = Convert_NONE_SLE16;
+        wv.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+        
+        
+        wv.Samples.wValidBitsPerSample = wv.Format.wBitsPerSample;
+        
+        switch(channels){
+            case AAUDIOCHANNELS_MONO:{
+                wv.dwChannelMask = KSAUDIO_SPEAKER_MONO;
+            }break;
+            
+            case AAUDIOCHANNELS_STEREO:{
+                wv.dwChannelMask = KSAUDIO_SPEAKER_STEREO;
+            }break;
+            
+            
+            //apparantly this and KSAUDIO_SPEAKER_5POINT1_SURROUND is different. we should test this when we get the chance
+            case AAUDIOCHANNELS_5_1:{
+                wv.dwChannelMask = KSAUDIO_SPEAKER_5POINT1;
+            }break;
+            
+            case AAUDIOCHANNELS_7_1:{
+                wv.dwChannelMask = KSAUDIO_SPEAKER_7POINT1;
+            }break;
         }
         
-        if (format == AAUDIOFORMAT_S16 && ((WAVEFORMATEXTENSIBLE*)wv_format)->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) {
-            context.conversion_function = Convert_SLE16_TO_F32;
+        
+        switch(format){
+            case AAUDIOFORMAT_S16: //fall thru
+            case AAUDIOFORMAT_S32:{
+                wv.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
+            }break;
+            
+            
+            case AAUDIOFORMAT_F32: //fall thru
+            case AAUDIOFORMAT_F64:{
+                wv.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+            }break;
         }
         
-        _kill("for now\n", wv_format->nChannels != channels);
-        
-        context.channels = wv_format->nChannels;
     }
-    
-    _kill("", res != S_OK);
     
     //AUDCLNT_STREAMFLAGS_RATEADJUST  must be in shared mode only. lets you set the sample rate
     //AUDCLNT_SHAREMODE_EXCLUSIVE Windows only
-    res = context.audioclient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST,
-                                          _buffersize,
-                                          0,//period size in - 100 nanoseconds. cannot be 0 in exclusive mode
-                                          wv_format, 0);
+    res = context.audioclient->Initialize(sharemode,flags,
+                                          buffer_time,
+                                          period_time,//period size in - 100 nanoseconds. cannot be 0 in exclusive mode
+                                          (WAVEFORMATEX*)&wv, 0);
     
     _kill("", res != S_OK);
     
-    if (wv_format->nSamplesPerSec != rate) {
+#if 0
+    
+    if (wv.nSamplesPerSec != rate) {
         IAudioClockAdjustment* clockadj = 0;
         IID IID_IAudioClockAdjustment = __uuidof(IAudioClockAdjustment);
         
@@ -649,6 +684,8 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
         res = clockadj->SetSampleRate(rate);
         _kill("", res != S_OK);
     }
+    
+#endif
     
     IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
     
@@ -660,7 +697,8 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
     res = context.audioclient->Start();
     _kill("", res != S_OK);
     
-    CoTaskMemFree(wv_format);
+    //TODO: run to test exclusive audio and do flags and test shared. try to get the audio engine to do the resampling for us
+    _breakpoint();
     
     return context;
 }

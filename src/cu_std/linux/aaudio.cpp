@@ -1025,6 +1025,14 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
     prop.max_rate = !prop.max_rate ? AAUDIOSAMPLERATE_96_KHZ : prop.max_rate;
     
+    /*
+    TODO: replace with this 
+int snd_pcm_hw_params_test_channels 	( 	snd_pcm_t *  	pcm,
+  snd_pcm_hw_params_t *  	params,
+  unsigned int  	val 
+ ) 	
+*/
+    
     snd_pcm_hw_params_get_channels_min_fptr(hw_info,(u32*)&prop.min_channels);
     snd_pcm_hw_params_get_channels_max_fptr(hw_info,(u32*)&prop.max_channels);
     
