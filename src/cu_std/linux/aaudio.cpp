@@ -900,6 +900,8 @@ void AGetAudioDevices(AAudioDeviceNames* _restrict  array,u32* _restrict  c){
 
 AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
+    InternalLoadAudioLib();
+    
 #ifdef DEBUG
     {
         if(logical_name){
@@ -944,11 +946,8 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     auto snd_pcm_hw_params_get_rate_min_fptr = (s32 (*)(snd_pcm_hw_params_t*,u32*,s32*))
         LGetLibFunction(audiolib,"snd_pcm_hw_params_get_rate_min");
     
-    auto snd_pcm_hw_params_get_channels_min_fptr  = (s32 (*)(snd_pcm_hw_params_t*,u32*))
-        LGetLibFunction(audiolib,"snd_pcm_hw_params_get_channels_min");
-    
-    auto snd_pcm_hw_params_get_channels_max_fptr  = (s32 (*)(snd_pcm_hw_params_t*,u32*))
-        LGetLibFunction(audiolib,"snd_pcm_hw_params_get_channels_max");
+    auto snd_pcm_hw_params_test_channels_fptr  = (s32 (*)(snd_pcm_t*,snd_pcm_hw_params_t*,u32))
+        LGetLibFunction(audiolib,"snd_pcm_hw_params_test_channels");
     
     
     //NOTE: these are in frames. we have to set the format and channels first and convert to bytes
@@ -1023,24 +1022,34 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
     prop.min_rate = prop.min_rate < AAUDIOSAMPLERATE_44_1_KHZ ? AAUDIOSAMPLERATE_44_1_KHZ : prop.min_rate;
     
-    prop.max_rate = !prop.max_rate ? AAUDIOSAMPLERATE_96_KHZ : prop.max_rate;
+    prop.max_rate = !prop.max_rate ? AAUDIOSAMPLERATE_192_KHZ : prop.max_rate;
     
-    /*
-    TODO: replace with this 
-int snd_pcm_hw_params_test_channels 	( 	snd_pcm_t *  	pcm,
-  snd_pcm_hw_params_t *  	params,
-  unsigned int  	val 
- ) 	
-*/
+    {
+        
+        AAudioChannels channels[] = {
+            AAUDIOCHANNELS_MONO,
+            AAUDIOCHANNELS_STEREO,
+            AAUDIOCHANNELS_5_1,
+            AAUDIOCHANNELS_7_1
+        };
+        
+        for(u32 i = 0; i < _arraycount(channels); i++){
+            auto c = channels[i];
+            
+            if(!snd_pcm_hw_params_test_channels_fptr(pcm_handle,hw_info,c)){
+                prop.channels_array[prop.channels_count] = c;
+                prop.channels_count++;
+            }
+        }
+    }
     
-    snd_pcm_hw_params_get_channels_min_fptr(hw_info,(u32*)&prop.min_channels);
-    snd_pcm_hw_params_get_channels_max_fptr(hw_info,(u32*)&prop.max_channels);
+    auto cur_channels = prop.channels_array[0];
     
     //NOTE: we are setting the format so we can convert to bytes
     //s16 should be available all the time
     _test(snd_pcm_hw_params_set_format_fptr(pcm_handle,hw_info,(snd_pcm_format_t)cur_format));
     
-    _test(snd_pcm_hw_params_set_channels_fptr(pcm_handle,hw_info,prop.min_channels));
+    _test(snd_pcm_hw_params_set_channels_fptr(pcm_handle,hw_info,cur_channels));
     
     _test(snd_pcm_hw_params_get_period_size_max_fptr(hw_info,(snd_pcm_uframes_t*)&prop.max_properties.internal_period_size,&dir));
     
@@ -1055,10 +1064,10 @@ int snd_pcm_hw_params_test_channels 	( 	snd_pcm_t *  	pcm,
     //NOTE: convert from frames to bytes (frames * channels * sample_size)
     auto size = GetFormatSize(cur_format);
     
-    prop.max_properties.internal_period_size *= size * prop.min_channels;
-    prop.max_properties.internal_buffer_size *= size * prop.min_channels;
-    prop.min_properties.internal_period_size *= size * prop.min_channels;
-    prop.min_properties.internal_buffer_size *= size * prop.min_channels;
+    prop.max_properties.internal_period_size *= size * cur_channels;
+    prop.max_properties.internal_buffer_size *= size * cur_channels;
+    prop.min_properties.internal_period_size *= size * cur_channels;
+    prop.min_properties.internal_buffer_size *= size * cur_channels;
     
     prop.min_properties.internal_period_size = !prop.min_properties.internal_period_size ? prop.min_properties.internal_buffer_size : prop.min_properties.internal_period_size;
     
@@ -1070,7 +1079,9 @@ int snd_pcm_hw_params_test_channels 	( 	snd_pcm_t *  	pcm,
 #if DEBUG
     
     printf("rate min %d max %d\n",prop.min_rate,prop.max_rate);
-    printf("channels min %d max %d\n",prop.min_channels,prop.max_channels);
+    
+    printf("channels min %d max %d\n",cur_channels,prop.channels_array[prop.channels_count - 1]);
+    
     printf("period min %d max %d\n",prop.min_properties.internal_period_size,prop.max_properties.internal_period_size);
     
     printf("buffer min %d max %d\n",prop.min_properties.internal_buffer_size,prop.max_properties.internal_buffer_size);

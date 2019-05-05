@@ -207,6 +207,8 @@ u32 _intern GetFormatSize(AAudioFormat format){
 
 AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
+    InitWasapi();
+    
 #ifdef DEBUG
     {
         
@@ -349,14 +351,15 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
             wv.Format.nBlockAlign = (wv.Format.nChannels * wv.Format.wBitsPerSample) >> 3;
         }
         
-        AAudioSampleRate array[4] = {};
+        AAudioSampleRate array[5] = {};
         u32 count = 0;
         
         AAudioSampleRate rate_array[] = {
             AAUDIOSAMPLERATE_44_1_KHZ,
             AAUDIOSAMPLERATE_48_KHZ,
             AAUDIOSAMPLERATE_88_2_KHZ,
-            AAUDIOSAMPLERATE_96_KHZ
+            AAUDIOSAMPLERATE_96_KHZ,
+            AAUDIOSAMPLERATE_192_KHZ
         };
         
         for(u32 i = 0; i < _arraycount(rate_array); i++){
@@ -387,9 +390,6 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     
     //find channels
     {
-        
-        AAudioChannels array[8] = {};
-        u32 count = 0;
         
         AAudioChannels channels_array[] = {
             AAUDIOCHANNELS_MONO,
@@ -452,8 +452,8 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
             
             auto ret = client->IsFormatSupported(sharemode,(WAVEFORMATEX*)&wv,&closest);
             if(ret == S_OK){
-                array[count] = channels;
-                count++;
+                prop.channels_array[prop.channels_count] = channels;
+                prop.channels_count++;
             }
             
             if(closest){
@@ -461,10 +461,7 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
             }
         }
         
-        _kill("no channels supported\n",!count);
-        
-        prop.min_channels = array[0];
-        prop.max_channels = array[count - 1];
+        _kill("no channels supported\n",!prop.channels_count);
         
     }
     
@@ -495,13 +492,13 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
             wv.Format.wBitsPerSample = GetFormatSize(format) << 3;
             wv.Samples.wValidBitsPerSample = wv.Format.wBitsPerSample; // we don't support 24 bit audio so it should be ok
             
-            wv.Format.nChannels = prop.min_channels;
+            wv.Format.nChannels = prop.channels_array[0];
             wv.Format.nSamplesPerSec = (u32)prop.min_rate;
             wv.Format.nBlockAlign = (wv.Format.nChannels * wv.Format.wBitsPerSample) >> 3;
             
             wv.Format.nAvgBytesPerSec = wv.Format.nSamplesPerSec * wv.Format.nBlockAlign;
             
-            switch(prop.min_channels){
+            switch(prop.channels_array[0]){
                 case AAUDIOCHANNELS_MONO:{
                     wv.dwChannelMask = KSAUDIO_SPEAKER_MONO;
                 }break;
@@ -524,21 +521,22 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
         
         u32 period = (sharemode == AUDCLNT_SHAREMODE_EXCLUSIVE) ? min_period : 0;
         
-        res = client->Initialize(sharemode,0,
-                                 0,
-                                 period,//period size in - 100 nanoseconds. cannot be 0 in exclusive mode
+        
+        
+        res = client->Initialize(sharemode,0,0,period,//period size in - 100 nanoseconds. cannot be 0 in exclusive mode
                                  (WAVEFORMATEX*)&wv, 0);
+        
         _kill("", res != S_OK);
         
         u32 min_buffer_size = 0;
         
         client->GetBufferSize(&min_buffer_size);
         
-        prop.min_properties.internal_buffer_size = min_buffer_size * (u32)prop.min_channels * GetFormatSize(prop.format_array[0]);
+        prop.min_properties.internal_buffer_size = min_buffer_size * (u32)prop.channels_array[0] * GetFormatSize(prop.format_array[0]);
         
         
         prop.min_properties.internal_period_size = (u32)ceilf((((f32)min_period/10000.0f) * 
-                                                               (f32)((((f32)prop.min_rate/1000.0f) * (f32)prop.min_channels * GetFormatSize(prop.format_array[0])))));
+                                                               (f32)((((f32)prop.min_rate/1000.0f) * (f32)prop.channels_array[0] * GetFormatSize(prop.format_array[0])))));
         
         prop.max_properties.internal_buffer_size = 0xFFFFFFFF;
         prop.max_properties.internal_period_size = 0xFFFFFFFF;
@@ -698,7 +696,9 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
     _kill("", res != S_OK);
     
     //TODO: run to test exclusive audio and do flags and test shared. try to get the audio engine to do the resampling for us
-    _breakpoint();
+    //_breakpoint();
+    
+    context.frame_size = GetFormatSize(format) * (u32)channels;
     
     return context;
 }
@@ -719,26 +719,12 @@ u32 AAudioDeviceWriteAvailable(AAudioContext* _restrict context){
     return buffer_size_frames - frames_locked;
 }
 
-void _intern ConvertAndWrite(AAudioContext* _restrict context, void* data, u32 frame_count, void* dst_buffer){
-    
-#define _reserved_frames (u32)_48ms2frames(36)
-    
-    auto sample_count = frame_count * context->channels;
-    
-    u32 conversion_buffer[sizeof(u32) * _reserved_frames] = {};
-    _kill("exceeded conversion reserved conversion buffer\n", frame_count > _reserved_frames);
-    
-    auto samplesize = context->conversion_function(conversion_buffer,data,sample_count);
-    
-    memcpy(dst_buffer, conversion_buffer, samplesize * sample_count);
-}
-
 void APlayAudioDevice(AAudioContext* _restrict  context,void* data,u32 write_frames){
     
     s8* dst_buffer = 0;
-    context->renderclient->GetBuffer(write_frames, (BYTE**)&dst_buffer);
+    context->renderclient->GetBuffer(write_frames,(BYTE**)&dst_buffer);
     
-    ConvertAndWrite(context,data,write_frames,dst_buffer);
+    memcpy(dst_buffer,data,write_frames * context->frame_size);
     
     context->renderclient->ReleaseBuffer(write_frames, 0);
 }

@@ -33,8 +33,9 @@ struct AAudioContext{
     IMMDevice* device; // we don't really need to keep this
     IAudioClient* audioclient;//MARK: used every frame
     IAudioRenderClient* renderclient;//MARK: used every frame
-    u32 channels;
-    u32 (*conversion_function)(void*, void*, u32);//MARK: used every frame
+    u32 frame_size;
+    //u32 channels;
+    //u32 (*conversion_function)(void*, void*, u32);//MARK: used every frame
 };
 
 #else
@@ -66,8 +67,9 @@ enum AAudioChannels : u32{
 enum AAudioSampleRate : u32{
     AAUDIOSAMPLERATE_44_1_KHZ = 44100,
     AAUDIOSAMPLERATE_48_KHZ = 48000,
-    AAUDIOSAMPLERATE_88_2_KHZ = 88100,
+    AAUDIOSAMPLERATE_88_2_KHZ = 88200,
     AAUDIOSAMPLERATE_96_KHZ = 96000,
+    AAUDIOSAMPLERATE_192_KHZ = 192000,
 };
 
 enum AAudioFormat : u32{
@@ -106,12 +108,12 @@ struct AAudioDeviceProperties{
     AAudioFormat format_array[8];
     u32 format_count;
     
+    //TODO: apparently this is best expressed by an array
+    AAudioChannels channels_array[4];
+    u32 channels_count;
+    
     AAudioSampleRate min_rate;
     AAudioSampleRate max_rate;
-    
-    //TODO: apparently this is best expressed by an array
-    AAudioChannels min_channels;
-    AAudioChannels max_channels;
     
     AAudioPerformanceProperties min_properties;
     AAudioPerformanceProperties max_properties;

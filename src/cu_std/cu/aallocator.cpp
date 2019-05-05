@@ -282,7 +282,7 @@ void* TAlloc(u32 size){
         
     }while(expected_curframe_count != actual_curframe_count);
     
-    _kill("no more frame stack space\n",((s8*)ptr - alloc_context->frame_ptr) > alloc_context->maxframe_count);
+    _kill("no more frame stack space\n",(u32)((s8*)ptr - alloc_context->frame_ptr) > (u32)alloc_context->maxframe_count);
     
     memset(ptr,0,aligned_size);
     

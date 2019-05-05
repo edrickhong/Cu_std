@@ -47,6 +47,15 @@ if(UNIX)
       "/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
      )
 
+
+  #this adds LTO support
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT LTO_SUPPORTED)
+
+  if(LTO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  endif()
+
 else(UNIX)
 
   if(DEBUG)
