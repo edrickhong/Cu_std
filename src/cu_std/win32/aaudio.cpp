@@ -4,6 +4,8 @@
 #include "Functiondiscoverykeys_devpkey.h"
 #include "pparse.h"
 
+#include "avrt.h"
+
 _global bool audio_initialized;
 _global IMMDeviceEnumerator* device_enum = 0;
 
@@ -727,4 +729,18 @@ void APlayAudioDevice(AAudioContext* _restrict  context,void* data,u32 write_fra
     memcpy(dst_buffer,data,write_frames * context->frame_size);
     
     context->renderclient->ReleaseBuffer(write_frames, 0);
+}
+
+
+void AInitThisAudioThread(AAudioContext* _restrict audiocontext){
+    
+    _kill("this has to be 0\n",audiocontext->thread_priority);
+    
+    DWORD index = 0;
+    
+    audiocontext->thread_priority = AvSetMmThreadCharacteristics(TEXT("Pro Audio"), &index);
+}
+
+void AUninitThisAudioThread(AAudioContext* _restrict audiocontext){
+    AvRevertMmThreadCharacteristics(audiocontext->thread_priority);
 }
