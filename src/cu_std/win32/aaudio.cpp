@@ -22,6 +22,8 @@ _global u32 reserve_hash_count = 0;
 
 #include "audio_util.h"
 
+#include "tthread.h"
+
 void _intern InitWasapi(){
     
     HRESULT res = 0;
@@ -108,7 +110,12 @@ void AGetAudioDevices(AAudioDeviceNames* _restrict  array,u32* _restrict  c){
             
             auto entry = &array[count];
             
-            wcstombs((s8*)&entry->logical_name[0],card_id,sizeof(entry->logical_name));
+            auto size = wcslen(card_id) * sizeof(WCHAR);
+            
+            _kill("not enough space in before\n",size > sizeof(entry->
+                                                               logical_name));
+            memcpy((void*)&entry->
+                   logical_name[0],(void*)&card[0],size);
             
             entry->is_default = default_card_hash == PHashString(&entry->logical_name[0]);
             
@@ -236,10 +243,7 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     IMMDevice* card = 0;
     
     if (logical_name) {
-        
-        WCHAR buffer[512] = {};
-        mbstowcs(&buffer[0],logical_name,sizeof(buffer));
-        res = device_enum->GetDevice(&buffer[0],&card);
+        res = device_enum->GetDevice((WCHAR*)&logical_name[0],&card);
     }
     
     else {
@@ -595,9 +599,7 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
             sharemode = AUDCLNT_SHAREMODE_EXCLUSIVE;
         }
         
-        WCHAR buffer[512] = {};
-        mbstowcs(&buffer[0],logical_name,sizeof(buffer));
-        res = device_enum->GetDevice(&buffer[0],&context.device);
+        res = device_enum->GetDevice((WCHAR*)&logical_name[0],&context.device);
         
         period_time = (prop.internal_period_size/(GetFormatSize(format) * (u32)channels * (u32)(rate/1000.0f))) * 10000;
     }
@@ -731,16 +733,29 @@ void APlayAudioDevice(AAudioContext* _restrict  context,void* data,u32 write_fra
     context->renderclient->ReleaseBuffer(write_frames, 0);
 }
 
+_global HANDLE thread_priority = 0;
 
-void AInitThisAudioThread(AAudioContext* _restrict audiocontext){
+#ifdef DEBUG
+_global ThreadID init_thread = {};
+#endif
+
+
+void AInitThisAudioThread(){
     
-    _kill("this has to be 0\n",audiocontext->thread_priority);
+    _kill("only one thread can have be prioritised at a time\n",thread_priority);
     
     DWORD index = 0;
     
-    audiocontext->thread_priority = AvSetMmThreadCharacteristics(TEXT("Pro Audio"), &index);
+    thread_priority = AvSetMmThreadCharacteristics(TEXT("Pro Audio"), &index);
+    
+#ifdef DEBUG
+    init_thread = TGetThisThreadID();
+#endif
 }
 
-void AUninitThisAudioThread(AAudioContext* _restrict audiocontext){
-    AvRevertMmThreadCharacteristics(audiocontext->thread_priority);
+void AUninitThisAudioThread(){
+    
+    _kill("the init thread has to call this\n",TGetThisThreadID() != init_thread);
+    
+    AvRevertMmThreadCharacteristics(thread_priority);
 }

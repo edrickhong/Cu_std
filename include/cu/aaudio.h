@@ -34,7 +34,6 @@ struct AAudioContext{
     IAudioClient* audioclient;//MARK: used every frame
     IAudioRenderClient* renderclient;//MARK: used every frame
     u32 frame_size;
-    HANDLE thread_priority = 0;
 };
 
 #else
@@ -137,8 +136,8 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name);
 
 
 //escalates thread priority so that more time is given to it for audio rendering tasks. for single dedicated audio thread only. recommended for very low latency rendering (sub 2 to 4 ms??). Implementation will do audio specific thread escalation if it is OS supported
-void AInitThisAudioThread(AAudioContext* _restrict audiocontext);//TODO:
-void AUninitThisAudioThread(AAudioContext* _restrict audiocontext);//TODO:
+void AInitThisAudioThread();
+void AUninitThisAudioThread();
 
 void ADestroyAudioDevice(AAudioContext* _restrict audiocontext);
 

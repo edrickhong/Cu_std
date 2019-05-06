@@ -1335,3 +1335,32 @@ void ADestroyAudioDevice(AAudioContext* _restrict audiocontext){
     snd_pcm_close((snd_pcm_t*)audiocontext->handle);
     AReleaseAudioDevice(audiocontext);
 }
+
+_global TSchedulerPoicy policy = {};
+_global f32 priority = 0.0f;
+_global TLinuxSchedulerDeadline deadline = {};
+
+//TODO: move this somewhere else
+#define AUDIO_THREAD_PRIORITY 1.0f
+
+#ifdef DEBUG
+_global ThreadID init_thread = {};
+#endif
+
+
+void AInitThisAudioThread(){
+    
+#ifdef DEBUG
+    init_thread = TGetThisThreadID();
+#endif
+    
+    TGetThreadPriority(&policy,&priority,&deadline);
+    
+    TSetThreadPriority(TSCHED_LINUX_POLICY_REALTIME_FIFO,1.0f);
+}
+
+
+void AUninitThisAudioThread(){
+    _kill("the init thread has to call this\n",TGetThisThreadID() != init_thread);
+    TSetThreadPriority(policy,AUDIO_THREAD_PRIORITY,deadline);
+}

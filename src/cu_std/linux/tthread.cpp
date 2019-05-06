@@ -86,70 +86,58 @@ void TSignalSemaphore(TSemaphore sem){
 }
 
 
+void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline){
+    
+    _kill("not supported yet\n",policy == TSCHED_LINUX_POLICY_REALTIME_DEADLINE);
+    _kill("priority out of range\n",policy > 1.0f || policy < 0.0f);
+    
+    sched_param sched = {};
+    
+    auto min = sched_get_priority_min(policy);
+    auto max = sched_get_priority_max(policy);
+    
+    f32 len = (f32)(max - min);
+    
+    sched.sched_priority = (s32)(priority * len) + min;
+    
+    
+    auto ret = pthread_setschedparam(TGetThisThreadID(),(s32)policy,&sched);
+    
+    _kill("call failed\n",ret);
+    
+}
 
-
-
-/*NOTE:We will not be implementing sys_clone. it needs to be implemented fully in assembly.
-When sys_clone is called, the new thread's IP will be right after the system call. The thread is not
-spawned in the passed function. Instead, the passed function needs to be written to the new stack
-and the new thread will jump to the new function when it encounters the ret instruction, 
-jumping to the address at the top of its stack(the function address we just wrote to the stack).
-Since this requires a system call, we might as well use the one provided in libc*/
-
-
-// _global LibHandle threadlib = 0;
-
-// _global void* pthread_setaffinity_np_ptr = 0;
-// _global void* pthread_attr_setstacksize_ptr = 0;
-// _global void* pthread_create_ptr = 0;
-// _global void* sem_init_ptr = 0;
-// _global void* sem_destroy_ptr = 0;
-// _global void* sem_timedwait_ptr = 0;
-// _global void* sem_post_ptr = 0;
-// _global void* pthread_self_ptr = 0;
-// _global void* sem_wait_ptr = 0;
-
-// #define pthread_setaffinity_np ((int (*)(pthread_t,size_t,const cpu_set_t*))pthread_setaffinity_np_ptr)
-
-// #define pthread_attr_setstacksize ((int (*)(pthread_attr_t*,size_t))pthread_attr_setstacksize_ptr)
-// #define pthread_create ((int (*)(pthread_t*,const pthread_attr_t*,void* (*)(void*),void*))pthread_create_ptr)
-// #define sem_init ((int (*)(sem_t*,int,unsigned int))sem_init_ptr)
-// #define sem_destroy ((int (*)(sem_t*))sem_destroy_ptr)
-// #define sem_timedwait ((int (*)(sem_t*,const struct timespec*))sem_timedwait_ptr)
-// #define sem_post ((int (*)(sem_t*))sem_post_ptr)
-// #define pthread_self ((pthread_t (*)(void))pthread_self_ptr)
-// #define sem_wait ((int (*)(sem_t*))sem_wait_ptr)
-
-// void LoadThreadLib(){
-
-//   if(threadlib){
-//     return;
-//   }
-
-//   const s8* lib_array[] = {
-//     "libpthread.so.0",
-//     "libpthread.so",
-//   };
-
-//   for(u32 i = 0; i < _arraycount(lib_array); i++){
-
-//     threadlib = LLoadLibrary(lib_array[i]);
-
-//     if(threadlib){
-//       break;
-//     }
-
-//   }
-
-//   _kill("cannot load thread lib\n",!threadlib);
-
-//   pthread_setaffinity_np_ptr = LGetLibFunction(threadlib,"pthread_setaffinity_np");
-//   pthread_attr_setstacksize_ptr = LGetLibFunction(threadlib,"pthread_attr_setstacksize");
-//   pthread_create_ptr = LGetLibFunction(threadlib,"pthread_create");
-//   sem_init_ptr = LGetLibFunction(threadlib,"sem_init");
-//   sem_destroy_ptr = LGetLibFunction(threadlib,"sem_destroy");
-//   sem_timedwait_ptr = LGetLibFunction(threadlib,"sem_timedwait");
-//   sem_post_ptr = LGetLibFunction(threadlib,"sem_post");
-//   pthread_self_ptr = LGetLibFunction(threadlib,"pthread_self");
-//   sem_wait_ptr = LGetLibFunction(threadlib,"sem_wait");
-// }
+void TGetThreadPriority(TSchedulerPoicy* pl,f32* pr,TLinuxSchedulerDeadline* dl){
+    
+    s32 policy = 0;
+    sched_param sched = {};
+    
+    auto ret = pthread_getschedparam(TGetThisThreadID(),&policy,
+                                     &sched);
+    
+    _kill("call failed\n",ret);
+    
+    if(pl){
+        *pl = (TSchedulerPoicy)policy;
+    }
+    
+    if(pr){
+        
+        auto min = sched_get_priority_min(policy);
+        auto max = sched_get_priority_max(policy);
+        
+        if(!max){
+            *pr = 0.0f;
+        }
+        
+        else{
+            
+            f32 len = (f32)(max - min);
+            *pr = (f32)(sched.sched_priority)/len;
+            
+            _kill("priority out of range\n",policy > 1.0f || policy < 0.0f);
+        }
+        
+    }
+    
+}
