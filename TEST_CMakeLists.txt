@@ -20,6 +20,13 @@ endif()
 
 set(PLATFORM_INCLUDES "${CMAKE_BINARY_DIR}/../include/cu/linux")
 
+set(PLATFORM_INCLUDES
+      "${CMAKE_SOURCE_DIR}/include/cu/linux"
+      "/usr/include/dbus-1.0/"
+      "/usr/lib/x86_64-linux-gnu/dbus-1.0/include/" #ubuntu dbus-arch-deps.h location
+      "/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
+     )
+
 # Include Directory
 include_directories(${PLATFORM_INCLUDES}
                     "${CMAKE_BINARY_DIR}/../include/cu/mode/"

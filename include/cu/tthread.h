@@ -16,6 +16,7 @@ typedef DWORD ThreadID;
 
 #include "pthread.h"
 #include "semaphore.h"
+#include "linux/sched.h"
 
 struct TThreadContext{
     pthread_t handle;
