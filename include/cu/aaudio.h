@@ -51,8 +51,6 @@ struct AAudioBuffer{
     void* data;
     u32 size_frames;
     u32 size;
-    u32 cur_pos;
-    u32 curpos_frames;
 };
 
 enum AAudioChannels : u32{

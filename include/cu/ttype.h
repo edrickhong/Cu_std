@@ -5,6 +5,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+#include "iintrin.h"
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -148,6 +150,12 @@ union m32{
     s32 i;
     f32 f;
     
+    u8 byte[4];
+    u16 word[2];
+    
+    s8 sbyte[4];
+    s16 sword[2];
+    
     operator u32(){
         
         return u;
@@ -177,6 +185,17 @@ union m64{
     u64 u;
     s64 i;
     f64 f;
+    
+    
+    u8 byte[8];
+    u16 word[4];
+    u32 dword[4];
+    
+    s8 sbyte[8];
+    s16 sword[4];
+    s32 sdword[4];
+    
+    __m64 m;
     
     
     union{
