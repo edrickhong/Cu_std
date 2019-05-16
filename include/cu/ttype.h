@@ -5,7 +5,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-#include "iintrin.h"
+#include "xmmintrin.h"
 
 typedef unsigned char u8;
 typedef unsigned short u16;
