@@ -234,7 +234,7 @@ void PGetFileExtension(s8* dst_string,const s8* file,u32* len){
 }
 
 
-b32 PSkipWhiteSpace(s8* src_string,ptrsize* pos){
+u32 PSkipWhiteSpace(s8* src_string,ptrsize* pos){
     
     u32 start = *pos;
     u32 cur = *pos;
@@ -243,6 +243,9 @@ b32 PSkipWhiteSpace(s8* src_string,ptrsize* pos){
         
         s8 c = src_string[cur];
         
+        if(!c){
+            return _P_NULL_CHAR_ENCOUNTERED;
+        }
         
         if(!PIsWhiteSpace(c)){
             break;
@@ -361,11 +364,16 @@ void PBufferListToArrayString(s8* array_name,s8* src_buffer,ptrsize src_size,s8*
     
 }
 
-void PSanitizeStringC(s8* buffer,ptrsize* k){
+b32 PSanitizeStringC(s8* buffer,ptrsize* k){
     
     auto cur = *k;
     
-    PSkipWhiteSpace(buffer,&cur);
+    b32 res = 0;
+    res = PSkipWhiteSpace(buffer,&cur);
+    
+    if(res){
+        return res;
+    }
     
     for(;;){
         
@@ -405,6 +413,8 @@ void PSanitizeStringC(s8* buffer,ptrsize* k){
     }
     
     *k = cur;
+    
+    return res;
 }
 
 

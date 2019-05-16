@@ -92,7 +92,7 @@ ptrsize _ainline FGetFileSize(FileHandle filehandle){
     return size;
 }
 
-s8* FReadFileToBuffer(FileHandle filehandle,ptrsize* size);
+s8* FReadFileToBuffer(FileHandle filehandle,ptrsize* size);//NOTE: this is always null terminated
 
 u32 FFindFirstFile(const s8* dirpath,DirectoryHandle* dirhandle,FileInfo* info);
 

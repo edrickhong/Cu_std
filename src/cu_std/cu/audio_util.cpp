@@ -139,49 +139,55 @@ void Interleave_2(f32* dst,f32* left,f32* right,u32 samples){
     }
 }
 
+void inline Convert_Factor(f32* dst,f32* src,f32 index,f32 inv_factor){
+    
+    __m128 a = {};
+    __m128 b = {};
+    
+    {
+        u32 l0 = (u32)(index);
+        u32 l1 = (u32)(index + inv_factor);
+        u32 l2 = (u32)(index + (inv_factor * 2));
+        u32 l3 = (u32)(index + (inv_factor * 3));
+        a = _mm_set_ps(src[l3],src[l2],src[l1],src[l0]);
+    }
+    
+    {
+        u32 l0 = (u32)(index + 1.0f);
+        u32 l1 = (u32)(index + inv_factor + 1.0f);
+        u32 l2 = (u32)(index + (inv_factor * 2) + 1.0f);
+        u32 l3 = (u32)(index + (inv_factor * 3) + 1.0f);
+        b = _mm_set_ps(src[l3],src[l2],src[l1],src[l0]);
+    }
+    
+    __m128 step = {};
+    {
+        f32 l0 = (index);
+        f32 l1 = (index + inv_factor);
+        f32 l2 = (index + (inv_factor * 2));
+        f32 l3 = (index + (inv_factor * 3));
+        step = _mm_set_ps(l3,l2,l1,l0);
+        
+        //just get the fract part
+        __m128 integer = _mm_cvtepi32_ps(_mm_cvttps_epi32(step));
+        step = _mm_sub_ps(step,integer);
+    }
+    
+    auto res = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b,a),step),a);
+    _mm_store_ps(dst,res);
+    
+}
 
-void Convert_Factor(f32* dst,f32* src,u32 samples,f32 factor){
+
+void Convert_Factor(f32* dst,f32* src,u32 samples,f32 inv_factor){
     
     u32 count = 0;
-    auto inv_factor = 1.0f/factor;
     
     for(f32 cur = 0.0f; cur < (f32)samples; cur += (inv_factor * 4)){
         
-        __m128 a = {};
-        __m128 b = {};
-        
-        {
-            u32 l0 = (u32)(cur);
-            u32 l1 = (u32)(cur + inv_factor);
-            u32 l2 = (u32)(cur + (inv_factor * 2));
-            u32 l3 = (u32)(cur + (inv_factor * 3));
-            a = _mm_set_ps(src[l3],src[l2],src[l1],src[l0]);
-        }
-        
-        {
-            u32 l0 = (u32)(cur + 1.0f);
-            u32 l1 = (u32)(cur + inv_factor + 1.0f);
-            u32 l2 = (u32)(cur + (inv_factor * 2) + 1.0f);
-            u32 l3 = (u32)(cur + (inv_factor * 3) + 1.0f);
-            b = _mm_set_ps(src[l3],src[l2],src[l1],src[l0]);
-        }
-        
-        __m128 step = {};
-        {
-            f32 l0 = (cur);
-            f32 l1 = (cur + inv_factor);
-            f32 l2 = (cur + (inv_factor * 2));
-            f32 l3 = (cur + (inv_factor * 3));
-            step = _mm_set_ps(l3,l2,l1,l0);
-            
-            //just get the fract part
-            __m128 integer = _mm_cvtepi32_ps(_mm_cvttps_epi32(step));
-            step = _mm_sub_ps(step,integer);
-        }
-        
-        auto res = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b,a),step),a);
-        _mm_store_ps(dst + count,res);//FIXME: we are overwriting here
+        Convert_Factor(dst + count,src,cur,inv_factor);
         count+=4;
+        
     }
     
 }

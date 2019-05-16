@@ -13,6 +13,8 @@ our symbol extracting functions put the cur position on the char after the symbo
 clean this up. we may have some duplicate functions
 */
 
+#define _P_NULL_CHAR_ENCOUNTERED (u32)(-1)
+
 enum PTokenType{
     
     PTOKEN_SYMBOL,
@@ -227,7 +229,7 @@ void PGetLine(s8* dst_string,s8* src_string,ptrsize* pos,u32* len);
 
 void PSkipLine(s8* src_string,ptrsize* pos);
 
-b32 PSkipWhiteSpace(s8* src_string,ptrsize* pos);
+u32 PSkipWhiteSpace(s8* src_string,ptrsize* pos);
 
 void PSkipUntilChar(s8* src_string,ptrsize* pos,s8 c);
 
@@ -397,7 +399,7 @@ void _ainline PIgnorePreprocessorAndCommentsC(s8* buffer,ptrsize* cur){
 }
 
 
-void PSanitizeStringC(s8* buffer,ptrsize* cur);
+b32 PSanitizeStringC(s8* buffer,ptrsize* cur);
 
 //NOTE: we will crash if we encounter a '}' first
 void _ainline PSkipBracketBlock(s8* buffer,ptrsize* a){

@@ -16,7 +16,7 @@ s8* FReadFileToBuffer(FileHandle filehandle,ptrsize* filesize){
     
     FSeekFile(filehandle,0,F_METHOD_START);
     
-    s8* buffer = (s8*)alloc(size);
+    s8* buffer = (s8*)alloc(size + 1);
     FRead(filehandle,buffer,size);
     
     if(filesize){

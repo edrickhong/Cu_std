@@ -11,16 +11,15 @@ void Convert_F32_TO_S16(void* dst,void* src,u32 sample_count);
 
 //All the functions below assume f32 cos it is faster
 
+//writes 4 samples to left and right
 void Deinterleave_2(f32* left,f32* right,f32* src);
+
+//writes 8 samples to dst
 void Interleave_2(f32* dst,f32* left,f32* right);
 
 void Deinterleave_2(f32* left,f32* right,f32* src,u32 samples);
 void Interleave_2(f32* dst,f32* left,f32* right,u32 samples);
 
-
-//converts 4 samples at a time but need 5 samples of reference. spits out 8 samples
-void Convert_S16_48_To_96(f32* sample1,f32* sample2,f32* src);
-//void Convert_S16_48_To_44_1(void* dst, void* src, u32 sample_count);
-//void Convert_S16_48_To_192(void* dst, void* src, u32 sample_count);
-
-void Convert_Factor(f32* dst,f32* src,u32 samples,f32 factor);
+//writes 4 samples to dst
+void Convert_Factor(f32* dst,f32* src,f32 index,f32 step);
+void Convert_Factor(f32* dst,f32* src,u32 samples,f32 step);
