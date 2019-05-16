@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emmintrin.h"
 #include "xmmintrin.h"
 
 #ifdef _WIN32
