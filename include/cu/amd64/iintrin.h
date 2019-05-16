@@ -1,7 +1,7 @@
 #pragma once
 
-#include "emmintrin.h"
 #include "xmmintrin.h"
+#include "emmintrin.h"
 
 #ifdef _WIN32
 
@@ -57,6 +57,21 @@ u32 _ainline BSR(u32 r){
 
 #define MOVSQ(ds,sc,ln) __movsq(ds,sc,ln)
 
+__m128 _ainline _intrin_cvtpi16_ps(__m64 a){
+    
+    __m128i ret = {};
+    
+    s16* src = (s16*)&a;
+    s32* dst = (s32*)&ret;
+    
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
+    
+    return _mm_cvtepi32_ps(ret);
+}
+
 #else
 
 #define LockedIncrement(value) __sync_add_and_fetch(value,1)
@@ -106,5 +121,7 @@ u32 _ainline BSR(u32 r){
 : [len] "c" (ln), [src] "S" (sc), [dst] "D" (ds) \
 : "memory" \
 );
+
+#define _intrin_cvtpi16_ps(a) _mm_cvtpi16_ps(a)
 
 #endif

@@ -2,6 +2,7 @@
 
 #include "iintrin.h"
 
+
 //TODO: use FMA instructions?? assume f32
 
 #define _max_s16 (1 << 15)
@@ -20,7 +21,8 @@ void Convert_S16_TO_F32(void* dst,void* src,u32 sample_count){
         
         memcpy(&m,c_src,sizeof(m));
         
-        auto ps = _mm_mul_ps(_mm_cvtpi16_ps(m),k);
+        auto t = _intrin_cvtpi16_ps(m);
+        auto ps = _mm_mul_ps(t,k);
         
         _mm_store_ps(c_dst,ps);
         
