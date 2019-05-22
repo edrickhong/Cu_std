@@ -695,21 +695,13 @@ void PrintQuaternion(Quaternion quat);
 
 Vector4 _ainline InterpolateVector(Vector4 a,Vector4 b,f32 step){
     
-    Vector4 vec = b - a;
-    vec = vec * step;
-    vec = a + vec;
-    
-    return vec;
+    return {_intrin_fmadd_ps(_mm_sub_ps(b.simd,a.simd),_mm_set1_ps(step),a.simd)};
 }
 
 
 Quaternion _ainline InterpolateQuaternion(Quaternion a,Quaternion b,f32 step){
     
-    Quaternion q = b - a;
-    q = q * step;
-    q = a + q;
-    
-    return q;
+    return {_intrin_fmadd_ps(_mm_sub_ps(b.simd,a.simd),_mm_set1_ps(step),a.simd)};
 }
 
 f32 _ainline Interpolate(f32 a,f32 b,f32 step){

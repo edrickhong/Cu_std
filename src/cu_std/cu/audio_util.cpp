@@ -2,6 +2,14 @@
 
 #include "iintrin.h"
 
+/*
+TODO:
+_mm_cvtps_pi32 and the like only converts the bottom floating point registers
+complete the job
+
+epi converts the whole 128 bit lanes but it is only in sse2
+*/
+
 
 //TODO: use FMA instructions?? assume f32
 
@@ -47,7 +55,7 @@ void Convert_F32_TO_S16(void* dst,void* src,u32 sample_count) {
         
         auto ps = _mm_mul_ps(_mm_load_ps(c_src),k);
         
-        auto m = _mm_cvtps_pi16 (ps);
+        auto m = _intrin_cvtps_pi16(ps);
         
         memcpy(c_dst,&m,sizeof(m));
         
@@ -69,7 +77,7 @@ void Convert_S16_48_To_96(f32* sample1,f32* sample2,f32* in_sample){
     
     auto step = _mm_set1_ps(0.5f);
     
-    auto half = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b,a),step),a);
+    auto half = _intrin_fmadd_ps(_mm_sub_ps(b,a),step,a);
     
     auto res1 = _mm_shuffle_ps(a,half,_MM_SHUFFLE(1,0,1,0));
     res1 = _mm_shuffle_ps(res1,res1,_MM_SHUFFLE(3,1,2,0));
@@ -175,7 +183,7 @@ void inline Convert_Factor(f32* dst,f32* src,f32 index,f32 inv_factor){
         step = _mm_sub_ps(step,integer);
     }
     
-    auto res = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b,a),step),a);
+    auto res = _intrin_fmadd_ps(_mm_sub_ps(b,a),step,a);
     _mm_store_ps(dst,res);
     
 }

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "xmmintrin.h"
-#include "emmintrin.h"
+#include "xmmintrin.h"//sse (ivy bridge)
+#include "emmintrin.h"//sse2 (ivy bridge)
+#include "immintrin.h"//fma (haswell)
+
 
 #ifdef _WIN32
 
@@ -72,6 +74,22 @@ __m128 _ainline _intrin_cvtpi16_ps(__m64 a){
     return _mm_cvtepi32_ps(ret);
 }
 
+__m64 _ainline _intrin_cvtps_pi16(__m128 a){
+    
+    auto pi = _mm_cvtps_epi32(a);
+    __m64 ret = {};
+    
+    auto src = (s32*)&pi;
+    auto dst = (s16*)&ret;
+    
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
+    
+    return ret;
+}
+
 #else
 
 #define LockedIncrement(value) __sync_add_and_fetch(value,1)
@@ -123,5 +141,18 @@ __m128 _ainline _intrin_cvtpi16_ps(__m64 a){
 );
 
 #define _intrin_cvtpi16_ps(a) _mm_cvtpi16_ps(a)
+#define _intrin_cvtps_pi16(a) _mm_cvtps_pi16(a)
+
+#endif
+
+#ifdef __FMA__
+
+#define _intrin_fmadd_ps(a,b,c) _mm_fmadd_ps(a,b,c)
+
+#else
+
+#pragma message ("FMA is not enabled")
+
+#define _intrin_fmadd_ps(a,b,c) _mm_add_ps(_mm_mul_ps(a,b),c)
 
 #endif
