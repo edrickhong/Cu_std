@@ -2,17 +2,6 @@
 
 #include "iintrin.h"
 
-/*
-TODO:
-_mm_cvtps_pi32 and the like only converts the bottom floating point registers
-complete the job
-
-epi converts the whole 128 bit lanes but it is only in sse2
-*/
-
-
-//TODO: use FMA instructions?? assume f32
-
 #define _max_s16 (1 << 15)
 
 void Convert_S16_TO_F32(void* dst,void* src,u32 sample_count){
@@ -66,27 +55,6 @@ void Convert_F32_TO_S16(void* dst,void* src,u32 sample_count) {
     for(u32 i = 0; i < sample_count; i++){
         c_dst[i] = c_src[i] * factor;
     }
-}
-
-void Convert_S16_48_To_96(f32* sample1,f32* sample2,f32* in_sample){
-    
-    auto a = _mm_load_ps(in_sample);
-    
-    auto b = _mm_shuffle_ps(a,a,_MM_SHUFFLE(0,3,2,1));
-    ((f32*)&b)[3] = in_sample[4];
-    
-    auto step = _mm_set1_ps(0.5f);
-    
-    auto half = _intrin_fmadd_ps(_mm_sub_ps(b,a),step,a);
-    
-    auto res1 = _mm_shuffle_ps(a,half,_MM_SHUFFLE(1,0,1,0));
-    res1 = _mm_shuffle_ps(res1,res1,_MM_SHUFFLE(3,1,2,0));
-    
-    auto res2 = _mm_shuffle_ps(a,half,_MM_SHUFFLE(3,2,3,2));
-    res2 = _mm_shuffle_ps(res2,res2,_MM_SHUFFLE(3,1,2,0));
-    
-    _mm_store_ps(sample1,res1);
-    _mm_store_ps(sample2,res2);
 }
 
 void Deinterleave_2(f32* left,f32* right,f32* src){
@@ -178,9 +146,12 @@ void inline Convert_Factor(f32* dst,f32* src,f32 index,f32 inv_factor){
         f32 l3 = (index + (inv_factor * 3));
         step = _mm_set_ps(l3,l2,l1,l0);
         
+        _intrin_fmadd_ps(_mm_set_ps1(inv_factor),
+                         _mm_set_ps(3.0f,2.0f,1.0f,0.0f),_mm_set_ps1(index));
+        
         //just get the fract part
-        __m128 integer = _mm_cvtepi32_ps(_mm_cvttps_epi32(step));
-        step = _mm_sub_ps(step,integer);
+        step = _mm_sub_ps(step,_mm_floor_ps(step));
+        
     }
     
     auto res = _intrin_fmadd_ps(_mm_sub_ps(b,a),step,a);
@@ -193,7 +164,7 @@ void Convert_Factor(f32* dst,f32* src,u32 samples,f32 inv_factor){
     
     u32 count = 0;
     
-    for(f32 cur = 0.0f; cur < (f32)samples; cur += (inv_factor * 4)){
+    for(f32 cur = 0.0f; cur < (f32)samples; cur += (inv_factor * 4.0f)){
         
         Convert_Factor(dst + count,src,cur,inv_factor);
         count+=4;

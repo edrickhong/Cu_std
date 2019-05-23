@@ -22,10 +22,7 @@ typedef HANDLE FileHandle;
 
 typedef HANDLE* DirectoryHandle;
 
-struct FileNode{
-    FileHandle filehandle = 0;
-    FILETIME timestamp = {};
-};
+typedef FILETIME FileNode;
 
 struct FileInfo{
     s8 filename[256];

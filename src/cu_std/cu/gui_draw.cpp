@@ -7,6 +7,7 @@
 #ifndef _WIN32
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
 #define STB_TRUETYPE_IMPLEMENTATION

@@ -3,6 +3,7 @@
 #include "xmmintrin.h"//sse (ivy bridge)
 #include "emmintrin.h"//sse2 (ivy bridge)
 #include "immintrin.h"//fma (haswell)
+#include "smmintrin.h"// sse4.1 ()
 
 
 #ifdef _WIN32

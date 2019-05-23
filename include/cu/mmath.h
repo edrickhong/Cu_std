@@ -57,7 +57,7 @@
 
 #endif
 
-#define _clamp(x,lower,upper) (fmin(upper,fmax(x,lower)))
+#define _clampf(x,lower,upper) (fminf(upper,fmaxf(x,lower)))
 
 //MARK:Linear Algebra
 

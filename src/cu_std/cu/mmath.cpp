@@ -812,7 +812,7 @@ Vector3 operator/(Vector3 lhs,f32 rhs){
 
 f32 Magnitude(Vector3 vec){
     
-    //m = sqrt(x^2 * y^2 * z^2)
+    //m = sqrtf(x^2 * y^2 * z^2)
     
     f32 res = Dot(vec,vec);
     
@@ -875,7 +875,7 @@ f32 Dot(Vector4 vec1,Vector4 vec2){
 
 f32 Magnitude(Vector4 vec){
     
-    //m = sqrt(x^2 + y^2 + z^2)
+    //m = sqrtf(x^2 + y^2 + z^2)
     
     f32 res = Dot(vec,vec);
     
@@ -1229,7 +1229,7 @@ Quaternion operator*(Quaternion lhs,Quaternion rhs){
 
 void DeconstructQuaternion(Quaternion quaternion,Vector3* vector,f32* angle){
     
-    f32 anglew = acos(quaternion.w) * 2.0f;
+    f32 anglew = acosf(quaternion.w) * 2.0f;
     
     f32 scale = sinf(anglew);
     
@@ -1294,7 +1294,7 @@ Quaternion MatrixToQuaternion(Matrix4b4 matrix){
     f32 trs = matrix _rc4(0,0) + matrix _rc4(1,1) + matrix _rc4(2,2);
     
     if(trs > 0.0f){
-        f32 s = sqrt(trs + 1.0f) * 2.0f;
+        f32 s = sqrtf(trs + 1.0f) * 2.0f;
         q.w = 0.25f * s;
         q.x = (matrix _rc4(1,2) - matrix _rc4(2,1))/s;
         q.y = (matrix _rc4(2,0) - matrix _rc4(0,2))/s;
@@ -1302,7 +1302,7 @@ Quaternion MatrixToQuaternion(Matrix4b4 matrix){
     }
     
     else if((matrix _rc4(0,0) > matrix _rc4(1,1)) && (matrix _rc4(0,0) > matrix _rc4(2,2))){
-        f32 s = sqrt(1.0f + matrix _rc4(0,0) - matrix _rc4(1,1) - matrix _rc4(2,2)) * 2.0f;
+        f32 s = sqrtf(1.0f + matrix _rc4(0,0) - matrix _rc4(1,1) - matrix _rc4(2,2)) * 2.0f;
         q.w = (matrix _rc4(1,2) -  matrix _rc4(2,1)) /s;
         q.x = 0.25f * s;
         q.y = (matrix _rc4(1,0) + matrix _rc4(1,0))/s;
@@ -1310,7 +1310,7 @@ Quaternion MatrixToQuaternion(Matrix4b4 matrix){
     }
     
     else if(matrix _rc4(1,1) > matrix _rc4(2,2)){
-        f32 s = sqrt(1.0f + matrix _rc4(1,1) - matrix _rc4(0,0) - matrix _rc4(2,2)) * 2.0f;
+        f32 s = sqrtf(1.0f + matrix _rc4(1,1) - matrix _rc4(0,0) - matrix _rc4(2,2)) * 2.0f;
         q.w = (matrix _rc4(2,0) -  matrix _rc4(0,2)) /s;
         q.x = (matrix _rc4(1,0) + matrix _rc4(1,0))/s;
         q.y = 0.25f * s;
@@ -1318,7 +1318,7 @@ Quaternion MatrixToQuaternion(Matrix4b4 matrix){
     }
     
     else{
-        f32 s = sqrt(1.0f + matrix _rc4(2,2) - matrix _rc4(0,0) - matrix _rc4(1,1)) * 2.0f;
+        f32 s = sqrtf(1.0f + matrix _rc4(2,2) - matrix _rc4(0,0) - matrix _rc4(1,1)) * 2.0f;
         q.w = (matrix _rc4(0,1) -  matrix _rc4(1,0)) /s;
         q.x = (matrix _rc4(2,0) + matrix _rc4(0,2))/s;
         q.y = (matrix _rc4(2,1) + matrix _rc4(1,2))/s;
@@ -1353,9 +1353,9 @@ Quaternion NLerp(Quaternion a,Quaternion b,f32 step){
 
 Quaternion SLerp(Quaternion a,Quaternion b,f32 step){
     
-    f32 dot = _clamp(Dot(a,b),-1.0f, 1.0f);
+    f32 dot = _clampf(Dot(a,b),-1.0f, 1.0f);
     
-    f32 angle = acos(dot) * step;
+    f32 angle = acosf(dot) * step;
     
     Quaternion n =  Normalize(b - (a * dot));
     
@@ -1479,7 +1479,7 @@ f32 Magnitude(Vector2 a){
     a.x = a.x * a.x;
     a.y = a.y * a.y;
     
-    return sqrt(a.x + a.y); 
+    return sqrtf(a.x + a.y); 
 }
 
 Vector2 CompMul(Vector2 a,Vector2 b){

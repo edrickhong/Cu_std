@@ -55,13 +55,15 @@ FileNode FGetFileNode(const s8* file){
     
     FileNode node = {};
     
+    FileHandle filehandle = {};
+    
     do{
-        node.filehandle = FOpenFile(file,F_FLAG_READONLY);
-    }while(node.filehandle == F_FILE_INVALID);
+        filehandle = FOpenFile(file,F_FLAG_READONLY);
+    }while(filehandle == F_FILE_INVALID);
     
     
-    GetFileTime(node.filehandle,0,0,&node.timestamp);
-    FCloseFile(node.filehandle);
+    GetFileTime(filehandle,0,0,&node);
+    FCloseFile(filehandle);
     
     return node;
 }
@@ -72,8 +74,8 @@ b32 FFileChanged(const s8* file,FileNode* node){
     
     ULARGE_INTEGER newtime,oldtime = {};
     
-    memcpy(&oldtime,&node->timestamp,sizeof(node->timestamp));
-    memcpy(&newtime,&new_node.timestamp,sizeof(new_node.timestamp));
+    memcpy(&oldtime,&node,sizeof(node));
+    memcpy(&newtime,&new_node,sizeof(new_node));
     
     if(newtime.QuadPart != oldtime.QuadPart){
         return 1;
