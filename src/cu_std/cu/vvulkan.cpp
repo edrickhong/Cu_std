@@ -587,6 +587,8 @@ _intern VDeviceMemoryBlock VDeviceBlockAlloc(u32 size,u32 alignment,VkPhysicalDe
 
 void VDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset){
     
+    
+    //TODO: we should use bufferimagegranularity here (Quadro K600 has a granularity of 64k wtf )
     auto block = VDeviceBlockAlloc(size,256);
     
     *memory = block.memory;
@@ -613,7 +615,9 @@ void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkB
     if(block.res){
         *block.res = (u64)buffer;
     }
+    printf("BUFFER::%p,%p,%d\n",(void*)buffer,(void*)block.memory,block.offset);
 #endif
+    
     
     _vktest(vkBindBufferMemory(vdevice->device,buffer,block.memory,block.offset));
 }
@@ -624,6 +628,7 @@ void _ainline VBindImageMemoryBlock(const VDeviceContext* _restrict vdevice,VkIm
     if(block.res){
         *block.res = (u64)image;
     }
+    printf("IMAGE::%p,%p,%d\n",(void*)image,(void*)block.memory,block.offset);
 #endif
     
     _vktest(vkBindImageMemory(vdevice->device,image,block.memory,block.offset));
@@ -738,6 +743,10 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         VBindBufferMemoryBlock(vdevice,transferbuffer.buffer,block);
         
     }
+    
+#ifdef DEBUG
+    printf("DEV %p WRITE %p READWRITE %p DIRECT %p\n",(void*)device_block.memory,(void*)write_block.memory,(void*)readwrite_block.memory,(void*)direct_block.memory);
+#endif
     
     return res;
 }
@@ -1267,6 +1276,10 @@ VkDeviceMemory memory,VkDeviceSize offset,u32 data_size,VkBufferUsageFlags usage
     vkGetBufferMemoryRequirements(device,context.buffer,&memoryreq);
     
     context.size = memoryreq.size;
+    
+#ifdef DEBUG
+    printf("BUFFER::%p,%p,%d\n",(void*)context.buffer,(void*)memory,(u32)offset);
+#endif
     
     _vktest(vkBindBufferMemory(device,context.buffer,memory,offset));
     
@@ -1821,6 +1834,12 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
                                      &memoryreq);
         
         auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        
+#ifdef DEBUG
+        printf("SWAPCHAIN DEPTH::%p,%p,%d\n",(void*)swapchain.internal->depthstencil.image,(void*)block.memory,block.offset);
+        printf("SIZE %d ALIGNMENT %d\n",(u32)memoryreq.size,(u32)memoryreq.alignment);
+        
+#endif
         
         _vktest(vkBindImageMemory(device,swapchain.internal->depthstencil.image,
                                   block.memory,block.offset));
@@ -2754,8 +2773,6 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
         
         block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     }
-    
-    
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
