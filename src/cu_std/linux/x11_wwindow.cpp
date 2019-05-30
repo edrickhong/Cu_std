@@ -359,6 +359,66 @@ void InternalPresentBackBufferX11(WWindowContext* window,WBackBufferContext* buf
 }
 
 
+_intern XVisualInfo* GetVisualInfoArray(Display* dpy,s32* _restrict count){
+    
+    auto XGetVisualInfo_fptr = (XVisualInfo* (*)(Display*,long,XVisualInfo*,s32*))LGetLibFunction(wwindowlib_handle,"XGetVisualInfo");
+    
+    
+    
+    XVisualInfo visual_array[] = {
+        
+        {
+            0,
+            0,
+            0,
+            32,
+            TrueColor,
+            
+            //Aren't used but pretty sure these are the only formats for true color anyway
+            0xFF0000,//red mask
+            0x00FF00,//green mask
+            0x0000FF,//blue mask
+            
+            0,
+            8,
+        },
+        
+        {
+            0,
+            0,
+            0,
+            24,
+            TrueColor,
+            
+            //Aren't used but pretty sure these are the only formats for true color anyway
+            0xFF0000,//red mask
+            0x00FF00,//green mask
+            0x0000FF,//blue mask
+            
+            0,
+            8,
+        },
+        
+        
+    };
+    
+    XVisualInfo* ret = 0;
+    
+    for(u32 i = 0; i < _arraycount(visual_array); i++){
+        
+        ret = XGetVisualInfo_fptr(dpy,VisualClassMask | VisualDepthMask | VisualRedMaskMask | VisualGreenMaskMask | VisualBlueMaskMask |VisualBitsPerRGBMask,&visual_array[i],count);
+        
+        if(ret){
+#ifdef DEBUG
+            printf("Chose visualinfo %d\n",i);
+#endif
+            break;
+        }
+    }
+    
+    return ret;
+}
+
 b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
                             u32 x,u32 y,u32 width,u32 height){
     
@@ -399,9 +459,11 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
     auto XVisualIDFromVisual_fptr =
         (VisualID (*)(Visual*))LGetLibFunction(wwindowlib_handle,"XVisualIDFromVisual");
     
-    auto XGetVisualInfo_fptr = (XVisualInfo* (*)(Display*,long,XVisualInfo*,s32*))LGetLibFunction(wwindowlib_handle,"XGetVisualInfo");
-    
     auto XFree_fptr = (void (*)(void*))LGetLibFunction(wwindowlib_handle,"XFree");
+    
+    auto XDefaultScreen_fptr = (s32 (*)(Display*))LGetLibFunction(wwindowlib_handle,"XDefaultScreen");
+    
+    auto XCreateColormap_fptr = (Colormap (*)(Display*,Window,Visual*,s32))LGetLibFunction(wwindowlib_handle,"XCreateColormap");
     
     context->data->type = _X11_WINDOW;
     
@@ -416,28 +478,18 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
     
     _kill("failed to open display\n",!context->handle);
     
+    auto screen_no = XDefaultScreen_fptr((Display*)context->handle);
+    
+#ifdef DEBUG
+    printf("The default screen no is %d\n",screen_no);
+#endif
+    
     Visual* visual_ptr = 0;
     u32 depth = 0;
     
     {
-        XVisualInfo v = {
-            0,
-            0,
-            0,
-            24,
-            TrueColor,
-            
-            //Aren't used but pretty sure these are the only formats for true color anyway
-            0xFF0000,//red mask
-            0x00FF00,//green mask
-            0x0000FF,//blue mask
-            
-            0,
-            8,
-        };
         s32 info_count = 0;
-        
-        auto info_array = XGetVisualInfo_fptr((Display*)context->handle,VisualClassMask | VisualDepthMask | VisualRedMaskMask | VisualGreenMaskMask | VisualBlueMaskMask |VisualBitsPerRGBMask,&v,&info_count);
+        auto info_array = GetVisualInfoArray((Display*)context->handle,&info_count);
         
 #if 0
         
@@ -466,14 +518,27 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
     }
     
     XSetWindowAttributes frame_attrib = {};
-    frame_attrib.background_pixel = XWhitePixel_fptr((Display*)context->handle,0);
+    frame_attrib.background_pixel = XWhitePixel_fptr((Display*)context->handle,screen_no);
     
-#define borderwidth 1
+    
+    //MARK: handling visual
+    context->data->x11_colormap = XCreateColormap_fptr((Display*)context->handle,XRootWindow_fptr((Display*)context->handle,screen_no),visual_ptr,AllocNone);
+    
+    frame_attrib.colormap = context->data->x11_colormap;
+    
+    frame_attrib.background_pixmap = None;
+    frame_attrib.border_pixel = 0;
+    //
+    
+    
+#define borderwidth 0
+    u32 mask = 
+        CWBackPixel | CWColormap | CWBackPixmap | CWBorderPixel;
     
     context->window = (void*)XCreateWindow_fptr((Display*)context->handle,
-                                                XRootWindow_fptr((Display*)context->handle,0),
+                                                XRootWindow_fptr((Display*)context->handle,screen_no),
                                                 x,y,width,height,borderwidth,depth,InputOutput,
-                                                visual_ptr,CWBackPixel,&frame_attrib);
+                                                visual_ptr,mask,&frame_attrib);
     
     WSetTitle(context,title);
     
@@ -520,11 +585,8 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
     
     XMapRaised_fptr((Display*)context->handle,(Window)context->window);
     
-    
-    XFlush((Display*)context->handle);
-    
     //MARK: we can set multiple with XSetWMProperties
-    
+    XFlush((Display*)context->handle);
     
     return true;
 }

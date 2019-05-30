@@ -30,11 +30,11 @@ struct InternalWindowData{
     union{
         
         VisualID x11_visualid;
+        Colormap x11_colormap;
         
         struct{
             void* wayland_shell_surface;
-            void* internaldata; // what's this for??
-            WaylandData wayland_data;
+            void* internaldata; WaylandData wayland_data;
         };
     };
     

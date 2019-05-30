@@ -263,7 +263,7 @@ WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
     
     buffer.data->devicecontext = GetDC((HWND)windowcontext->window);
     
-    //MARK: maybe set the pixel format?? (Seems like the default is already ARBG)
+    //MARK: maybe set the pixel format?? (Seems like the default is already ARGB)
     
     _kill("failed to get a hdc\n",!buffer.data->devicecontext);
     
