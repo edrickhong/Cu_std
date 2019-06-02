@@ -262,7 +262,9 @@ VkBuffer CreateBuffer(VkDevice device,VkBufferCreateFlags flags,
     return buffer;
 }
 
-_global VDeviceMemoryBlock device_block = {};
+_global VDeviceMemoryBlock linear_block = {};
+_global VDeviceMemoryBlock non_linear_block = {};
+
 _global VDeviceMemoryBlock write_block = {};
 _global VDeviceMemoryBlock readwrite_block = {};
 _global VDeviceMemoryBlock direct_block = {};
@@ -395,8 +397,12 @@ s8* VGetDirectBlockPtr(VImageMemoryContext* _restrict image){
     return direct_ptr + image->mapid;
 }
 
-VkDeviceMemory VGetDeviceBlockMemory(){
-    return device_block.memory;
+VkDeviceMemory VGetLinearDeviceBlockMemory(){
+    return linear_block.memory;
+}
+
+VkDeviceMemory VGetNonLinearDeviceBlockMemory(){
+    return non_linear_block.memory;
 }
 
 VkDeviceMemory VGetWriteBlockMemory(){
@@ -542,12 +548,20 @@ _intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment){
     return block;
 }
 
-_intern VDeviceMemoryBlock VDeviceBlockAlloc(u32 size,u32 alignment){
+_intern VDeviceMemoryBlock VLinearDeviceBlockAlloc(u32 size,u32 alignment){
     
-    auto offset = TGetEntryAlignedOffsetD(&device_block.offset,size,alignment,device_block.size);
+    auto offset = TGetEntryAlignedOffsetD(&linear_block.offset,size,alignment,linear_block.size);
     
     
-    return {device_block.memory,offset,size};
+    return {linear_block.memory,offset,size};
+}
+
+_intern VDeviceMemoryBlock VNonLinearDeviceBlockAlloc(u32 size,u32 alignment){
+    
+    auto offset = TGetEntryAlignedOffsetD(&non_linear_block.offset,size,alignment,non_linear_block.size);
+    
+    
+    return {non_linear_block.memory,offset,size};
 }
 
 #ifdef DEBUG
@@ -576,20 +590,34 @@ _intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment,VkPhysicalDe
     return VDirectBlockAlloc(size,alignment);
 }
 
-_intern VDeviceMemoryBlock VDeviceBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+_intern VDeviceMemoryBlock VLinearDeviceBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
     
     auto type = VGetMemoryTypeIndex(prop,typebits,flags);
-    _kill("required type does not match\n",type != device_block.type);
+    _kill("required type does not match\n",type != linear_block.type);
     
-    return VDeviceBlockAlloc(size,alignment);
+    return VLinearDeviceBlockAlloc(size,alignment);
+}
+
+_intern VDeviceMemoryBlock VNonLinearDeviceBlockAlloc(u32 size,u32 alignment,VkPhysicalDeviceMemoryProperties prop,u32 typebits,u32 flags){
+    
+    auto type = VGetMemoryTypeIndex(prop,typebits,flags);
+    _kill("required type does not match\n",type != non_linear_block.type);
+    
+    return VNonLinearDeviceBlockAlloc(size,alignment);
 }
 
 
-void VDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset){
+void VLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset){
     
+    auto block = VLinearDeviceBlockAlloc(size,256);
     
-    //TODO: we should use bufferimagegranularity here (Quadro K600 has a granularity of 64k wtf )
-    auto block = VDeviceBlockAlloc(size,256);
+    *memory = block.memory;
+    *offset = block.offset;
+}
+
+void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset){
+    
+    auto block = VNonLinearDeviceBlockAlloc(size,256);
     
     *memory = block.memory;
     *offset = block.offset;
@@ -637,23 +665,42 @@ void _ainline VBindImageMemoryBlock(const VDeviceContext* _restrict vdevice,VkIm
 VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size,u32 write_size,u32 transferbuffer_size,u32 readwrite_size,
                                   u32 direct_size){
     
+    _kill("bare minimum, 64k of device memory can be allocated\n",device_size < _kilobytes(128));
+    
     _kill("transferbuffer_size has to be smaller than write_size\n",transferbuffer_size >= write_size);
     
     VResult res = V_SUCCESS;
     
     
-    
-    //device
+    //linear and non-linear
     {
+        VkPhysicalDeviceProperties properties = {};
+        
+        vkGetPhysicalDeviceProperties(vdevice->phys_info->physicaldevice_array[0],
+                                      &properties);
+        
+        auto non_linear_size = 
+            _alignpow2(device_size >> 1,properties.limits.bufferImageGranularity);
+        auto linear_size = device_size - non_linear_size;
+        
+        
+        
         auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
-        device_block.memory = VRawDeviceAlloc(vdevice->device,device_size,type);
-        device_block.offset = 0;
-        device_block.size = device_size;
+        non_linear_block.memory = VRawDeviceAlloc(vdevice->device,device_size,type);
+        non_linear_block.offset = 0;
+        non_linear_block.size = non_linear_size;
+        
+        linear_block.memory = non_linear_block.memory;
+        linear_block.offset = non_linear_size;
+        linear_block.size = linear_block.offset + non_linear_size;
         
 #ifdef DEBUG
-        device_block.type = type;
-        device_block.res = 0;
+        non_linear_block.type = type;
+        non_linear_block.res = 0;
+        
+        linear_block.type = type;
+        linear_block.res = 0;
 #endif
         
     }
@@ -745,7 +792,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     }
     
 #ifdef DEBUG
-    printf("DEV %p WRITE %p READWRITE %p DIRECT %p\n",(void*)device_block.memory,(void*)write_block.memory,(void*)readwrite_block.memory,(void*)direct_block.memory);
+    printf("DEV %p WRITE %p READWRITE %p DIRECT %p\n",(void*)linear_block.memory,(void*)write_block.memory,(void*)readwrite_block.memory,(void*)direct_block.memory);
 #endif
     
     return res;
@@ -1231,7 +1278,7 @@ ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
     
     if(flag == VBLOCK_DEVICE){
         
-        block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        block = VLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     }
     
     else if(flag == VBLOCK_READWRITE){
@@ -1833,7 +1880,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         vkGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image,
                                      &memoryreq);
         
-        auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
 #ifdef DEBUG
         printf("SWAPCHAIN DEPTH::%p,%p,%d\n",(void*)swapchain.internal->depthstencil.image,(void*)block.memory,block.offset);
@@ -2807,7 +2854,7 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
     VkMemoryRequirements memoryreq = {};
     vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
     
-    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3650,7 +3697,7 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
     
     if(flag == VBLOCK_DEVICE){
         
-        block = VDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     }
     
     else if(flag == VBLOCK_READWRITE){
@@ -3699,7 +3746,7 @@ u32 data_size,VMemoryBlockHintFlag flag){
     
     if(flag == VBLOCK_DEVICE){
         
-        block = VDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     }
     
     else if(flag == VBLOCK_READWRITE){
@@ -3746,8 +3793,8 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
     vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
     
     
-    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3791,8 +3838,8 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
     
     vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
     
-    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     
     VBindImageMemoryBlock(vdevice,handle.image,block);
     
@@ -3845,8 +3892,8 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
     
     vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
     
-    auto block = VDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     

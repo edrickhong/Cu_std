@@ -1108,7 +1108,7 @@ enum VResult{
 
 //DeviceMemory allocator
 
-VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size = _megabytes(128),u32 write_size = _megabytes(192),
+VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size = _megabytes(256),u32 write_size = _megabytes(192),
                                   u32 transferbuffer_size = _megabytes(64),
                                   u32 readwrite_size = _megabytes(64),
                                   u32 direct_size = _megabytes(32));
@@ -1174,4 +1174,6 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
 VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice,
                                         u32 width,u32 height,u32 miplevels);
 
-void VDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
+void VLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
+
+void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
