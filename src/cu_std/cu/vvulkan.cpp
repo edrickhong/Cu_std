@@ -680,7 +680,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
                                       &properties);
         
         auto non_linear_size = 
-            _alignpow2(device_size >> 1,properties.limits.bufferImageGranularity);
+            _alignpow2((device_size >> 1),properties.limits.bufferImageGranularity);
         auto linear_size = device_size - non_linear_size;
         
         
