@@ -539,16 +539,12 @@ FileHandle InternalCreateTempAnonymouseFile(){
     return fd;
 }
 
-WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext){
-    
-    auto width = windowcontext->data->wayland_data.width;
-    auto height = windowcontext->data->wayland_data.height;
-    auto shm = windowcontext->data->wayland_data.shm;
-    auto size = width * height * 4;
+_intern WBackBufferContext WCreateBackBufferWayland(u32 width,u32 height,wl_shm* shm){
     
     WBackBufferContext backbuffer = {};
-    backbuffer.data = (InternalBackBufferData*)malloc(sizeof(InternalBackBufferData));
+    backbuffer.data = (InternalBackBufferData*)alloc(sizeof(InternalBackBufferData));
     
+    auto size = width * height * 4;
     backbuffer.width = width;
     backbuffer.height = height;
     
@@ -572,6 +568,15 @@ WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext){
     wl_shm_pool_destroy(pool);
     
     return backbuffer;
+}
+
+WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext){
+    
+    auto width = windowcontext->data->wayland_data.width;
+    auto height = windowcontext->data->wayland_data.height;
+    auto shm = windowcontext->data->wayland_data.shm;
+    
+    return WCreateBackBufferWayland(width,height,shm);
 }
 
 void WPresentBackBufferWayland(WWindowContext* windowcontext,WBackBufferContext* buffer){
@@ -670,6 +675,33 @@ set the window position - wayland does not allow setting the window relative to 
 
 wl_shell_surface_move allows dragging windows
 */
+#if 0
+    {
+
+        auto surface = wl_compositor_create_surface(wdata->compositor);
+        auto shell = wl_shell_get_shell_surface(wdata->shell,surface);
+        
+        wl_shell_surface_add_listener(shell,&shell_surface_listener,(void*)context);
+        wl_shell_surface_set_toplevel(shell);
+        wl_shell_surface_set_title(shell,title);
+        wl_shell_surface_set_class(shell,title);
+        
+        //TODO: we are using fixed size buffers for now for height
+#define _wayland_title_height 50
+        
+        auto buffer = WCreateBackBufferWayland(width,_wayland_title_height,context->data->wayland_data.shm);
+        
+        auto pixel = (u32*)buffer.data->buffer;
+        u32 count = _wayland_title_height * width;
+        
+        for(u32 i = 0; i < count; i++){
+            pixel[i] = 0xFFFFFFFF;
+        }
+        
+        wl_surface_attach(surface,buffer.data->buffer,0,0);
+        wl_surface_commit(surface);
+    }
+#endif    
     
     
     impl_wkeycodetoascii = WKeyCodeToASCIIWayland;
