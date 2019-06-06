@@ -2,6 +2,8 @@
 #include "unistd.h"
 #include "sys/mman.h"
 
+#include "linux_syscall.h"
+
 #define MEMPROT_EXEC PROT_EXEC
 #define MEMPROT_READ PROT_READ
 #define MEMPROT_WRITE PROT_WRITE
@@ -18,9 +20,13 @@ u32 _ainline SGetTotalThreads(){
 }
 
 _ainline void* SSysAlloc(void* addr,ptrsize size,u32 prot,u32 flags){
-    return mmap(addr, size, prot , MAP_PRIVATE | MAP_ANONYMOUS | flags,-1, 0);
+    void* ret = 0;
+    
+    _sys_mmap(addr,size,prot,MAP_PRIVATE | MAP_ANONYMOUS | flags,-1,0,ret);
+    
+    return ret;
 }
 
-_ainline void SSysAlloc(void* addr,ptrsize size){
-    munmap(addr, size);
+_ainline void SSysFree(void* addr,ptrsize size){
+    _sys_munmap(addr,size);
 }
