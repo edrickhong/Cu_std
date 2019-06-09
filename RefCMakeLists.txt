@@ -54,6 +54,6 @@ include_directories("${CU_STD_DIR}/include"
 
 # source files. all unity builds
 file(GLOB CU_STD ${CU_STD_DIR}/src/cu_std/cu/gui_bin.cpp
-          ${CU_STD_DIR}/src/cu_std/cu/main.cpp)
+          ${CU_STD_DIR}/src/cu_std/cu/main.cpp ${PLATFORM_SRC})
 
 add_library(cu_std STATIC ${CU_STD})

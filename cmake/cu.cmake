@@ -47,6 +47,11 @@ if(UNIX)
       "/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
      )
 
+  enable_language(ASM)
+
+  file(GLOB LINUX_ASM ${CU_STD_DIR}/src/cu_std/linux/linux_asm.s)
+  set(PLATFORM_SRC ${LINUX_ASM})
+
 
   #this adds LTO support
   include(CheckIPOSupported)
@@ -71,6 +76,7 @@ else(UNIX)
   endif()
 
   set(PLATFORM_INCLUDES "${CU_STD_DIR}/include/cu/win32")
+  set(PLATFORM_SRC)
 
   # allow debug info here cos windows doesn't embed it into the dll/exe
   set(FLAGS "/EHsc /Zi ${OPT_FLAGS} ${STRICT_FLAGS}")

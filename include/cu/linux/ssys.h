@@ -20,6 +20,7 @@ u32 _ainline SGetTotalThreads(){
 }
 
 _ainline void* SSysAlloc(void* addr,ptrsize size,u32 prot,u32 flags){
+    
     void* ret = 0;
     
     _sys_mmap(addr,size,prot,MAP_PRIVATE | MAP_ANONYMOUS | flags,-1,0,ret);
@@ -28,5 +29,6 @@ _ainline void* SSysAlloc(void* addr,ptrsize size,u32 prot,u32 flags){
 }
 
 _ainline void SSysFree(void* addr,ptrsize size){
-    _sys_munmap(addr,size);
+    u32 err = 0;
+    _sys_munmap(addr,size,err);
 }
