@@ -16,7 +16,11 @@ typedef DWORD ThreadID;
 
 #include "pthread.h"
 #include "semaphore.h"
+
 #include "linux/sched.h"
+
+//conflicts here??
+//#include "linux/sched/types.h"
 
 struct TThreadContext{
     pthread_t handle;
@@ -51,7 +55,8 @@ enum TSchedulerPoicy{
     TSCHED_LINUX_POLICY_REALTIME_FIFO = SCHED_FIFO,
     TSCHED_LINUX_POLICY_REALTIME_RR = SCHED_RR,
     
-    //TODO: implement this when we overhaul everything to not use pthreads
+    
+    //NOTE: this is not posix standard and is only available on Linux 3.14 and above
     TSCHED_LINUX_POLICY_REALTIME_DEADLINE = SCHED_DEADLINE,
     
 #endif
@@ -59,9 +64,12 @@ enum TSchedulerPoicy{
 };
 
 struct TLinuxSchedulerDeadline{
-    u64 sched_runtime;
-    u64 sched_deadline;
-    u64 sched_period;
+    u64 runtime;
+    u64 deadline;
+    u64 period;
+    
+    //SCHED_FLAG_RECLAIM or SCHED_FLAG_DL_OVERRUN
+    u32 flags;
 };
 
 
