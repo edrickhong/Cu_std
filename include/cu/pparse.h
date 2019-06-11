@@ -561,3 +561,5 @@ m64 PEvaluateMathString(OpChar* char_array,u32 char_count,OpExecMode mode = OpEx
 
 
 m64 PEvaluateMathString(s8* string,OpExecMode mode = OpExecMode_S32);
+
+s32 PStringToInt(s8* buffer);

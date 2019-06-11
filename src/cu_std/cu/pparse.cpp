@@ -957,7 +957,7 @@ m64 BuildAndExecuteOpChar(OpChar* char_array,u32 char_count){
         
         if(c->type == OpChar_VALUE){
             
-            value_array[value_count].u = atoi(c->string);
+            value_array[value_count].u = PStringToInt(c->string);
             value_count++;
         }
         
@@ -1225,4 +1225,28 @@ m64 PEvaluateMathString(s8* string,OpExecMode mode){
     }
     
     return PEvaluateMathString(char_array,char_count);
+}
+
+s32 PStringToInt(s8* buffer){
+    
+    s32 value = 0;
+    
+    u32 len = strlen(buffer);
+    u32 factor = 1;
+    
+    for(u32 i = len - 1; i != (u32)-1; i--){
+        
+        auto c = buffer[i];
+        
+        if(c == '-'){
+            value *= -1;
+            break;
+        }
+        
+        value += (c - 48) * factor;
+        
+        factor *= 10;
+    }
+    
+    return value;
 }
