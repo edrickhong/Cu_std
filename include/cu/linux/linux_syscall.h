@@ -96,7 +96,7 @@ u32 _ainline Linux_Syscall_Get_Priority_Max(u32 policy){
         }break;
         
         case SCHED_IDLE: //fallthrough
-        case SCHED_OTHER: //fallthrough
+        case SCHED_NORMAL: //fallthrough
         case SCHED_BATCH: //fallthrough
         case SCHED_DEADLINE:{
             return 0;
@@ -114,7 +114,7 @@ u32 _ainline Linux_Syscall_Get_Priority_Min(u32 policy){
         }break;
         
         case SCHED_IDLE: //fallthrough
-        case SCHED_OTHER: //fallthrough
+        case SCHED_NORMAL: //fallthrough
         case SCHED_BATCH: //fallthrough
         case SCHED_DEADLINE:{
             return 0;

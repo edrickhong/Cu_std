@@ -15,7 +15,7 @@ struct AAllocatorContext{
     
     struct DebugAllocEntry{
         void* ptr;
-        ThreadID tid;
+        TThreadID tid;
         u32 size;
         const s8* file;
         const s8* function;

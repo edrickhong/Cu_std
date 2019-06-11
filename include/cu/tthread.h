@@ -14,21 +14,11 @@ typedef DWORD ThreadID;
 
 #else
 
-#include "pthread.h"
-#include "semaphore.h"
-
 #include "linux/sched.h"
 
-//conflicts here??
-//#include "linux/sched/types.h"
-
-struct TThreadContext{
-    pthread_t handle;
-};
-
-typedef sem_t* TSemaphore;
-
-typedef pthread_t ThreadID;
+typedef u32 TThreadContext;
+typedef TThreadContext TThreadID;
+typedef volatile _cachealign u32* TSemaphore;
 
 #endif
 
@@ -49,7 +39,7 @@ enum TSchedulerPoicy{
 #else
     
     TSCHED_POLICY_STATIC_IDLE = SCHED_IDLE,
-    TSCHED_POLICY_STATIC_NORMAL = SCHED_OTHER,
+    TSCHED_POLICY_STATIC_NORMAL = SCHED_NORMAL,
     
     TSCHED_LINUX_POLICY_STATIC_BATCH = SCHED_BATCH,
     TSCHED_LINUX_POLICY_REALTIME_FIFO = SCHED_FIFO,
@@ -85,10 +75,10 @@ void TWaitSemaphore(TSemaphore sem);
 
 void TWaitSemaphore(TSemaphore sem,f32 time_ms);
 
-ThreadID TGetThisThreadID();
+TThreadID TGetThisThreadID();
 
 void TSetThreadAffinity(u32 cpu_mask);
 
-void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {});
+void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {},TThreadID id = 0);
 
-void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline = 0);
+void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline = 0,TThreadID id = 0);

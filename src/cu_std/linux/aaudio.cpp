@@ -1344,7 +1344,7 @@ _global TLinuxSchedulerDeadline deadline = {};
 #define AUDIO_THREAD_PRIORITY 1.0f
 
 #ifdef DEBUG
-_global ThreadID init_thread = {};
+_global TThreadID init_thread = {};
 #endif
 
 

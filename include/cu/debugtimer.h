@@ -82,7 +82,7 @@ struct DebugRecord{
 
 void InitDebugTimer();
 
-void SubmitRecord(ThreadID tid,DebugRecord record);
+void SubmitRecord(TThreadID tid,DebugRecord record);
 
 void RecordThread();
 
@@ -92,7 +92,7 @@ void SetFrameTime(f32 time);
 
 void SetExecTime(f32 time);
 
-u32 GetThreadIndex(ThreadID tid);
+u32 GetThreadIndex(TThreadID tid);
 
 struct TimeBlock{
     
@@ -207,7 +207,7 @@ struct _cachealign RecordArray{
 
 struct DebugTable{
     TimeSpec timestamp;
-    volatile ThreadID threadid_array[15] = {};//should set this to your threadcount
+    volatile TThreadID threadid_array[15] = {};//should set this to your threadcount
     volatile u32 thread_count = 0;
     
     //We should cache align these
