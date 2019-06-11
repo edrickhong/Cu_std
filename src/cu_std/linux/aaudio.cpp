@@ -158,7 +158,7 @@ u32 _intern GetAudioCardNo(const s8* logical_name){
         }
     }
     
-    return (u32)atoi(num_buffer);
+    return (u32)PStringToInt(num_buffer);
 }
 
 void _intern AReleaseAudioDevice(u32 device_no,b32 to_remove_entry = true){
