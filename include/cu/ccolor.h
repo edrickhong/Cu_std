@@ -146,8 +146,8 @@
 
 
 struct Color{
-  f32 R;
-  f32 G;
-  f32 B;
-  f32 A;
+    f32 R;
+    f32 G;
+    f32 B;
+    f32 A;
 };//do we put this into mmath?
