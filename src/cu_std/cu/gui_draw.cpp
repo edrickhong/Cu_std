@@ -143,7 +143,7 @@ s8* InternalGUIGenFontData(const s8* filepath,f32 fontsize,ptrsize* datasize){
             
             for(u32 x = 0; x < roundedwidth;x++){
                 
-                *(curfontbitmap_ptr + x) = *(cursinglebitmap_ptr + x) | 0xFF;
+                *(curfontbitmap_ptr + x) = *(cursinglebitmap_ptr + x);
                 
             }
         }
@@ -1290,6 +1290,8 @@ void InitInternalComponents(VDeviceContext* vdevice,VSwapchainContext* swap,
     
     VEnableDynamicStateGraphicsPipelineSpec(&spec_array[2],&dynamicstate_array[0],_arraycount(dynamicstate_array));
     
+    
+    //FIXME: change the color blend to make transparency in the fonts work
     VEnableColorBlendTransparency(&spec_array[2]);
     
     VCreateGraphicsPipelineArray(vdevice,&spec_array[0],_arraycount(spec_array),&gui->pipeline_array[0],cache);
