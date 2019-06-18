@@ -14,11 +14,30 @@ typedef DWORD ThreadID;
 
 #else
 
+#include "thread_mode.h"
+
+#if _use_pthread
+
+#include "pthread.h"
+#include "semaphore.h"
+#include "linux/sched.h"
+
+struct TThreadContext{
+    pthread_t handle;
+};
+
+typedef sem_t* TSemaphore;
+typedef pthread_t TThreadID;
+
+#else
+
 #include "linux/sched.h"
 
 typedef u32 TThreadContext;
 typedef TThreadContext TThreadID;
 typedef volatile _cachealign u32* TSemaphore;
+
+#endif
 
 #endif
 
@@ -77,7 +96,7 @@ void TWaitSemaphore(TSemaphore sem,f32 time_ms);
 
 TThreadID TGetThisThreadID();
 
-void TSetThreadAffinity(u32 cpu_mask);
+void TSetThreadAffinity(u32 cpu_mask,TThreadID id = 0);
 
 void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {},TThreadID id = 0);
 

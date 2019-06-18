@@ -143,7 +143,7 @@ s8* InternalGUIGenFontData(const s8* filepath,f32 fontsize,ptrsize* datasize){
             
             for(u32 x = 0; x < roundedwidth;x++){
                 
-                *(curfontbitmap_ptr + x) = *(cursinglebitmap_ptr + x);
+                *(curfontbitmap_ptr + x) = *(cursinglebitmap_ptr + x) | 0xFF;
                 
             }
         }

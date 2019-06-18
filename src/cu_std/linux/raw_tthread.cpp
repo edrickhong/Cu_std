@@ -12,6 +12,43 @@
 
 #define _expected_sem_value 0
 
+struct TCreateThreadStruct{
+    void* args = 0;
+    s64 (*call_fptr)(void*) = 0;
+    void* stack;
+    u64 stack_size;
+};
+
+extern "C" void Linux_ThreadProc();
+
+TThreadContext TCreateThread(s64 (*call_fptr)(void*),u32 stack_size,void* args){
+    
+    void* stack = 0;
+    {
+        
+        u64* s = 0;
+        
+        _sys_mmap(0,stack_size,MEMPROT_READWRITE,MAP_ANONYMOUS | MAP_PRIVATE | MAP_GROWSDOWN,-1,0,s);
+        
+        s = (u64*)(((s8*)s) + stack_size - (8 + sizeof(TCreateThreadStruct)));
+        
+        *s = (u64)Linux_ThreadProc;
+        
+        //this is where the TCB is stored usually (pointed by %fs). defined in descr.h
+        //we might not have to copy the one provided by nptl. it might just need space (2304 bytes)
+        auto c = (TCreateThreadStruct*)(s + 1);
+        *c = {args,call_fptr,s,stack_size};
+        
+        stack = s;
+    }
+    
+    u64 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_PARENT | CLONE_THREAD | CLONE_IO;
+    
+    auto tid = _sys_clone(flags,stack,0,0);
+    
+    return tid;
+}
+
 void TWaitSemaphore(TSemaphore sem,f32 time_ms){
     
     b32 condition = true;
@@ -66,7 +103,7 @@ TThreadID TGetThisThreadID(){
     return id;
 }
 
-void TSetThreadAffinity(u32 cpu_mask,TThreadID id = 0){
+void TSetThreadAffinity(u32 cpu_mask,TThreadID id){
     
     _kill("mask of 0 used\n",!cpu_mask);
     
@@ -74,43 +111,6 @@ void TSetThreadAffinity(u32 cpu_mask,TThreadID id = 0){
     _sys_setaffinity(id,sizeof(cpu_mask),&cpu_mask,err);
     
     _kill("failed to set affinity\n",!err);
-}
-
-extern "C" void Linux_ThreadProc();
-
-TThreadContext TCreateThread(s64 (*call_fptr)(void*),u32 stack_size,void* args){
-    
-    void* stack = 0;
-    {
-        
-        _sys_mmap(0,stack_size,MEMPROT_READWRITE,MAP_ANONYMOUS | MAP_PRIVATE | MAP_GROWSDOWN,-1,0,stack);
-        
-        auto s = 
-            (u64*)(((s8*)stack) + stack_size); //suppose to be 16 byte aligned
-        
-        s--;
-        *s = (u64)stack;
-        
-        s--;
-        *s = (u64)stack_size;
-        
-        s--;
-        *s = (u64)call_fptr;
-        
-        s--;
-        *s = (u64)args;
-        
-        s--;
-        *s = (u64)Linux_ThreadProc;
-        
-        stack = s;
-    }
-    
-    u64 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_PARENT | CLONE_THREAD | CLONE_IO;
-    
-    auto tid = _sys_clone(flags,stack,0,0);
-    
-    return tid;
 }
 
 TSemaphore TCreateSemaphore(u32 value){

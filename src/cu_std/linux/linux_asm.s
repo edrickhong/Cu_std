@@ -8,19 +8,27 @@
 	.text
 
 
-//enters with (args,call,stack_size,stack ptr) on the stack
+//enters with (TCreateThreadStruct*) on the stack
 Linux_ThreadProc:
-	popq %rdi
-	popq %rax
+
+	pushq %rbp
+	movq %rsp,%rbp
+
+
+	movq 0x8(%rbp),%rdi
+	movq 0x10(%rbp),%rax
 
 	callq *%rax
 
 	movq %rax,%rcx // save the return value
 
-	popq %rsi
-	popq %rdi
+	movq 0x18(%rbp),%rdi
+	movq 0x20(%rbp),%rsi
 	movl $11,%eax
 	syscall //sys_munmap
+
+	popq %rbp
+	popq %rdi
 
 	movq %rcx,%rdi
 	movl $60,%eax

@@ -873,6 +873,7 @@ void AGetAudioDevices(AAudioDeviceNames* _restrict  array,u32* _restrict  c){
                 if(entry->is_default){
                     _test(snd_pcm_open_fptr(&pcm_handle,"default",SND_PCM_STREAM_PLAYBACK,
                                             SND_PCM_NONBLOCK));
+                    _kill("failed to open device\n",!pcm_handle);
                 }
                 
                 _test(snd_pcm_close(pcm_handle));
@@ -981,6 +982,8 @@ AAudioDeviceProperties AGetAudioDeviceProperties(const s8* logical_name){
     snd_pcm_t* pcm_handle = 0;
     snd_pcm_open_fptr(&pcm_handle,logical_name,SND_PCM_STREAM_PLAYBACK,
                       SND_PCM_NONBLOCK);
+    
+    _kill("failed to open device\n",!pcm_handle);
     
     snd_pcm_hw_params_any_fptr(pcm_handle,hw_info);
     
@@ -1208,6 +1211,8 @@ AAudioContext ACreateDevice(const s8* logical_name,AAudioFormat format,AAudioCha
     
     _test(snd_pcm_open_fptr(&handle,logical_name,SND_PCM_STREAM_PLAYBACK,
                             SND_PCM_NONBLOCK));
+    
+    _kill("failed to open device\n",!handle);
     
     snd_pcm_hw_params_malloc_fptr(&hwparams);
     

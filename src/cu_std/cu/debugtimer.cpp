@@ -182,7 +182,7 @@ void RecordThread(){
     context->debugtable.thread_count = context->debugtable.thread_count + 1;
     
     printf("Tracking thread index: %d : %d\n",context->debugtable.thread_count - 1,
-           *threadid_ptr);
+           (u32)*threadid_ptr);
     
     TSpinUnlock(&context->locker);
     
