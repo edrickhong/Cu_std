@@ -156,6 +156,9 @@ union m32{
     s8 sbyte[4];
     s16 sword[2];
     
+
+#ifdef __cplusplus
+
     operator u32(){
         
         return u;
@@ -178,6 +181,9 @@ union m32{
     void operator=(f32 o){
         f= o;
     }
+
+#endif
+
 };
 
 union m64{
@@ -211,6 +217,8 @@ union m64{
     
     
     m32 array[2];
+
+#ifdef __cplusplus
     
     m32& operator [](ptrsize index){
         
@@ -239,6 +247,8 @@ union m64{
     void operator=(f64 o){
         f= o;
     }
+
+#endif
 };
 
 
