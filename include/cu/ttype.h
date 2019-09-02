@@ -144,7 +144,7 @@ typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
 #endif
 
-union m32{
+typedef union{
     
     u32 u;
     s32 i;
@@ -184,9 +184,9 @@ union m32{
 
 #endif
 
-};
+}m32;
 
-union m64{
+typedef union{
     
     u64 u;
     s64 i;
@@ -249,7 +249,7 @@ union m64{
     }
 
 #endif
-};
+}m64;
 
 
 void _ainline ClearPtrTop16Bits(void** ptr){
