@@ -273,7 +273,7 @@ void _ainline WritePtrTop16Bits(void** ptr,u16 value){
     v.u |= ((u64)value) << 48;
     
     *ptr = v.ptr;
-};
+}
 
 u16 _ainline GetPtrTop16Bits(void* ptr){
     
