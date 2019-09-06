@@ -254,7 +254,7 @@ typedef union{
 
 void _ainline ClearPtrTop16Bits(void** ptr){
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = *ptr;
     
     v.u ^= 0xFFFF000000000000;
@@ -267,7 +267,7 @@ void _ainline WritePtrTop16Bits(void** ptr,u16 value){
     
     ClearPtrTop16Bits(ptr);
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = *ptr;
     
     v.u |= ((u64)value) << 48;
@@ -277,7 +277,7 @@ void _ainline WritePtrTop16Bits(void** ptr,u16 value){
 
 u16 _ainline GetPtrTop16Bits(void* ptr){
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = ptr;
     
     return (v.u >> 48);
