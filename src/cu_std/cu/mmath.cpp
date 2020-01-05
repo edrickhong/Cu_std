@@ -971,7 +971,7 @@ Vector3 RotateVector(Vector3 vec,Vector3 rotation){
     auto b = rot__matrix.simd[1];
     auto c = rot__matrix.k;
     
-    auto k = ToVec4(vec).simd;
+    auto k = Vec3ToVec4(vec).simd;
     
     auto d = _mm_shuffle_ps(k,k,_MM_SHUFFLE(3,2,1,0));
     auto e = _mm_shuffle_ps(k,k,_MM_SHUFFLE(1,0,2,1));

@@ -2520,14 +2520,14 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     auto viewproj = gui->proj_matrix * gui->view_matrix;
     
     auto obj_w = *world_pos;
-    auto obj_c = WorldSpaceToClipSpace(obj_w,viewproj);
+    auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
     
     //TODO: return if out of screen space (use a mask)
     
     
-    auto x_c = WorldSpaceToClipSpace(obj_w + Vector3{1,0,0},viewproj);
-    auto y_c = WorldSpaceToClipSpace(obj_w + Vector3{0,1,0},viewproj);
-    auto z_c = WorldSpaceToClipSpace(obj_w + Vector3{0,0,1},viewproj);
+    auto x_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{1,0,0},viewproj);
+    auto y_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,1,0},viewproj);
+    auto z_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,0,1},viewproj);
     
     Vector2 mouse_c =GUIMouseCoordToScreenCoord();
     mouse_c.y *= -1.0f;
@@ -2538,7 +2538,7 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     InternalGUIDrawLine(obj_c,y_c,gui->axis_y_color);
     InternalGUIDrawLine(obj_c,z_c,gui->axis_z_color);
     
-    auto mouse_dir = mouse_c - ToVec2(obj_c);
+    auto mouse_dir = mouse_c - Vec3ToVec2(obj_c);
     auto mouse_ndir = Normalize(mouse_dir);
     
     struct DirDotPair{
@@ -2550,16 +2550,16 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     DirDotPair pair_array[3] = {
         
         {Normalize(x_c - obj_c),
-            Dot(mouse_ndir,Normalize(ToVec2(x_c) - ToVec2(obj_c))),
-            Magnitude(ToVec2(x_c) - ToVec2(obj_c))},
+            Dot(mouse_ndir,Normalize(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))),
+            Magnitude(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))},
         
         {Normalize(y_c - obj_c),
-            Dot(mouse_ndir,Normalize(ToVec2(y_c) - ToVec2(obj_c))),
-            Magnitude(ToVec2(y_c) - ToVec2(obj_c))},
+            Dot(mouse_ndir,Normalize(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))),
+            Magnitude(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))},
         
         {Normalize(z_c - obj_c),
-            Dot(mouse_ndir,Normalize(ToVec2(z_c) - ToVec2(obj_c))),
-            Magnitude(ToVec2(z_c) - ToVec2(obj_c))},
+            Dot(mouse_ndir,Normalize(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))),
+            Magnitude(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))},
     };
     
     DirDotPair max = {};
@@ -2577,14 +2577,14 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     if(gui->internal_active_state == token){
         
         if(GUIMouseDownL()){
-            auto ext_dir = ToVec2(gui->trans_dir) * 100.0f;
-            InternalGUIDrawLine(ToVec2(obj_c) - ext_dir,ToVec2(obj_c) + ext_dir,White);
+            auto ext_dir = Vec3ToVec2(gui->trans_dir) * 100.0f;
+            InternalGUIDrawLine(Vec3ToVec2(obj_c) - ext_dir,Vec3ToVec2(obj_c) + ext_dir,White);
             
             auto mdir = mouse_c - gui->prev_mouse_pos;
             gui->prev_mouse_pos = mouse_c;
             
             *world_pos = 
-                ClipSpaceToWorldSpace(obj_c +
+                ClipSpaceToWorldSpaceVec3(obj_c +
                                       ProjectOnto(Vector3{mdir.x,mdir.y,0},gui->trans_dir),viewproj);
             
             return true;
@@ -2615,7 +2615,7 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
     
     auto viewproj = gui->proj_matrix * gui->view_matrix;
     
-    auto obj_c = ToVec2(WorldSpaceToClipSpace(world_pos,viewproj));
+    auto obj_c = Vec3ToVec2(WorldSpaceToClipSpaceVec3(world_pos,viewproj));
     
     Vector2 mouse_c = GUIMouseCoordToScreenCoord();
     mouse_c.y *= -1.0f;
@@ -2716,7 +2716,7 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
             
             auto p = Normalize(RotateVector(dir,rot_axis));
             
-            points[i][j] = WorldSpaceToClipSpace((p * radius) + obj_w,viewproj);
+            points[i][j] = WorldSpaceToClipSpaceVec3((p * radius) + obj_w,viewproj);
         }
         
     }
@@ -2777,7 +2777,7 @@ void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
             
             auto p = Normalize(RotateVector(dir,rot_axis));
             
-            points[i][j] = WorldSpaceToClipSpace(p + obj_w,viewproj);
+            points[i][j] = WorldSpaceToClipSpaceVec3(p + obj_w,viewproj);
         }
         
     }
@@ -2829,18 +2829,18 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
     auto viewproj = gui->proj_matrix * gui->view_matrix;
     
     auto obj_w = world_pos;
-    auto obj_c = WorldSpaceToClipSpace(obj_w,viewproj);
+    auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
     
     Vector3 mouse_c = {};
     mouse_c.vec2 = GUIMouseCoordToScreenCoord();
     mouse_c.z = 0;
     mouse_c.y *= -1.0f;
     
-    auto mouse_w = ClipSpaceToWorldSpace(mouse_c,viewproj);
+    auto mouse_w = ClipSpaceToWorldSpaceVec3(mouse_c,viewproj);
     
     mouse_c.z = 1;
     
-    auto mouse_dir = ClipSpaceToWorldSpace(mouse_c,viewproj) - mouse_w;
+    auto mouse_dir = ClipSpaceToWorldSpaceVec3(mouse_c,viewproj) - mouse_w;
     
     Line3 line = {
         mouse_w,
@@ -2895,8 +2895,8 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
         auto p1 = obj_w + d1;
         auto p2 = obj_w + d2;
         
-        InternalGUIDrawLine(obj_c,WorldSpaceToClipSpace(p1,viewproj),Yellow);
-        InternalGUIDrawLine(obj_c,WorldSpaceToClipSpace(p2,viewproj),White);
+        InternalGUIDrawLine(obj_c,WorldSpaceToClipSpaceVec3(p1,viewproj),Yellow);
+        InternalGUIDrawLine(obj_c,WorldSpaceToClipSpaceVec3(p2,viewproj),White);
         
         f32 angle = 0.0f;
         
@@ -2947,10 +2947,10 @@ void GUIDrawPosMarker(GUIVec3 world_pos,Color color){
     
     auto obj_w = world_pos;
     
-    auto a = WorldSpaceToClipSpace(obj_w + (Vector3{1,1,0} * 0.5f),viewproj);
-    auto b = WorldSpaceToClipSpace(obj_w + (Vector3{-1,1,0}  * 0.5f),viewproj);
-    auto c = WorldSpaceToClipSpace(obj_w + Vector3{0,1,0},viewproj);
-    auto obj_c = WorldSpaceToClipSpace(obj_w,viewproj);
+    auto a = WorldSpaceToClipSpaceVec3(obj_w + (Vector3{1,1,0} * 0.5f),viewproj);
+    auto b = WorldSpaceToClipSpaceVec3(obj_w + (Vector3{-1,1,0}  * 0.5f),viewproj);
+    auto c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,1,0},viewproj);
+    auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
     
     InternalGUIDrawLine(obj_c,a,color);
     InternalGUIDrawLine(obj_c,b,color);
