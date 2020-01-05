@@ -97,6 +97,15 @@ void WSetTitle(WWindowContext* context,const s8* title){
 
 #define W_CREATE_NO_CHECK (1 << 29)
 
+
+#include "pparse.h"
+#include "vvulkan.h"
+
+#ifdef __cplusplus
+extern "C"
+#endif
+
+
 WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,
 		u32 width,u32 height){
 
@@ -121,8 +130,6 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,
 	return context;
 }
 
-#include "pparse.h"
-#include "vvulkan.h"
 
 WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
 		u32 height){
