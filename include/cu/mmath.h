@@ -375,7 +375,7 @@ DualQuaternion ConstructDualQuaternion(Mat4 transform);
 Mat4 DualQuaternionToMat(DualQuaternion d);
 
 Vector3 _ainline MatToTranslationVector(Mat4 matrix) {
-	return Vector3{matrix _rc4(3, 0), matrix _rc4(3, 1), matrix _rc4(3, 2)};
+	return Vector3{Mat4GetMember(matrix,_rc4(3, 0)), Mat4GetMember(matrix,_rc4(3, 1)),Mat4GetMember(matrix,_rc4(3, 2))};
 }
 
 // print
@@ -388,9 +388,9 @@ Mat4 ProjectionMat(f32 fov, f32 aspectration, f32 nearz, f32 farz);
 Mat4 _ainline PositionMat(Vector3 position) {
 	Mat4 matrix = IdentityMat4();
 
-	matrix _rc4(3, 0) = position.x;
-	matrix _rc4(3, 1) = position.y;
-	matrix _rc4(3, 2) = position.z;
+	Mat4SetMember(matrix ,_rc4(3, 0),position.x);
+	Mat4SetMember(matrix ,_rc4(3, 1),position.y);
+	Mat4SetMember(matrix ,_rc4(3, 2),position.z);
 
 	return matrix;
 }
@@ -402,30 +402,30 @@ Mat3 _ainline RotationMat(Vector3 rotation) {
 
 	Mat3 rotationx_matrix3 = IdentityMat3();
 
-	rotationx_matrix3 _rc3(1, 1) = cosv;
-	rotationx_matrix3 _rc3(2, 1) = -sinv;
-	rotationx_matrix3 _rc3(1, 2) = sinv;
-	rotationx_matrix3 _rc3(2, 2) = cosv;
+	Mat3SetMember(rotationx_matrix3 ,_rc3(1, 1),cosv);
+	Mat3SetMember(rotationx_matrix3 ,_rc3(2, 1),-sinv);
+	Mat3SetMember(rotationx_matrix3 ,_rc3(1, 2),sinv);
+	Mat3SetMember(rotationx_matrix3 ,_rc3(2, 2),cosv);
 
 	cosv = cosf(rotation.y);
 	sinv = sinf(rotation.y);
 
 	Mat3 rotationy_matrix3 = IdentityMat3();
 
-	rotationy_matrix3 _rc3(0, 0) = cosv;
-	rotationy_matrix3 _rc3(2, 0) = sinv;
-	rotationy_matrix3 _rc3(0, 2) = -sinv;
-	rotationy_matrix3 _rc3(2, 2) = cosv;
+	Mat3SetMember(rotationy_matrix3 ,_rc3(0, 0),cosv);
+	Mat3SetMember(rotationy_matrix3 ,_rc3(2, 0),sinv);
+	Mat3SetMember(rotationy_matrix3 ,_rc3(0, 2),-sinv);
+	Mat3SetMember(rotationy_matrix3 ,_rc3(2, 2),cosv);
 
 	cosv = cosf(rotation.z);
 	sinv = sinf(rotation.z);
 
 	Mat3 rotationz_matrix3 = IdentityMat3();
 
-	rotationz_matrix3 _rc3(0, 0) = cosv;
-	rotationz_matrix3 _rc3(1, 0) = -sinv;
-	rotationz_matrix3 _rc3(0, 1) = sinv;
-	rotationz_matrix3 _rc3(1, 1) = cosv;
+	Mat3SetMember(rotationz_matrix3 ,_rc3(0, 0),cosv);
+	Mat3SetMember(rotationz_matrix3 ,_rc3(1, 0),-sinv);
+	Mat3SetMember(rotationz_matrix3 ,_rc3(0, 1),sinv);
+	Mat3SetMember(rotationz_matrix3 ,_rc3(1, 1),cosv);
 
 	return rotationz_matrix3 * rotationy_matrix3 * rotationx_matrix3;
 }
@@ -478,11 +478,11 @@ enum IntersectType : u8 {
 	INTERSECT_INFINITE = 2,
 };
 
-2 Intersect(Line2 a, Line2 b);
+b32 Intersect(Line2 a, Line2 b);
 
-2 Intersect(Line2 a, Line2 b, Point2* out_point);
+b32 Intersect(Line2 a, Line2 b, Point2* out_point);
 
-2 TypedIntersect(Line2 a, Line2 b);
+b32 TypedIntersect(Line2 a, Line2 b);
 
 f32 Magnitude(Vector3 vec);
 Vector3 Cross(Vector3 vec1, Vector3 vec2);
@@ -501,19 +501,19 @@ Vector3 ProjectVectorOntoPlane(Vector3 vec, Plane plane);
 
 // line intersections
 
-2 Intersect(Line3 a, Line3 b);
+b32 Intersect(Line3 a, Line3 b);
 
-2 Intersect(Line3 a, Line3 b, Point3* out_point);
+b32 Intersect(Line3 a, Line3 b, Point3* out_point);
 
-2 TypedIntersect(Line3 a, Line3 b);
+b32 TypedIntersect(Line3 a, Line3 b);
 
 // plane intersections
 
-2 Intersect(Line3 a, Plane b);
+b32 Intersect(Line3 a, Plane b);
 
-2 TypedIntersect(Line3 a, Plane b);
+b32 TypedIntersect(Line3 a, Plane b);
 
-2 Intersect(Line3 a, Plane b, Point3* out_point);
+b32 Intersect(Line3 a, Plane b, Point3* out_point);
 
 Vector4 Normalize(Vector4 vec);
 f32 Magnitude(Vector4 vec);

@@ -15,11 +15,11 @@ have automatic conversions between f32* to our types for better integration with
 #include "glm/glm.hpp"
 #include "glm/gtx/transform.hpp"
 
-void InternalCmpMatrix(f32* f1,f32* f2){
+void InternalCmpMat(f32* f1,f32* f2){
     
 #if MATRIX_ROW_MAJOR
     
-    auto k = (Matrix4b4*)f1;
+    auto k = (Mat4*)f1;
     
     *k = Transpose(*k);
     
@@ -40,13 +40,13 @@ void InternalCmpMatrix(f32* f1,f32* f2){
             
 #if MATRIX_ROW_MAJOR
             
-            PrintMatrix(Transpose(*((Matrix4b4*)f1)));
-            PrintMatrix(Transpose(*((Matrix4b4*)f2)));
+            PrintMat(Transpose(*((Mat4*)f1)));
+            PrintMat(Transpose(*((Mat4*)f2)));
             
 #else
             
-            PrintMatrix(*((Matrix4b4*)f1));
-            PrintMatrix(*((Matrix4b4*)f2));
+            PrintMat(*((Mat4*)f1));
+            PrintMat(*((Mat4*)f2));
             
 #endif
             
@@ -60,7 +60,7 @@ void InternalCmpMatrix(f32* f1,f32* f2){
 #endif
 #endif
 
-void _ainline GetMinorMatrix(f32* in__matrix,u32 n,u32 k_x,u32 k_y,f32* out__matrix){
+void _ainline GetMinorMat(f32* in__matrix,u32 n,u32 k_x,u32 k_y,f32* out__matrix){
     
     u32 index = 0;
     
@@ -79,9 +79,9 @@ void _ainline GetMinorMatrix(f32* in__matrix,u32 n,u32 k_x,u32 k_y,f32* out__mat
     
 }
 
-Matrix4b4 CompMul(Matrix4b4 a,Matrix4b4 b){
+Mat4 CompMul(Mat4 a,Mat4 b){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     
     for(u32 i = 0; i < 4; i++){
         matrix.simd[i] = _mm_mul_ps(a.simd[i],b.simd[i]);
@@ -91,9 +91,9 @@ Matrix4b4 CompMul(Matrix4b4 a,Matrix4b4 b){
     return matrix;
 }
 
-Matrix3b3 CompMul(Matrix3b3 a,Matrix3b3 b){
+Mat3 CompMul(Mat3 a,Mat3 b){
     
-    Matrix3b3 matrix;
+    Mat3 matrix;
     
     matrix.simd[0] = _mm_mul_ps(a.simd[0],b.simd[0]);
     matrix.simd[1] = _mm_mul_ps(a.simd[1],b.simd[1]);
@@ -103,9 +103,9 @@ Matrix3b3 CompMul(Matrix3b3 a,Matrix3b3 b){
     return matrix;
 }
 
-Matrix2b2 operator+(Matrix2b2 lhs,Matrix2b2 rhs){
+Mat2 operator+(Mat2 lhs,Mat2 rhs){
     
-    Matrix2b2 matrix;
+    Mat2 matrix;
     
     matrix.simd = _mm_add_ps(lhs.simd,rhs.simd);
     
@@ -113,9 +113,9 @@ Matrix2b2 operator+(Matrix2b2 lhs,Matrix2b2 rhs){
 }
 
 
-Matrix2b2 operator-(Matrix2b2 lhs,Matrix2b2 rhs){
+Mat2 operator-(Mat2 lhs,Mat2 rhs){
     
-    Matrix2b2 matrix;
+    Mat2 matrix;
     
     matrix.simd = _mm_sub_ps(lhs.simd,rhs.simd);
     
@@ -125,9 +125,9 @@ Matrix2b2 operator-(Matrix2b2 lhs,Matrix2b2 rhs){
 
 
 
-Matrix2b2 operator*(f32 lhs,Matrix2b2 rhs){
+Mat2 operator*(f32 lhs,Mat2 rhs){
     
-    Matrix2b2 matrix;
+    Mat2 matrix;
     __m128 k = _mm_set1_ps(lhs);
     
     matrix.simd = _mm_mul_ps(rhs.simd,k);
@@ -135,21 +135,21 @@ Matrix2b2 operator*(f32 lhs,Matrix2b2 rhs){
     return matrix;
 }
 
-Matrix2b2 operator*(Matrix2b2 lhs,f32 rhs){
+Mat2 operator*(Mat2 lhs,f32 rhs){
     return rhs * lhs;
 }
 
 
-Matrix2b2 Transpose(Matrix2b2 matrix){
+Mat2 Transpose(Mat2 matrix){
     
     matrix.simd = _mm_shuffle_ps(matrix.simd,matrix.simd,_MM_SHUFFLE(3,1,2,0));
     
     return matrix;
 }
 
-Matrix2b2 operator*(Matrix2b2 lhs,Matrix2b2 rhs){
+Mat2 operator*(Mat2 lhs,Mat2 rhs){
     
-    Matrix2b2 matrix = {};
+    Mat2 matrix = {};
     
 #if MATRIX_ROW_MAJOR
     
@@ -182,24 +182,24 @@ Matrix2b2 operator*(Matrix2b2 lhs,Matrix2b2 rhs){
     return matrix;
 }
 
-Matrix2b2 Inverse(Matrix2b2 matrix){
+Mat2 Inverse(Mat2 matrix){
     
-    f32 a = matrix _rc2(0,0);
-    f32 b = matrix _rc2(1,0);
-    f32 c = matrix _rc2(0,1);
-    f32 d = matrix _rc2(1,1);
+    f32 a = Mat2GetMember(matrix ,_rc2(0,0));
+    f32 b = Mat2GetMember(matrix ,_rc2(1,0));
+    f32 c = Mat2GetMember(matrix ,_rc2(0,1));
+    f32 d = Mat2GetMember(matrix ,_rc2(1,1));
     
     f32 k = 1.0f/((a * d) - (b * c));
     
-    matrix _rc2(0,0) = d;
-    matrix _rc2(1,0) = -b;
-    matrix _rc2(0,1) = -c;
-    matrix _rc2(1,1) = a;
+    Mat2SetMember(matrix ,_rc2(0,0),d);
+    Mat2SetMember(matrix ,_rc2(1,0) ,b);
+    Mat2SetMember(matrix ,_rc2(0,1) ,c);
+    Mat2SetMember(matrix ,_rc2(1,1),a);
     
     return matrix * k;
 }
 
-Matrix2b2 operator/(Matrix2b2 lhs,Matrix2b2 rhs){
+Mat2 operator/(Mat2 lhs,Mat2 rhs){
     
     return lhs * Inverse(rhs);
 }
@@ -207,7 +207,7 @@ Matrix2b2 operator/(Matrix2b2 lhs,Matrix2b2 rhs){
 
 
 
-Matrix3b3 operator+(Matrix3b3 lhs,Matrix3b3 rhs){
+Mat3 operator+(Mat3 lhs,Mat3 rhs){
     
     lhs.simd[0] = _mm_add_ps(lhs.simd[0],rhs.simd[0]);
     lhs.simd[1] = _mm_add_ps(lhs.simd[1],rhs.simd[1]);
@@ -216,7 +216,7 @@ Matrix3b3 operator+(Matrix3b3 lhs,Matrix3b3 rhs){
     return lhs;
 }
 
-Matrix3b3 operator-(Matrix3b3 lhs,Matrix3b3 rhs){
+Mat3 operator-(Mat3 lhs,Mat3 rhs){
     
     lhs.simd[0] = _mm_sub_ps(lhs.simd[0],rhs.simd[0]);
     lhs.simd[1] = _mm_sub_ps(lhs.simd[1],rhs.simd[1]);
@@ -226,7 +226,7 @@ Matrix3b3 operator-(Matrix3b3 lhs,Matrix3b3 rhs){
     
 }
 
-Matrix3b3 operator*(f32 lhs,Matrix3b3 rhs){
+Mat3 operator*(f32 lhs,Mat3 rhs){
     
     __m128 k = _mm_set1_ps(lhs);
     
@@ -237,11 +237,11 @@ Matrix3b3 operator*(f32 lhs,Matrix3b3 rhs){
     return rhs;
 }
 
-Matrix3b3 operator*(Matrix3b3 lhs,f32 rhs){
+Mat3 operator*(Mat3 lhs,f32 rhs){
     return rhs * lhs;
 }
 
-Matrix3b3 Transpose(Matrix3b3 matrix){
+Mat3 Transpose(Mat3 matrix){
     
     auto a = matrix.simd[0];
     auto b = matrix.simd[1];
@@ -255,9 +255,9 @@ Matrix3b3 Transpose(Matrix3b3 matrix){
     return matrix;
 }
 
-Matrix3b3 operator*(Matrix3b3 lhs,Matrix3b3 rhs){
+Mat3 operator*(Mat3 lhs,Mat3 rhs){
     
-    Matrix3b3 matrix = {};
+    Mat3 matrix = {};
     
     
 #if MATRIX_ROW_MAJOR
@@ -306,51 +306,53 @@ Matrix3b3 operator*(Matrix3b3 lhs,Matrix3b3 rhs){
     
     //NOTE: god I hope the compiler reorders this
     
-    matrix _rc3(0,0) = ((f32*)&h)[0] + ((f32*)&h)[1] + ((f32*)&h)[2];
-    matrix _rc3(1,0) = ((f32*)&i)[0] + ((f32*)&i)[1] + ((f32*)&i)[2];
-    matrix _rc3(2,0) = ((f32*)&j)[0] + ((f32*)&j)[1] + ((f32*)&j)[2];
+    Mat3SetMember(matrix,_rc3(0,0),((f32*)&h)[0] + ((f32*)&h)[1] + ((f32*)&h)[2]);
+    Mat3SetMember(matrix,_rc3(1,0),((f32*)&i)[0] + ((f32*)&i)[1] + ((f32*)&i)[2]);
+    Mat3SetMember(matrix,_rc3(2,0),((f32*)&j)[0] + ((f32*)&j)[1] + ((f32*)&j)[2]);
     
-    matrix _rc3(0,1) = ((f32*)&j)[3] + ((f32*)&k)[0] + ((f32*)&k)[1];
-    matrix _rc3(1,1) = ((f32*)&h)[3] + ((f32*)&l)[0] + ((f32*)&l)[1];
-    matrix _rc3(2,1) = ((f32*)&i)[3] + ((f32*)&m)[0] + ((f32*)&m)[1];
+    Mat3SetMember(matrix,_rc3(0,1),((f32*)&j)[3] + ((f32*)&k)[0] + ((f32*)&k)[1]);
+    Mat3SetMember(matrix,_rc3(1,1),((f32*)&h)[3] + ((f32*)&l)[0] + ((f32*)&l)[1]);
+    Mat3SetMember(matrix,_rc3(2,1),((f32*)&i)[3] + ((f32*)&m)[0] + ((f32*)&m)[1]);
     
-    matrix _rc3(0,2) = ((f32*)&m)[2] + ((f32*)&m)[3] + ((f32*)&o)[0];
-    matrix _rc3(1,2) = ((f32*)&k)[2] + ((f32*)&k)[3] + ((f32*)&o)[1];
-    matrix _rc3(2,2) = ((f32*)&l)[2] + ((f32*)&l)[3] + ((f32*)&o)[2];
+    Mat3SetMember(matrix,_rc3(0,2),((f32*)&m)[2] + ((f32*)&m)[3] + ((f32*)&o)[0]);
+    Mat3SetMember(matrix,_rc3(1,2),((f32*)&k)[2] + ((f32*)&k)[3] + ((f32*)&o)[1]);
+    Mat3SetMember(matrix,_rc3(2,2),((f32*)&l)[2] + ((f32*)&l)[3] + ((f32*)&o)[2]);
     
     return matrix;
     
 }
 
-Matrix3b3 Inverse(Matrix3b3 matrix){
+Mat3 Inverse(Mat3 matrix){
     
-    //see Inverse(Matrix4b4)
+    //see Inverse(Mat4b4)
     
     f32 first_row[] = {
-        matrix _ac3(0,0),matrix _ac3(1,0),matrix _ac3(2,0)
+        Mat3GetMember(matrix,_ac3(0,0)),Mat3GetMember(matrix,_ac3(1,0))
+		,Mat3GetMember(matrix,_ac3(2,0))
+
     };
     
-    Matrix3b3 adj__matrix = {};
+    Mat3 adj__matrix = {};
     
     for(u32 y = 0; y < 3; y++){
         
         for(u32 x = 0; x < 3; x++){
             
-            Matrix2b2 minormatrix = {};
+            Mat2 minormatrix = {};
             
-            GetMinorMatrix((f32*)&matrix[0],3,x,y,(f32*)&minormatrix);
+            GetMinorMat((f32*)&matrix[0],3,x,y,(f32*)&minormatrix);
             
-            f32 a = minormatrix _rc2(0,0);
-            f32 b = minormatrix _rc2(1,0);
-            f32 c = minormatrix _rc2(0,1);
-            f32 d = minormatrix _rc2(1,1);
+            f32 a = Mat2GetMember(minormatrix,_rc2(0,0));
+            f32 b = Mat2GetMember(minormatrix,_rc2(1,0));
+            f32 c = Mat2GetMember(minormatrix,_rc2(0,1));
+            f32 d = Mat2GetMember(minormatrix,_rc2(1,1));
             
-            adj__matrix _ac3(x,y) = ((a * d) - (b * c));
+            Mat3SetMember(adj__matrix,_ac3(x,y),((a * d) - (b * c)));
         }
         
     }
     
-    Matrix3b3 checkerboard__matrix = {
+    Mat3 checkerboard__matrix = {
         1,-1,1,
         -1,1,-1,
         1,-1,1,
@@ -361,7 +363,7 @@ Matrix3b3 Inverse(Matrix3b3 matrix){
     f32 det = 0;
     
     for(u32 i = 0; i < 3; i++){
-        det += first_row[i] * adj__matrix _ac3(i,0);
+        det += first_row[i] * Mat3GetMember(adj__matrix,_ac3(i,0));
     }
     
     adj__matrix = (1.0f/det) * Transpose(adj__matrix);
@@ -369,15 +371,15 @@ Matrix3b3 Inverse(Matrix3b3 matrix){
     return adj__matrix;
 }
 
-Matrix3b3 operator/(Matrix3b3 lhs,Matrix3b3 rhs){
+Mat3 operator/(Mat3 lhs,Mat3 rhs){
     return lhs * Inverse(rhs);
 }
 
 
 
-Matrix4b4 operator+(Matrix4b4 lhs,Matrix4b4 rhs){
+Mat4 operator+(Mat4 lhs,Mat4 rhs){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     
     _mm_store_ps(&matrix _ac4(0,0),_mm_add_ps(lhs.simd[0],rhs.simd[0]));
     
@@ -393,9 +395,9 @@ Matrix4b4 operator+(Matrix4b4 lhs,Matrix4b4 rhs){
 
 
 
-Matrix4b4 operator-(Matrix4b4 lhs,Matrix4b4 rhs){
+Mat4 operator-(Mat4 lhs,Mat4 rhs){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     
     _mm_store_ps(&matrix _ac4(0,0),_mm_sub_ps(lhs.simd[0],rhs.simd[0]));
     
@@ -409,9 +411,9 @@ Matrix4b4 operator-(Matrix4b4 lhs,Matrix4b4 rhs){
     return matrix;
 }
 
-Matrix4b4 operator*(Matrix4b4 lhs,Matrix4b4 rhs){
+Mat4 operator*(Mat4 lhs,Mat4 rhs){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     
 #if MATRIX_ROW_MAJOR
     
@@ -469,7 +471,7 @@ Matrix4b4 operator*(Matrix4b4 lhs,Matrix4b4 rhs){
         
         auto ref__matrix = matrix;
         
-        InternalCmpMatrix((f32*)&ref__matrix,(f32*)&res);
+        InternalCmpMat((f32*)&ref__matrix,(f32*)&res);
     }
     
 #endif
@@ -479,15 +481,15 @@ Matrix4b4 operator*(Matrix4b4 lhs,Matrix4b4 rhs){
     return matrix;
 }
 
-Matrix4b4 operator/(Matrix4b4 lhs,Matrix4b4 rhs){
+Mat4 operator/(Mat4 lhs,Mat4 rhs){
     
     return lhs * Inverse(rhs);
 }
 
 
-Matrix4b4 operator*(f32 lhs,Matrix4b4 rhs){
+Mat4 operator*(f32 lhs,Mat4 rhs){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     __m128 k = _mm_set1_ps(lhs);
     
     __m128 res = _mm_mul_ps(rhs.simd[0],k);
@@ -509,13 +511,13 @@ Matrix4b4 operator*(f32 lhs,Matrix4b4 rhs){
     return matrix;
 }
 
-Matrix4b4 operator*(Matrix4b4 lhs,f32 rhs){
+Mat4 operator*(Mat4 lhs,f32 rhs){
     return rhs * lhs;
 }
 
-Matrix4b4 Transpose(Matrix4b4 matrix){
+Mat4 Transpose(Mat4 matrix){
     
-    Matrix4b4 store__matrix;
+    Mat4 store__matrix;
     
     __m128 tmp1 = {},
     row0 = {},
@@ -560,45 +562,45 @@ Matrix4b4 Transpose(Matrix4b4 matrix){
     return store__matrix;
 }
 
-Matrix4b4 WorldMatrix(Matrix4b4 position,Matrix4b4 rotation,Matrix4b4 scale){
+Mat4 WorldMat(Mat4 position,Mat4 rotation,Mat4 scale){
     return position * rotation * scale;
 }
 
-Matrix4b4 WorldMatrix(Vector3 position,Vector3 rotation,Vector3 scale){
+Mat4 WorldMat(Vector3 position,Vector3 rotation,Vector3 scale){
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     
-    Matrix4b4 position__matrix4b4 = PositionMatrix(position);
+    Mat4 position__matrix4b4 = PositionMat(position);
     
-    Matrix4b4 scale__matrix4b4 = ScaleMatrix(scale);
+    Mat4 scale__matrix4b4 = ScaleMat(scale);
     
-    Matrix4b4 rotation__matrix4b4 = ToMatrix4b4(RotationMatrix(rotation));
-    
-    
-    matrix = WorldMatrix(position__matrix4b4,rotation__matrix4b4,scale__matrix4b4);
-    
-    return matrix;
-}
-
-Matrix4b4 WorldMatrix(Vector3 position,Quaternion rotation,Vector3 scale){
-    
-    Matrix4b4 matrix;
-    
-    Matrix4b4 position__matrix4b4 = PositionMatrix(position);
-    
-    Matrix4b4 scale__matrix4b4 = ScaleMatrix(scale);
-    
-    Matrix4b4 rotation__matrix4b4 = QuaternionToMatrix(rotation);
+    Mat4 rotation__matrix4b4 = ToMat4b4(RotationMat(rotation));
     
     
-    matrix = WorldMatrix(position__matrix4b4,rotation__matrix4b4,scale__matrix4b4);
+    matrix = WorldMat(position__matrix4b4,rotation__matrix4b4,scale__matrix4b4);
     
     return matrix;
 }
 
+Mat4 WorldMat(Vector3 position,Quaternion rotation,Vector3 scale){
+    
+    Mat4 matrix;
+    
+    Mat4 position__matrix4b4 = PositionMat(position);
+    
+    Mat4 scale__matrix4b4 = ScaleMat(scale);
+    
+    Mat4 rotation__matrix4b4 = QuaternionToMat(rotation);
+    
+    
+    matrix = WorldMat(position__matrix4b4,rotation__matrix4b4,scale__matrix4b4);
+    
+    return matrix;
+}
 
-Matrix4b4 _ainline
-ViewMatrixRHS(Vector3 position,Vector3 lookpoint,Vector3 updir){
+
+Mat4 _ainline
+ViewMatRHS(Vector3 position,Vector3 lookpoint,Vector3 updir){
     
     Vector3 forward = Normalize(lookpoint - position);
     
@@ -610,7 +612,7 @@ ViewMatrixRHS(Vector3 position,Vector3 lookpoint,Vector3 updir){
     b = -1.0f * Dot(up,position),
     c = Dot(forward,position);
     
-    Matrix4b4 matrix = IdentityMatrix4b4();
+    Mat4 matrix = IdentityMat4b4();
     
     matrix _rc4(0,0) = side.x;
     matrix _rc4(1,0) = side.y;
@@ -642,7 +644,7 @@ ViewMatrixRHS(Vector3 position,Vector3 lookpoint,Vector3 updir){
     auto f1 = (f32*)&ref__matrix;
     auto f2 = (f32*)&t__mat;
     
-    InternalCmpMatrix(f1,f2);
+    InternalCmpMat(f1,f2);
     
 #endif
     
@@ -652,12 +654,12 @@ ViewMatrixRHS(Vector3 position,Vector3 lookpoint,Vector3 updir){
     return matrix;
 }
 
-Matrix4b4 ViewMatrix(Vector3 position,Vector3 lookpoint,Vector3 updir){
+Mat4 ViewMat(Vector3 position,Vector3 lookpoint,Vector3 updir){
     
     
 #if Z_RHS
     
-    return ViewMatrixRHS(position,lookpoint,updir);
+    return ViewMatRHS(position,lookpoint,updir);
     
 #else
     
@@ -666,7 +668,7 @@ Matrix4b4 ViewMatrix(Vector3 position,Vector3 lookpoint,Vector3 updir){
 #endif
 }
 
-Matrix4b4 ProjectionMatrix(f32 fov,f32 aspectratio,f32 nearz,f32 farz){
+Mat4 ProjectionMat(f32 fov,f32 aspectratio,f32 nearz,f32 farz){
     
     f32 tanhalf_fov = tanf(fov/2.0f);
     
@@ -685,7 +687,7 @@ Matrix4b4 ProjectionMatrix(f32 fov,f32 aspectratio,f32 nearz,f32 farz){
     
 #endif
     
-    Matrix4b4 matrix = {};
+    Mat4 matrix = {};
     
     matrix _rc4(0,0) = a;
     matrix _rc4(1,1) = b;
@@ -706,7 +708,7 @@ Matrix4b4 ProjectionMatrix(f32 fov,f32 aspectratio,f32 nearz,f32 farz){
     auto f1 = (f32*)&ref__matrix;
     auto f2 = (f32*)&t__mat;
     
-    InternalCmpMatrix(f1,f2);
+    InternalCmpMat(f1,f2);
     
 #endif
     
@@ -965,7 +967,7 @@ Vector3 RotateVector(Vector3 vec,Vector3 rotation){
       rotated y}      sin0,cos0}       y}
     */
     
-    auto rot__matrix = RotationMatrix(rotation);
+    auto rot__matrix = RotationMat(rotation);
     
     auto a = rot__matrix.simd[0];
     auto b = rot__matrix.simd[1];
@@ -993,7 +995,7 @@ Vector3 RotateVector(Vector3 vec,Vector3 rotation){
 
 
 
-void PrintMatrix(Matrix4b4 matrix){
+void PrintMat(Mat4b4 matrix){
     
     printf("\n");
     
@@ -1010,7 +1012,7 @@ void PrintMatrix(Matrix4b4 matrix){
     
 }
 
-void PrintMatrix(Matrix3b3 matrix){
+void PrintMat(Mat3b3 matrix){
     printf("\n");
     
     for(u32 i = 0; i < 9;i++){
@@ -1068,7 +1070,7 @@ f32 inline GenericGetDeterminant(f32* in__matrix,u32 n){
         
         f32 minor__mat[16] = {};
         
-        GetMinorMatrix(in__matrix,n,i,0,&minor__mat[0]);
+        GetMinorMat(in__matrix,n,i,0,&minor__mat[0]);
         
         auto det = GenericGetDeterminant(&minor__mat[0],n - 1);
         
@@ -1080,7 +1082,7 @@ f32 inline GenericGetDeterminant(f32* in__matrix,u32 n){
 }
 
 
-Matrix4b4 Inverse(Matrix4b4 matrix){
+Mat4b4 Inverse(Mat4b4 matrix){
     
     /*
       Computes the inverse matrix using the adjugate formula
@@ -1088,7 +1090,7 @@ Matrix4b4 Inverse(Matrix4b4 matrix){
       
       where det is the determinant of the matrix and adj the adjoint matrix of A.
       where 1 <= i <= n and 1 <= j <= n of an n by n matrix and (i,j) corresponds to a value of matrix A
-      adjoint__matrix of elements = -(-1)^(i * j) * det(MinorMatrix(matrix,i,j))
+      adjoint__matrix of elements = -(-1)^(i * j) * det(MinorMat(matrix,i,j))
       adj(A) = Transpose(adjoint__matrix)
     */
     
@@ -1099,22 +1101,22 @@ Matrix4b4 Inverse(Matrix4b4 matrix){
     
     //get the adjoint matrix, create matrices of cofactors
     
-    Matrix4b4 adj__matrix = {};
+    Mat4b4 adj__matrix = {};
     
     for(u32 y = 0; y < 4; y++){
         
         for(u32 x = 0; x < 4; x++){
             
-            Matrix3b3 minormatrix = {};
+            Mat3b3 minormatrix = {};
             
-            GetMinorMatrix((f32*)&matrix[0],4,x,y,(f32*)&minormatrix);
+            GetMinorMat((f32*)&matrix[0],4,x,y,(f32*)&minormatrix);
             
             adj__matrix _ac4(x,y) = GenericGetDeterminant((f32*)&minormatrix,3);
         }
         
     }
     
-    Matrix4b4 checkerboard__matrix = {
+    Mat4b4 checkerboard__matrix = {
         1,-1,1,-1,
         -1,1,-1,1,
         1,-1,1,-1,
@@ -1247,7 +1249,7 @@ void DeconstructQuaternion(Quaternion quaternion,Vector3* vector,f32* angle){
 }
 
 
-Matrix4b4 QuaternionToMatrix(Quaternion quaternion){
+Mat4b4 QuaternionToMat(Quaternion quaternion){
     
     Quaternion squared;
     
@@ -1268,7 +1270,7 @@ Matrix4b4 QuaternionToMatrix(Quaternion quaternion){
     f32 h = ((quaternion.y * quaternion.z) + (quaternion.w * quaternion.x)) * 2;
     f32 i = 1 - (2 * (squared.x + squared.y));
     
-    Matrix4b4 matrix = {};
+    Mat4b4 matrix = {};
     
     matrix _rc4(0,0) = a;
     matrix _rc4(1,0) = b;
@@ -1287,7 +1289,7 @@ Matrix4b4 QuaternionToMatrix(Quaternion quaternion){
     return matrix;
 }
 
-Quaternion MatrixToQuaternion(Matrix4b4 matrix){
+Quaternion MatToQuaternion(Mat4b4 matrix){
     
     Quaternion q;
     
@@ -1375,12 +1377,12 @@ DualQuaternion ConstructDualQuaternion(Quaternion rotation,Vector3 translation){
     return d;
 }
 
-DualQuaternion ConstructDualQuaternion(Matrix4b4 transform){
+DualQuaternion ConstructDualQuaternion(Mat4b4 transform){
     
     DualQuaternion d = {};
     
-    d.q1 = MatrixToQuaternion(transform);
-    Vector3 translation = MatrixToTranslationVector(transform);
+    d.q1 = MatToQuaternion(transform);
+    Vector3 translation = MatToTranslationVector(transform);
     
     d.q2 = Quaternion{0,translation.x,translation.y,translation.z} * d.q1 * 0.5f;
     
@@ -1429,11 +1431,11 @@ DualQuaternion Normalize(DualQuaternion d){
     return d;
 }
 
-Matrix4b4 DualQuaternionToMatrix(DualQuaternion d){
+Mat4b4 DualQuaternionToMat(DualQuaternion d){
     
     d = Normalize(d);
     
-    Matrix4b4 matrix = QuaternionToMatrix(d.q1);
+    Mat4b4 matrix = QuaternionToMat(d.q1);
     Quaternion t = d.q2 * 2.0f;
     t = t * ConjugateQuaternion(d.q1);
     
@@ -1499,7 +1501,7 @@ Vector2 Normalize(Vector2 a){
 }
 
 
-Vector4 WorldSpaceToClipSpace(Vector4 pos,Matrix4b4 viewproj){
+Vector4 WorldSpaceToClipSpace(Vector4 pos,Mat4b4 viewproj){
     
 #if !MATRIX_ROW_MAJOR
     
@@ -1527,7 +1529,7 @@ Vector4 WorldSpaceToClipSpace(Vector4 pos,Matrix4b4 viewproj){
     return ret/ret.w;
 }
 
-Vector4 ClipSpaceToWorldSpace(Vector4 pos,Matrix4b4 viewproj){
+Vector4 ClipSpaceToWorldSpace(Vector4 pos,Mat4b4 viewproj){
     
     auto inv_viewproj = Inverse(viewproj);
     
