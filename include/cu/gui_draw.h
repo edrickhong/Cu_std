@@ -57,7 +57,7 @@ void GUIInit(VDeviceContext* vdevice,VSwapchainContext* swap,
              GUIFont* fonthandle = 0);
 
 void GUIUpdate(VSwapchainContext* swapchain,KeyboardState* keyboardstate,s8* keyboard_ascii_buffer,u32 keyboard_ascii_count,
-               MouseState* mousestate,Matrix4b4 view,Matrix4b4 proj);
+               MouseState* mousestate,Mat4 view,Mat4 proj);
 
 void GUIDraw(VkCommandBuffer cmdbuffer);
 

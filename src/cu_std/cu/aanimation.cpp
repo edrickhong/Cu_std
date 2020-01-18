@@ -149,13 +149,13 @@ Quaternion _ainline  AInterpolateAnimationQuaternion(AAnimationKey* key_array,u3
 }
 
 void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
-                                    ALinearBone* _restrict node,Matrix4b4 parent_matrix,
-                                    DBGPTR(Matrix4b4) result,
+                                    ALinearBone* _restrict node,Mat4 parent_matrix,
+                                    DBGPTR(Mat4) result,
                                     u32* _restrict result_count){
     
     //hand optimize this. the compiler has no idea wtf it's doing
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     VectorTransform transform = IdentityVectorTransform();
     
     AAnimationData* animationdata = node->animationdata_array;
@@ -178,7 +178,7 @@ void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
     }
     
     matrix =
-        WorldMatrix(Vec4ToVec3(transform.translation),
+        WorldMat(Vec4ToVec3(transform.translation),
                     transform.rotation,
                     Vec4ToVec3(transform.scale));
     
@@ -210,7 +210,7 @@ void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
 
 
 void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array,
-                  ALinearBone* root,DBGPTR(Matrix4b4) result){
+                  ALinearBone* root,DBGPTR(Mat4) result){
     
     TIMEBLOCK(DarkViolet);
     
@@ -225,7 +225,7 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
     u32 result_count = 0;
     
     ALinearTransformLinearSkeleton(animation_index,animationtime,root,
-                                   IdentityMatrix4b4(),result,&result_count);
+                                   IdentityMat4(),result,&result_count);
 }
 
 #endif

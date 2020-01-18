@@ -53,7 +53,7 @@ struct AAnimationSet{
 
 //MARK:Cache can still be better
 struct ALinearBone{
-  Matrix4b4 offset;
+  Mat4 offset;
   AAnimationData* animationdata_array;
   ALinearBone** children_array;
   u32 children_count;
@@ -70,7 +70,7 @@ struct ADQBone{
 
 
 void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array,
-		  ALinearBone* root,DBGPTR(Matrix4b4) result);
+		  ALinearBone* root,DBGPTR(Mat4) result);
 
 void ADualQuaternionBlend(f32 time_ms,ADQBone* root,AAnimationSet animation);
 
