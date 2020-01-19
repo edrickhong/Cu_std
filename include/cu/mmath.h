@@ -10,14 +10,14 @@
 // AVX2 is slow. to get full speed of avx, it has to downclock the cpu
 // maybe this will change in time
 // (https://gist.github.com/rygorous/32bc3ea8301dba09358fd2c64e02d774)
-
+#include "ttype.h"
 #include "iintrin.h"
 #include "math.h"  //we can replace this too I guess
 
 #define _pi 3.1415926535897f
-#define _twopi (3.1415926535897f * 2.0f)
-#define _fourpi (3.1415926535897f * 4.0f)
-#define _halfpi (3.1415926535897f * 0.5f)
+#define _twopi (_pi * 2.0f)
+#define _fourpi (_pi * 4.0f)
+#define _halfpi (_pi * 0.5f)
 
 #ifdef _row_major
 
@@ -57,39 +57,34 @@
 
 #define _clampf(x, lower, upper) (fminf(upper, fmaxf(x, lower)))
 
-// MARK:Linear Algebra
+//MARK: structs and unions
+typedef struct Vec2 {
+	f32 x, y;
+} Vec2;
 
-typedef union Quaternion {
-	__m128 simd;
-
+typedef union Vec3 {
 	struct {
-		f32 w, x, y, z;
+		f32 x, y, z;
 	};
 
-} Quaternion _align(16);
+	f32 floats[3];
+	Vec2 vec2;
+} Vec3;
 
-typedef struct DualQuaternion {
-	Quaternion q1, q2;
-} DualQuaternion;
-
-typedef struct Vector2 {
-	f32 x, y;
-} Vector2;
-
-typedef union Vector4 {
+typedef union Vec4 {
 	__m128 simd;
 
 	struct {
 		f32 x, y, z, w;
 	};
 
-	Vector2 vec2[2];
+	Vec2 vec2[2];
 
 	f32 floats[4];
 
-} Vector4 _align(16);
+} Vec4 _align(16);
 
-typedef struct Vector4SOA {
+typedef struct Vec4SOA {
 	ptrsize count;
 	union {
 		struct {  // refers to 4 floats at a time
@@ -107,41 +102,24 @@ typedef struct Vector4SOA {
 		};
 	};
 
-} Vector4SOA;
+} Vec4SOA;
 
-typedef union Vector3 {
+typedef union Quat {
+	__m128 simd;
+
 	struct {
-		f32 x, y, z;
+		f32 w, x, y, z;
 	};
 
-	f32 floats[3];
-	Vector2 vec2;
-} Vector3;
+} Quat _align(16);
 
-Vector4 _ainline Vec3ToVec4(Vector3 vec) {
-	Vector4 ret = {vec.x, vec.y, vec.z, 1.0f};
-	return ret;
-}
+typedef struct DualQuat {
+	Quat q1, q2;
+} DualQuat;
 
-Vector3 _ainline Vec4ToVec3(Vector4 vec) { 
-
-	Vector3 ret = {vec.x, vec.y, vec.z};
-
-
-	return ret; 
-}
-
-Vector2 _ainline Vec4ToVec2(Vector4 vec) { 
-
-	Vector2 ret = {vec.x, vec.y};
-
-	return ret; 
-}
-
-Vector2 _ainline Vec3ToVec2(Vector3 vec) { 
-	Vector2 ret = {vec.x, vec.y};
-	return ret; 
-}
+typedef Vec4 Point4;
+typedef Vec3 Point3;
+typedef Vec2 Point2;
 
 typedef union Mat4 {
 	f32 container[16];
@@ -177,37 +155,51 @@ typedef union Mat2 {
 } Mat2 _align(16);
 
 
+typedef struct Triangle{
+	Point3 a;
+	Point3 b;
+	Point3 c;
+}Triangle;
 
-void Mat4SetMember(Mat4 mat,u32 index,f32 value){
+//typedef struct Teathedron{}Teathedron;
 
-	 mat.container[index] = value;
-	
-}
-void Mat3SetMember(Mat3 mat,u32 index,f32 value){
+typedef struct Polygon{
+	Point3* point_array;
+	ptrsize count;
 
-	 mat.container[index] = value;
-}
+#ifdef __cplusplus
+	Point3& operator[](u32 index) { return point_array[index]; }
+#endif
 
-void Mat2SetMember(Mat2 mat,u32 index,f32 value){
-
-	 mat.container[index] = value;
-}
+}Polygon;
 
 
-f32 Mat4GetMember(Mat4 mat,u32 index){
 
-	return mat.container[index];
-	
-}
-f32 Mat3GetMember(Mat3 mat,u32 index){
+typedef struct Line3{
+	Point3 pos;
+	Vec3 dir;
+}Line3;
 
-	return mat.container[index];
-}
+typedef struct Plane{
+	Point3 pos;
+	Vec3 norm;
+}Plane;
 
-f32 Mat2GetMember(Mat2 mat,u32 index){
+typedef struct Line2{
+	Point2 pos;
+	Vec2 dir;
+}Line2;
 
-	return mat.container[index];
-}
+//TODO: this isn't being used
+typedef enum IntersectType{
+	INTERSECT_FALSE = 0,
+	INTERSECT_FINITE = 1,
+	INTERSECT_INFINITE = 2,
+}IntersectType;
+
+typedef Vec4SOA PolygonSOA;
+
+//MARK: Identities
 
 Mat4 _ainline IdentityMat4() {
 	Mat4 matrix = {
@@ -244,14 +236,20 @@ Mat2 _ainline IdentityMat2() {
 	return matrix;
 }
 
+
+Quat _ainline MQuatIdentity() { Quat q = {1.0f, 0.0f, 0.0f, 0.0f};return q; }
+Quat _ainline AQuatIdentity() { Quat q = {0.0f, 0.0f, 0.0f, 0.0f};return q; }
+
+//MARK: Conversions
+
 Mat2 _ainline Mat3ToMat2(Mat3 mat) {
 	Mat2 m;
 
-	Mat2SetMember(m,0,Mat3GetMember(mat,_ac3(0,0)));
-	Mat2SetMember(m,1,Mat3GetMember(mat,_ac3(1,0)));
+	m.container[0] = mat.container[_ac3(0,0)];
+	m.container[1] = mat.container[_ac3(1,0)];
 
-	Mat2SetMember(m,2,Mat3GetMember(mat,_ac3(0,1)));
-	Mat2SetMember(m,3,Mat3GetMember(mat,_ac3(1,1)));
+	m.container[2] = mat.container[_ac3(0,1)];
+	m.container[3] = mat.container[_ac3(1,1)];
 
 	return m;
 }
@@ -259,11 +257,11 @@ Mat2 _ainline Mat3ToMat2(Mat3 mat) {
 Mat2 _ainline Mat4ToMat2(Mat4 mat) {
 	Mat2 m;
 
-	Mat2SetMember(m,0,Mat4GetMember(mat,_ac4(0,0)));
-	Mat2SetMember(m,1,Mat4GetMember(mat,_ac4(1,0)));
+	m.container[0] = mat.container[_ac4(0,0)];
+	m.container[1] = mat.container[_ac4(1,0)];
 
-	Mat2SetMember(m,2,Mat4GetMember(mat,_ac4(0,1)));
-	Mat2SetMember(m,3,Mat4GetMember(mat,_ac4(1,1)));
+	m.container[2] = mat.container[_ac4(0,1)];
+	m.container[3] = mat.container[_ac4(1,1)];
 
 	return m;
 }
@@ -271,11 +269,11 @@ Mat2 _ainline Mat4ToMat2(Mat4 mat) {
 Mat3 _ainline Mat2ToMat3(Mat2 mat) {
 	Mat3 m = IdentityMat3();
 
-	Mat3SetMember(m,_ac3(0,0),Mat2GetMember(mat,0));
-	Mat3SetMember(m,_ac3(1,0),Mat2GetMember(mat,1));
+	m.container[_ac3(0,0)] = mat.container[0];
+	m.container[_ac3(1,0)] = mat.container[1];
 
-	Mat3SetMember(m,_ac3(0,1),Mat2GetMember(mat,2));
-	Mat3SetMember(m,_ac3(1,1),Mat2GetMember(mat,3));
+	m.container[_ac3(0,1)] = mat.container[2];
+	m.container[_ac3(1,1)] = mat.container[3];
 
 	return m;
 }
@@ -283,17 +281,17 @@ Mat3 _ainline Mat2ToMat3(Mat2 mat) {
 Mat3 _ainline Mat4ToMat3(Mat4 mat) {
 	Mat3 m;
 
-	Mat3SetMember(m,0,Mat4GetMember(mat,_ac4(0,0)));
-	Mat3SetMember(m,1,Mat4GetMember(mat,_ac4(1,0)));
-	Mat3SetMember(m,2,Mat4GetMember(mat,_ac4(2,0)));
+	m.container[0] = mat.container[_ac4(0,0)];
+	m.container[1] = mat.container[_ac4(1,0)];
+	m.container[2] = mat.container[_ac4(2,0)];
 
-	Mat3SetMember(m,3,Mat4GetMember(mat,_ac4(0,1)));
-	Mat3SetMember(m,4,Mat4GetMember(mat,_ac4(1,1)));
-	Mat3SetMember(m,5,Mat4GetMember(mat,_ac4(2,1)));
+	m.container[3] = mat.container[_ac4(0,1)];
+	m.container[4] = mat.container[_ac4(1,1)];
+	m.container[5] = mat.container[_ac4(2,1)];
 
-	Mat3SetMember(m,6,Mat4GetMember(mat,_ac4(0,2)));
-	Mat3SetMember(m,7,Mat4GetMember(mat,_ac4(1,2)));
-	Mat3SetMember(m,8,Mat4GetMember(mat,_ac4(2,2)));
+	m.container[6] = mat.container[_ac4(0,2)];
+	m.container[7] = mat.container[_ac4(1,2)];
+	m.container[8] = mat.container[_ac4(2,2)];
 
 	return m;
 }
@@ -301,11 +299,10 @@ Mat3 _ainline Mat4ToMat3(Mat4 mat) {
 Mat4 _ainline Mat2ToMat4(Mat2 mat) {
 	Mat4 m = IdentityMat4();
 
- 	Mat4SetMember(m,_ac4(0,0),Mat2GetMember(mat,0));
-	Mat4SetMember(m,_ac4(1,0),Mat2GetMember(mat,1));
-
-	Mat4SetMember(m,_ac4(0,1),Mat2GetMember(mat,2));
-	Mat4SetMember(m,_ac4(1,1),Mat2GetMember(mat,3));
+	m.container[_ac4(0,0)] = mat.container[0];
+	m.container[_ac4(1,0)] = mat.container[1];
+	m.container[_ac4(0,1)] = mat.container[2];
+	m.container[_ac4(1,1)] = mat.container[3];
 
 	return m;
 }
@@ -313,28 +310,177 @@ Mat4 _ainline Mat2ToMat4(Mat2 mat) {
 Mat4 _ainline Mat3ToMat4(Mat3 mat) {
 	Mat4 m = IdentityMat4();
 
-	Mat4SetMember(m,_ac4(0,0),Mat3GetMember(mat,0));
-	Mat4SetMember(m,_ac4(1,0),Mat3GetMember(mat,1));
-	Mat4SetMember(m,_ac4(2,0),Mat3GetMember(mat,2));
+	m.container[_ac4(0,0)] = mat.container[0];
+	m.container[_ac4(1,0)] = mat.container[1];
+	m.container[_ac4(2,0)] = mat.container[2];
 
-	Mat4SetMember(m,_ac4(0,1),Mat3GetMember(mat,3));
-	Mat4SetMember(m,_ac4(1,1),Mat3GetMember(mat,4));
-	Mat4SetMember(m,_ac4(2,1),Mat3GetMember(mat,5));
+	m.container[_ac4(0,1)] = mat.container[3];
+	m.container[_ac4(1,1)] = mat.container[4];
+	m.container[_ac4(2,1)] = mat.container[5];
 
-	Mat4SetMember(m,_ac4(0,2),Mat3GetMember(mat,6));
-	Mat4SetMember(m,_ac4(1,2),Mat3GetMember(mat,7));
-	Mat4SetMember(m,_ac4(2,2),Mat3GetMember(mat,8));
+	m.container[_ac4(0,2)] = mat.container[6];
+	m.container[_ac4(1,2)] = mat.container[7];
+	m.container[_ac4(2,2)] = mat.container[8];
 
 	return m;
 }
 
-// Math operations
-#ifndef __cplusplus
+Vec4 _ainline Vec3ToVec4(Vec3 vec) {
+	Vec4 ret = {vec.x, vec.y, vec.z, 1.0f};
+	return ret;
+}
 
-//C operations here
+Vec3 _ainline Vec4ToVec3(Vec4 vec) { 
 
-#else
+	Vec3 ret = {vec.x, vec.y, vec.z};
 
+
+	return ret; 
+}
+
+Vec2 _ainline Vec4ToVec2(Vec4 vec) { 
+
+	Vec2 ret = {vec.x, vec.y};
+
+	return ret; 
+}
+
+Vec2 _ainline Vec3ToVec2(Vec3 vec) { 
+	Vec2 ret = {vec.x, vec.y};
+	return ret; 
+}
+
+
+Mat4 QuatToMat4(Quat quaternion);
+Quat Mat4ToQuat(Mat4 matrix);
+Mat4 DualQToMat4(DualQuat d);
+
+Vec3 _ainline Mat4ToTranslationVec(Mat4 matrix) {
+	Vec3 ret = 
+	{matrix.container[_rc4(3, 0)],matrix.container[_rc4(3, 1)],matrix.container[_rc4(3, 2)]};
+
+	return ret;  
+}
+
+Vec4 _ainline QuatToVec4(Quat q) {
+	Vec4 v;
+
+	v.x = q.w;
+	v.y = q.x;
+	v.z = q.y;
+	v.w = q.z;
+
+	return v;
+}
+
+Quat _ainline Vec4ToQuat(Vec4 v) {
+	Quat q;
+
+	q.w = v.x;
+	q.x = v.y;
+	q.y = v.z;
+	q.z = v.w;
+
+	return q;
+}
+
+
+Vec4 WorldSpaceToClipSpaceVec4(Vec4 pos, Mat4 viewproj);
+Vec4 ClipSpaceToWorldSpaceVec4(Vec4 pos, Mat4 viewproj);
+
+
+Vec3 _ainline WorldSpaceToClipSpaceVec3(Vec3 pos, Mat4 viewproj) {
+	return Vec4ToVec3(WorldSpaceToClipSpaceVec4(Vec3ToVec4(pos), viewproj));
+}
+
+Vec3 _ainline ClipSpaceToWorldSpaceVec3(Vec3 pos, Mat4 viewproj) {
+	return Vec4ToVec3(ClipSpaceToWorldSpaceVec4(Vec3ToVec4(pos), viewproj));
+}
+
+
+// MARK: MATH OPS (OPS that can be expressed w math notation -- * - / etc
+Mat4 Mat4Add(Mat4 lhs, Mat4 rhs);
+Mat4 Mat4Sub(Mat4 lhs, Mat4 rhs);
+Mat4 Mat4Mul(Mat4 lhs, Mat4 rhs);
+Mat4 Mat4MulConstL(f32 lhs, Mat4 rhs);
+Mat4 Mat4MulConstR(Mat4 lhs, f32 rhs);
+Mat4 Mat4Div(Mat4 lhs, Mat4 rhs);
+
+Mat3 Mat3Add(Mat3 lhs, Mat3 rhs);
+Mat3 Mat3Sub(Mat3 lhs, Mat3 rhs);
+Mat3 Mat3Mul(Mat3 lhs, Mat3 rhs);
+Mat3 Mat3MulConstL(f32 lhs, Mat3 rhs);
+Mat3 Mat3MulConstR(Mat3 lhs, f32 rhs);
+Mat3 Mat3Div(Mat3 lhs, Mat3 rhs);
+
+Mat2 Mat2Add(Mat2 lhs, Mat2 rhs);
+Mat2 Mat2Sub(Mat2 lhs, Mat2 rhs);
+Mat2 Mat2Mul(Mat2 lhs, Mat2 rhs);
+Mat2 Mat2MulConstL(f32 lhs, Mat2 rhs);
+Mat2 Mat2MulConstR(Mat2 lhs, f32 rhs);
+Mat2 Mat2Div(Mat2 lhs, Mat2 rhs);
+
+Vec4 Vec4Add(Vec4 lhs, Vec4 rhs);
+Vec4 Vec4Sub(Vec4 lhs, Vec4 rhs);
+Vec4 Vec4MulConstL(f32 lhs, Vec4 rhs);
+Vec4 Vec4MulConstR(Vec4 lhs, f32 rhs);
+Vec4 Vec4DivConstR(Vec4 lhs, f32 rhs);
+
+
+Vec3 Vec3Add(Vec3 lhs, Vec3 rhs);
+Vec3 Vec3Sub(Vec3 lhs, Vec3 rhs);
+Vec3 Vec3MulConstL(f32 lhs, Vec3 rhs);
+Vec3 Vec3MulConstR(Vec3 lhs, f32 rhs);
+Vec3 Vec3DivConstR(Vec3 lhs, f32 rhs);
+
+Vec2 Vec2Add(Vec2 lhs, Vec2 rhs);
+Vec2 Vec2Sub(Vec2 lhs, Vec2 rhs);
+Vec2 Vec2MulConstL(f32 lhs, Vec2 rhs);
+Vec2 Vec2MulConstR(Vec2 lhs, f32 rhs);
+Vec2 Vec2DivConstR(Vec2 lhs, f32 rhs);
+
+
+Quat _ainline QuatAdd(Quat lhs, Quat rhs) {
+	Vec4 l = QuatToVec4(lhs);
+	Vec4 r = QuatToVec4(rhs);
+
+	return Vec4ToQuat(Vec4Add(l,r));
+}
+
+Quat _ainline QuatSub(Quat lhs, Quat rhs) {
+	Vec4 l = QuatToVec4(lhs);
+	Vec4 r = QuatToVec4(rhs);
+
+	return Vec4ToQuat(Vec4Sub(l,r));
+}
+
+Quat _ainline QuatMulConstL(f32 lhs, Quat rhs) {
+	Vec4 r = QuatToVec4(rhs);
+
+	return Vec4ToQuat(Vec4MulConstL(lhs,r));
+}
+
+Quat _ainline QuatMulConstR(Quat lhs, f32 rhs) {
+	return QuatMulConstL(rhs,lhs);
+}
+
+Quat _ainline QuatDivConstR(Quat lhs, f32 rhs) {
+	Vec4 l = QuatToVec4(lhs);
+
+	return Vec4ToQuat(Vec4DivConstR(l,rhs));
+}
+
+
+
+Quat QuatMul(Quat lhs,Quat rhs);
+
+DualQuat DualQAdd(DualQuat lhs, DualQuat rhs);
+DualQuat DualQSub(DualQuat lhs, DualQuat rhs);
+DualQuat DualQMul(DualQuat lhs, DualQuat rhs);
+DualQuat DualQMulConstL(f32 lhs, DualQuat rhs);
+DualQuat DualQMulConstR(DualQuat lhs, f32 rhs);
+
+#ifdef __cplusplus
 
 Mat4 operator+(Mat4 lhs, Mat4 rhs);
 Mat4 operator-(Mat4 lhs, Mat4 rhs);
@@ -359,323 +505,203 @@ Mat2 operator*(f32 lhs, Mat2 rhs);
 Mat2 operator*(Mat2 lhs, f32 rhs);
 Mat2 operator/(Mat2 lhs, Mat2 rhs);
 
-#endif
+Vec4 operator+(Vec4 lhs, Vec4 rhs);
+Vec4 operator-(Vec4 lhs, Vec4 rhs);
+Vec4 operator*(f32 lhs, Vec4 rhs);
+Vec4 operator*(Vec4 lhs, f32 rhs);
+Vec4 operator/(Vec4 lhs, f32 rhs);
 
-Mat4 Transpose(Mat4 matrix);
-Mat4 Inverse(Mat4 matrix);
-Mat3 Transpose(Mat3 matrix);
-Mat3 Inverse(Mat3 matrix);
-Mat2 Transpose(Mat2 matrix);
-Mat2 Inverse(Mat2 matrix);
+Vec3 operator+(Vec3 lhs, Vec3 rhs);
+Vec3 operator-(Vec3 lhs, Vec3 rhs);
+Vec3 operator*(f32 lhs, Vec3 rhs);
+Vec3 operator*(Vec3 lhs, f32 rhs);
+Vec3 operator/(Vec3 lhs, f32 rhs);
 
-// conversions
-Mat4 QuaternionToMat(Quaternion quaternion);
-Quaternion MatToQuaternion(Mat4 matrix);
-DualQuaternion ConstructDualQuaternion(Mat4 transform);
-Mat4 DualQuaternionToMat(DualQuaternion d);
+Vec2 operator+(Vec2 lhs, Vec2 rhs);
+Vec2 operator-(Vec2 lhs, Vec2 rhs);
+Vec2 operator*(f32 lhs, Vec2 rhs);
+Vec2 operator*(Vec2 lhs, f32 rhs);
+Vec2 operator/(Vec2 lhs, f32 rhs);
 
-Vector3 _ainline MatToTranslationVector(Mat4 matrix) {
-	return Vector3{Mat4GetMember(matrix,_rc4(3, 0)), Mat4GetMember(matrix,_rc4(3, 1)),Mat4GetMember(matrix,_rc4(3, 2))};
+Quat _ainline operator+(Quat lhs, Quat rhs) {
+	return QuatAdd(lhs,rhs);
 }
 
-// print
-void PrintMat(Mat4 matrix);
-void PrintMat(Mat3 matrix);
+Quat _ainline operator-(Quat lhs, Quat rhs) {
+	return QuatSub(lhs,rhs);
+}
 
-Mat4 ViewMat(Vector3 position, Vector3 lookpoint, Vector3 updir);
-Mat4 ProjectionMat(f32 fov, f32 aspectration, f32 nearz, f32 farz);
+Quat _ainline operator*(f32 lhs, Quat rhs) {
+	return QuatMulConstL(lhs,rhs);
+}
 
-Mat4 _ainline PositionMat(Vector3 position) {
+Quat _ainline operator*(Quat lhs, f32 rhs) {
+	return QuatMulConstR(lhs,rhs);
+}
+
+Quat _ainline operator/(Quat lhs, f32 rhs) {
+	return QuatDivConstR(lhs,rhs);
+}
+
+Quat operator*(Quat lhs, Quat rhs);
+
+DualQuat operator+(DualQuat lhs, DualQuat rhs);
+DualQuat operator-(DualQuat lhs, DualQuat rhs);
+DualQuat operator*(DualQuat lhs, DualQuat rhs);
+DualQuat operator*(f32 lhs, DualQuat rhs);
+DualQuat operator*(DualQuat lhs, f32 rhs);
+
+
+
+#endif
+
+// MARK: SPECIAL MATH OPS (can only be expressed in functions)
+//TODO: we should also include Rejection functios
+Mat4 CompMulMat4(Mat4 a,Mat4 b);
+Mat4 TransposeMat4(Mat4 matrix);
+Mat4 InverseMat4(Mat4 matrix);
+
+Mat3 CompMulMat3(Mat3 a,Mat3 b);
+Mat3 TransposeMat3(Mat3 matrix);
+Mat3 InverseMat3(Mat3 matrix);
+
+Mat2 TransposeMat2(Mat2 matrix);
+Mat2 InverseMat2(Mat2 matrix);
+
+
+f32 MagnitudeVec4(Vec4 vec);
+f32 DotVec4(Vec4 vec1, Vec4 vec2);
+Vec4 NormalizeVec4(Vec4 vec);
+Vec4 CompMulVec4(Vec4 a, Vec4 b);
+Vec4 InterpolateVec4(Vec4 a, Vec4 b, f32 step); 
+
+f32 MagnitudeVec3(Vec3 vec);
+f32 DotVec3(Vec3 vec1, Vec3 vec2);
+Vec3 NormalizeVec3(Vec3 vec);
+Vec3 CrossVec3(Vec3 vec1, Vec3 vec2);
+f32 CompVec3(Vec3 a, Vec3 b);
+Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
+Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane);
+Vec3 GetVecRotation(Vec3 lookat);
+Vec3 QuatRotateVec3(Vec3 v, Quat q);
+Vec3 RotateVec3(Vec3 vec, Vec3 rotation);
+f32 Cosf(Vec3 vec1, Vec3 vec2);
+
+f32 MagnitudeVec2(Vec2 vec);
+f32 DotVec2(Vec2 a, Vec2 b);
+Vec2 NormalizeVec2(Vec2 a);
+Vec2 CompMulVec2(Vec2 a, Vec2 b);
+Vec2 RotateVec2(Vec2 vec, f32 rotation);
+
+f32 _ainline MagnitudeQuat(Quat a) { return MagnitudeVec4(QuatToVec4(a)); }
+f32 _ainline DotQuat(Quat a, Quat b) { return DotVec4(QuatToVec4(a), QuatToVec4(b)); }
+Quat _ainline NormalizeQuat(Quat a) { return Vec4ToQuat(NormalizeVec4(QuatToVec4(a))); }
+Quat InverseQuat(Quat q);
+Quat NLerpQuat(Quat a, Quat b, f32 step);
+Quat SLerpQuat(Quat a, Quat b, f32 step);
+Quat ConjugateQuat(Quat quaternion);
+Quat InterpolateQuat(Quat a, Quat b, f32 step); 
+
+DualQuat NormalizeDualQ(DualQuat d);
+
+
+b32 IntersectLine3(Line3 a, Line3 b);
+b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point);
+b32 TypedIntersectLine3(Line3 a, Line3 b);
+
+b32 IntersectLine3Plane(Line3 a, Plane b);
+b32 IntersectOutLine3Plane(Line3 a, Plane b, Point3* out_point);
+b32 TypedIntersectLine3Plane(Line3 a, Plane b);
+
+b32 IntersectLine2(Line2 a, Line2 b);
+b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point);
+b32 TypedIntersectLine2(Line2 a, Line2 b);
+
+
+void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
+void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
+
+f32 _ainline Interpolate(f32 a, f32 b, f32 step) { return (a + (step * (b - a))); }
+f32 AngleQuadrant(f32 x, f32 y);
+
+
+// MARK: constructors
+
+Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir);
+Mat4 ProjectionMat4(f32 fov, f32 aspectration, f32 nearz, f32 farz);
+
+Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale);
+Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale);
+Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale);
+
+Mat4 _ainline PositionMat4(Vec3 position) {
 	Mat4 matrix = IdentityMat4();
 
-	Mat4SetMember(matrix ,_rc4(3, 0),position.x);
-	Mat4SetMember(matrix ,_rc4(3, 1),position.y);
-	Mat4SetMember(matrix ,_rc4(3, 2),position.z);
+	matrix.container[_rc4(3, 0)] = position.x;
+	matrix.container[_rc4(3, 1)] = position.y;
+	matrix.container[_rc4(3, 2)] = position.z;
 
 	return matrix;
 }
 
-// MARK: not tested
-Mat3 _ainline RotationMat(Vector3 rotation) {
+// TODO: not tested
+Mat3 _ainline RotationMat3(Vec3 rotation) {
 	f32 cosv = cosf(rotation.x);
 	f32 sinv = sinf(rotation.x);
 
 	Mat3 rotationx_matrix3 = IdentityMat3();
 
-	Mat3SetMember(rotationx_matrix3 ,_rc3(1, 1),cosv);
-	Mat3SetMember(rotationx_matrix3 ,_rc3(2, 1),-sinv);
-	Mat3SetMember(rotationx_matrix3 ,_rc3(1, 2),sinv);
-	Mat3SetMember(rotationx_matrix3 ,_rc3(2, 2),cosv);
+	rotationx_matrix3.container[_rc3(1, 1)] = cosv;
+	rotationx_matrix3.container[_rc3(2, 1)]= -sinv;
+	rotationx_matrix3.container[_rc3(1, 2)]= sinv;
+	rotationx_matrix3.container[_rc3(2, 2)]= cosv;
 
 	cosv = cosf(rotation.y);
 	sinv = sinf(rotation.y);
 
 	Mat3 rotationy_matrix3 = IdentityMat3();
 
-	Mat3SetMember(rotationy_matrix3 ,_rc3(0, 0),cosv);
-	Mat3SetMember(rotationy_matrix3 ,_rc3(2, 0),sinv);
-	Mat3SetMember(rotationy_matrix3 ,_rc3(0, 2),-sinv);
-	Mat3SetMember(rotationy_matrix3 ,_rc3(2, 2),cosv);
+	rotationy_matrix3.container[_rc3(0, 0)]= cosv;
+	rotationy_matrix3.container[_rc3(2, 0)]= sinv;
+	rotationy_matrix3.container[_rc3(0, 2)]= -sinv;
+	rotationy_matrix3.container[_rc3(2, 2)]= cosv;
 
 	cosv = cosf(rotation.z);
 	sinv = sinf(rotation.z);
 
 	Mat3 rotationz_matrix3 = IdentityMat3();
 
-	Mat3SetMember(rotationz_matrix3 ,_rc3(0, 0),cosv);
-	Mat3SetMember(rotationz_matrix3 ,_rc3(1, 0),-sinv);
-	Mat3SetMember(rotationz_matrix3 ,_rc3(0, 1),sinv);
-	Mat3SetMember(rotationz_matrix3 ,_rc3(1, 1),cosv);
+	rotationz_matrix3.container[_rc3(0, 0)]= cosv;
+	rotationz_matrix3.container[_rc3(1, 0)]= -sinv;
+	rotationz_matrix3.container[_rc3(0, 1)]= sinv;
+	rotationz_matrix3.container[_rc3(1, 1)]= cosv;
 
-	return rotationz_matrix3 * rotationy_matrix3 * rotationx_matrix3;
+
+	return Mat3Mul(Mat3Mul(rotationz_matrix3,rotationy_matrix3),rotationx_matrix3);
 }
 
-Mat4 _ainline ScaleMat(Vector3 scale) {
+Mat4 _ainline ScaleMat4(Vec3 scale) {
 	Mat4 matrix = {{scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1}};
 
 	return matrix;
 }
 
-Mat4 WorldMat(Mat4 position, Mat4 rotation, Mat4 scale);
+Quat ConstructQuat(Vec3 vector, f32 angle);
 
-Mat4 WorldMat(Vector3 position, Vector3 rotation, Vector3 scale);
+DualQuat ConstructDualQ(Quat rotation, Vec3 translation);
+DualQuat ConstructDualQM(Mat4 transform);
 
-Mat4 WorldMat(Vector3 position, Quaternion rotation, Vector3 scale);
+//MARK: deconstructors
 
-Vector4 WorldSpaceToClipSpaceVec4(Vector4 pos, Mat4 viewproj);
-Vector4 ClipSpaceToWorldSpaceVec4(Vector4 pos, Mat4 viewproj);
+void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle);
 
-Vector3 _ainline WorldSpaceToClipSpaceVec3(Vector3 pos, Mat4 viewproj) {
-	return Vec4ToVec3(WorldSpaceToClipSpaceVec4(Vec3ToVec4(pos), viewproj));
-}
 
-Vector3 _ainline ClipSpaceToWorldSpaceVec3(Vector3 pos, Mat4 viewproj) {
-	return Vec4ToVec3(ClipSpaceToWorldSpaceVec4(Vec3ToVec4(pos), viewproj));
-}
+// MARK: UTIL OPS
+void PrintMat4(Mat4 matrix);
+void PrintMat3(Mat3 matrix);
 
-typedef Vector4 Point4;
-typedef Vector3 Point3;
-typedef Vector2 Point2;
+void PrintVec4(Vec4 vec);
+void PrintVec3(Vec3 vec);
+void PrintVec2(Vec2 vec);
 
-struct Line3 {
-	Point3 pos;
-	Vector3 dir;
-};
-
-struct Plane {
-	Point3 pos;
-	Vector3 norm;
-};
-
-struct Line2 {
-	Point2 pos;
-	Vector2 dir;
-};
-
-enum IntersectType : u8 {
-	INTERSECT_FALSE = 0,
-	INTERSECT_FINITE = 1,
-	INTERSECT_INFINITE = 2,
-};
-
-b32 Intersect(Line2 a, Line2 b);
-
-b32 Intersect(Line2 a, Line2 b, Point2* out_point);
-
-b32 TypedIntersect(Line2 a, Line2 b);
-
-f32 Magnitude(Vector3 vec);
-Vector3 Cross(Vector3 vec1, Vector3 vec2);
-f32 Dot(Vector3 vec1, Vector3 vec2);
-f32 cosf(Vector3 vec1, Vector3 vec2);
-Vector3 Normalize(Vector3 vec);
-Vector3 GetVectorRotation(Vector3 lookat);
-
-Vector3 Vec3(f32 x, f32 y, f32 z);
-
-f32 Component(Vector3 a, Vector3 b);
-
-Vector3 ProjectOnto(Vector3 a, Vector3 b);
-
-Vector3 ProjectVectorOntoPlane(Vector3 vec, Plane plane);
-
-// line intersections
-
-b32 Intersect(Line3 a, Line3 b);
-
-b32 Intersect(Line3 a, Line3 b, Point3* out_point);
-
-b32 TypedIntersect(Line3 a, Line3 b);
-
-// plane intersections
-
-b32 Intersect(Line3 a, Plane b);
-
-b32 TypedIntersect(Line3 a, Plane b);
-
-b32 Intersect(Line3 a, Plane b, Point3* out_point);
-
-Vector4 Normalize(Vector4 vec);
-f32 Magnitude(Vector4 vec);
-f32 Dot(Vector4 vec1, Vector4 vec2);
-Vector4 VectorComponentMul(Vector4 a, Vector4 b);
-
-Vector4 operator+(Vector4 lhs, Vector4 rhs);
-Vector4 operator-(Vector4 lhs, Vector4 rhs);
-Vector4 operator*(f32 lhs, Vector4 rhs);
-Vector4 operator*(Vector4 lhs, f32 rhs);
-Vector4 operator/(Vector4 lhs, f32 rhs);
-
-Vector3 operator+(Vector3 lhs, Vector3 rhs);
-Vector3 operator-(Vector3 lhs, Vector3 rhs);
-Vector3 operator*(f32 lhs, Vector3 rhs);
-Vector3 operator*(Vector3 lhs, f32 rhs);
-Vector3 operator/(Vector3 lhs, f32 rhs);
-
-Vector2 operator+(Vector2 lhs, Vector2 rhs);
-Vector2 operator-(Vector2 lhs, Vector2 rhs);
-Vector2 operator*(f32 lhs, Vector2 rhs);
-Vector2 operator*(Vector2 lhs, f32 rhs);
-Vector2 operator/(Vector2 lhs, f32 rhs);
-
-Vector2 Normalize(Vector2 a);
-
-f32 Dot(Vector2 a, Vector2 b);
-
-Vector2 CompMul(Vector2 a, Vector2 b);
-
-f32 AngleQuadrant(f32 x, f32 y);
-
-f32 Magnitude(Vector2 vec);
-
-Vector2 RotateVector(Vector2 vec, f32 rotation);
-
-Vector3 RotateVector(Vector3 vec, Vector3 rotation);
-
-void PrintVector4(Vector4 vec);
-void PrintVector3(Vector3 vec);
-void PrintVector2(Vector2 vec);
-
-struct Triangle {
-	Point3 a;
-	Point3 b;
-	Point3 c;
-};
-
-//?
-struct Teathedron {};
-
-struct Polygon {
-	Point3* point_array;
-	ptrsize count;
-
-	Point3& operator[](u32 index) { return point_array[index]; }
-};
-
-void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
-
-void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
-
-typedef Vector4SOA PolygonSOA;
-
-Vector4 _ainline QuatToVec4(Quaternion q) {
-	Vector4 v;
-
-	v.x = q.w;
-	v.y = q.x;
-	v.z = q.y;
-	v.w = q.z;
-
-	return v;
-}
-
-Quaternion _ainline Vec4ToQuat(Vector4 v) {
-	Quaternion q;
-
-	q.w = v.x;
-	q.x = v.y;
-	q.y = v.z;
-	q.z = v.w;
-
-	return q;
-}
-
-Quaternion _ainline Normalize(Quaternion a) { return Vec4ToQuat(Normalize(QuatToVec4(a))); }
-
-f32 _ainline Magnitude(Quaternion a) { return Magnitude(QuatToVec4(a)); }
-
-f32 _ainline Dot(Quaternion a, Quaternion b) { return Dot(QuatToVec4(a), QuatToVec4(b)); }
-
-Quaternion _ainline operator+(Quaternion lhs, Quaternion rhs) {
-	Vector4 l = QuatToVec4(lhs);
-	Vector4 r = QuatToVec4(rhs);
-
-	return Vec4ToQuat(l + r);
-}
-
-Quaternion _ainline operator-(Quaternion lhs, Quaternion rhs) {
-	Vector4 l = QuatToVec4(lhs);
-	Vector4 r = QuatToVec4(rhs);
-
-	return Vec4ToQuat(l - r);
-}
-
-Quaternion _ainline operator*(f32 lhs, Quaternion rhs) {
-	Vector4 r = QuatToVec4(rhs);
-
-	return Vec4ToQuat(lhs * r);
-}
-
-Quaternion _ainline operator*(Quaternion lhs, f32 rhs) {
-	Vector4 l = QuatToVec4(lhs);
-
-	return Vec4ToQuat(l * rhs);
-}
-
-Quaternion _ainline operator/(Quaternion lhs, f32 rhs) {
-	Vector4 l = QuatToVec4(lhs);
-
-	return Vec4ToQuat(l / rhs);
-}
-
-Quaternion operator*(Quaternion lhs, Quaternion rhs);
-
-Quaternion Inverse(Quaternion q);
-
-Vector3 RotateVector(Vector3 v, Quaternion q);
-
-Quaternion ConstructQuaternion(Vector3 vector, f32 angle);
-
-Quaternion ConjugateQuaternion(Quaternion quaternion);
-
-void DeconstructQuaternion(Quaternion quaternion, Vector3* vector, f32* angle);
-
-Quaternion _ainline MQuaternionIdentity() { return Quaternion{1.0f, 0.0f, 0.0f, 0.0f}; }
-
-Quaternion _ainline AQuaternionIdentity() { return Quaternion{0.0f, 0.0f, 0.0f, 0.0f}; }
-
-void PrintQuaternion(Quaternion quat);
-
-Vector4 _ainline InterpolateVector(Vector4 a, Vector4 b, f32 step) {
-	return {_intrin_fmadd_ps(_mm_sub_ps(b.simd, a.simd), _mm_set1_ps(step), a.simd)};
-}
-
-Quaternion _ainline InterpolateQuaternion(Quaternion a, Quaternion b, f32 step) {
-	return {_intrin_fmadd_ps(_mm_sub_ps(b.simd, a.simd), _mm_set1_ps(step), a.simd)};
-}
-
-f32 _ainline Interpolate(f32 a, f32 b, f32 step) { return (a + (step * (b - a))); }
-
-Quaternion NLerp(Quaternion a, Quaternion b, f32 step);
-
-Quaternion SLerp(Quaternion a, Quaternion b, f32 step);
-
-DualQuaternion ConstructDualQuaternion(Quaternion rotation, Vector3 translation);
-
-DualQuaternion operator+(DualQuaternion lhs, DualQuaternion rhs);
-DualQuaternion operator-(DualQuaternion lhs, DualQuaternion rhs);
-DualQuaternion operator*(DualQuaternion lhs, DualQuaternion rhs);
-DualQuaternion operator*(f32 lhs, DualQuaternion rhs);
-DualQuaternion operator*(DualQuaternion lhs, f32 rhs);
-
-DualQuaternion Normalize(DualQuaternion d);
+void PrintQuat(Quat quat);
