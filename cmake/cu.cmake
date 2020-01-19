@@ -45,6 +45,7 @@ if(UNIX)
       "/usr/include/dbus-1.0/"
       "/usr/lib/x86_64-linux-gnu/dbus-1.0/include/" #ubuntu dbus-arch-deps.h location
       "/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
+      "/usr/lib64/dbus-1.0/include/"
      )
 
 
