@@ -498,8 +498,8 @@ struct GUIContext{
     
     f32 default_font_size;
     
-    Matrix4b4 view_matrix;
-    Matrix4b4 proj_matrix;
+    Mat4 view_matrix;
+    Mat4 proj_matrix;
     
     //window as in draw bounds
     InternalGUISubmission* cur_window;
@@ -581,7 +581,7 @@ struct GUIContext{
         struct{
             u32 rot_selected;
             Point3 rot_intersection_point;
-            Quaternion start_rot;
+            Quat start_rot;
         };
         
         //textbox
@@ -1224,7 +1224,7 @@ void InitInternalComponents(VDeviceContext* vdevice,VSwapchainContext* swap,
         return;
     }
     
-    VkPushConstantRange range = {VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(Matrix4b4)};
+    VkPushConstantRange range = {VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(Mat4)};
     
     gui->pipelinelayout = VCreatePipelineLayout(vdevice,&gui->desclayout,1,&range,1);
     
@@ -1499,7 +1499,7 @@ void _ainline InternalGetWindowTextDim(GUIFont* font,f32* w,f32* h,f32 scale,
 }
 
 void GUIUpdate(VSwapchainContext* swapchain,KeyboardState* keyboardstate,s8* keyboard_ascii_buffer,u32 keyboard_ascii_count,
-               MouseState* mousestate,Matrix4b4 view,Matrix4b4 proj){
+               MouseState* mousestate,Mat4 view,Mat4 proj){
     
     
     memcpy(gui->input_buffer,keyboard_ascii_buffer,keyboard_ascii_count);
@@ -1699,10 +1699,10 @@ void GUIInternalBeginWindow(const s8* title,GUIVec2* pos,GUIDim2* dim){
         
         if(gui->internal_active_state == token){
             
-            Vector2 prev_mouse_pos =
+            Vec2 prev_mouse_pos =
             {(f32)gui->internal_prev_mouse_x,(f32)gui->internal_prev_mouse_y};
             
-            Vector2 mouse_pos = {(f32)gui->internal_mouse_x,(f32)gui->internal_mouse_y};
+            Vec2 mouse_pos = {(f32)gui->internal_mouse_x,(f32)gui->internal_mouse_y};
             
             InternalPixelCoordToNormalizedCoord((f32)gui->internal_width,(f32)gui->internal_height,
                                                 gui->internal_prev_mouse_x,gui->internal_prev_mouse_y,
@@ -1714,7 +1714,7 @@ void GUIInternalBeginWindow(const s8* title,GUIVec2* pos,GUIDim2* dim){
             
             auto dir = mouse_pos - prev_mouse_pos;
             
-            if(Magnitude(dir) > 0.0f){
+            if(MagnitudeVec2(dir) > 0.0f){
                 
                 pos_ptr->x += dir.x;
                 pos_ptr->y += dir.y;
@@ -1963,11 +1963,11 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
             scissor = sub->scissor;
         }
         
-        Matrix4b4 camera;
-        camera = IdentityMatrix4b4();
+        Mat4 camera;
+        camera = IdentityMat4();
         
         if(sub->cameramode == GUI_CAMERA_NONE){
-            camera = IdentityMatrix4b4();
+            camera = IdentityMat4();
         }
         
         else{
@@ -1976,7 +1976,7 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
             
 #if _row_major
             
-                Transpose(gui->proj_matrix * gui->view_matrix);
+                TransposeMat4(gui->proj_matrix * gui->view_matrix);
             
 #else
             
@@ -2525,11 +2525,11 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     //TODO: return if out of screen space (use a mask)
     
     
-    auto x_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{1,0,0},viewproj);
-    auto y_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,1,0},viewproj);
-    auto z_c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,0,1},viewproj);
+    auto x_c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{1,0,0},viewproj);
+    auto y_c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj);
+    auto z_c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,0,1},viewproj);
     
-    Vector2 mouse_c =GUIMouseCoordToScreenCoord();
+    Vec2 mouse_c = GUIMouseCoordToScreenCoord();
     mouse_c.y *= -1.0f;
     
     
@@ -2539,7 +2539,7 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     InternalGUIDrawLine(obj_c,z_c,gui->axis_z_color);
     
     auto mouse_dir = mouse_c - Vec3ToVec2(obj_c);
-    auto mouse_ndir = Normalize(mouse_dir);
+    auto mouse_ndir = NormalizeVec2(mouse_dir);
     
     struct DirDotPair{
         GUIVec3 dir;
@@ -2549,17 +2549,17 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     
     DirDotPair pair_array[3] = {
         
-        {Normalize(x_c - obj_c),
-            Dot(mouse_ndir,Normalize(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))),
-            Magnitude(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))},
+        {NormalizeVec3(x_c - obj_c),
+            DotVec2(mouse_ndir,NormalizeVec2(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))),
+            MagnitudeVec2(Vec3ToVec2(x_c) - Vec3ToVec2(obj_c))},
         
-        {Normalize(y_c - obj_c),
-            Dot(mouse_ndir,Normalize(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))),
-            Magnitude(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))},
+        {NormalizeVec3(y_c - obj_c),
+            DotVec2(mouse_ndir,NormalizeVec2(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))),
+            MagnitudeVec2(Vec3ToVec2(y_c) - Vec3ToVec2(obj_c))},
         
-        {Normalize(z_c - obj_c),
-            Dot(mouse_ndir,Normalize(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))),
-            Magnitude(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))},
+        {NormalizeVec3(z_c - obj_c),
+            DotVec2(mouse_ndir,NormalizeVec2(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))),
+            MagnitudeVec2(Vec3ToVec2(z_c) - Vec3ToVec2(obj_c))},
     };
     
     DirDotPair max = {};
@@ -2585,7 +2585,8 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
             
             *world_pos = 
                 ClipSpaceToWorldSpaceVec3(obj_c +
-                                      ProjectOnto(Vector3{mdir.x,mdir.y,0},gui->trans_dir),viewproj);
+                                      ProjectOntoVec3(Vec3{mdir.x,mdir.y,0},gui->trans_dir),
+				      viewproj);
             
             return true;
         }
@@ -2597,7 +2598,7 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
     }
     
     else if(((u32)(max.dot * 100.0f) > 98) && GUIMouseDownL() && 
-            !(u32)(((Magnitude(mouse_dir) - max.len)) * 10.0f)){
+            !(u32)(((MagnitudeVec2(mouse_dir) - max.len)) * 10.0f)){
         
         gui->trans_dir = max.dir;
         gui->prev_mouse_pos = mouse_c;
@@ -2617,17 +2618,17 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
     
     auto obj_c = Vec3ToVec2(WorldSpaceToClipSpaceVec3(world_pos,viewproj));
     
-    Vector2 mouse_c = GUIMouseCoordToScreenCoord();
+    Vec2 mouse_c = GUIMouseCoordToScreenCoord();
     mouse_c.y *= -1.0f;
     
     auto mouse_dir =  mouse_c - obj_c;
-    auto mouse_ndir =  Normalize(mouse_dir);
+    auto mouse_ndir =  NormalizeVec2(mouse_dir);
     
     if(GUIMouseDownL() && gui->internal_active_state != token){
         
         InternalSetActiveState("GUI3DScale");
         
-        gui->start_mouse_pos_len = Magnitude(mouse_dir);
+        gui->start_mouse_pos_len = MagnitudeVec2(mouse_dir);
         gui->start_scale = *scale;
     }
     
@@ -2650,13 +2651,13 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
         printf("--------------------\n");
         
         //print the lines
-        PrintVector2(obj_c);
-        PrintVector2(mouse_c);
-        PrintVector2((mouse_ndir * gui->start_mouse_pos_len) + obj_c);
+        PrintVec2(obj_c);
+        PrintVec2(mouse_c);
+        PrintVec2((mouse_ndir * gui->start_mouse_pos_len) + obj_c);
         
 #endif
         
-        *scale = (Magnitude(mouse_dir)/gui->start_mouse_pos_len) * gui->start_scale;
+        *scale = (MagnitudeVec2(mouse_dir)/gui->start_mouse_pos_len) * gui->start_scale;
         
         if(GUIMouseUpL()){
             gui->internal_active_state = false;
@@ -2677,7 +2678,7 @@ void GUIDrawCube(){
 
 #define _circle_granularity 32
 
-void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
+void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
     
     GUISetRenderMode(GUI_RENDER_LINE);
     GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2688,7 +2689,7 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
     
     struct DrawRotAxisData{
         u32 axis_index;
-        Vector3 dir;
+        Vec3 dir;
         Color color;
     };
     
@@ -2700,7 +2701,7 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
     
     //draw circles
     
-    Vector3 points[3][_circle_granularity] = {};
+    Vec3 points[3][_circle_granularity] = {};
     
     for(u32 i = 0; i < 3; i++){
         
@@ -2709,12 +2710,12 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
         for(u32 j = 0; j < _circle_granularity; j++){
             
             auto dir = axis.dir;
-            Vector3 rot_axis = {};
+            Vec3 rot_axis = {};
             
             rot_axis.floats[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
             
             
-            auto p = Normalize(RotateVector(dir,rot_axis));
+            auto p = NormalizeVec3(RotateVec3(dir,rot_axis));
             
             points[i][j] = WorldSpaceToClipSpaceVec3((p * radius) + obj_w,viewproj);
         }
@@ -2744,12 +2745,12 @@ void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
     
 }
 
-void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
+void InternalGUIDrawRotAxis(Vec3 obj_w,Mat4 viewproj,u32 selected_id,
                             b32 draw_unselected){
     
     struct DrawRotAxisData{
         u32 axis_index;
-        Vector3 dir;
+        Vec3 dir;
         Color color;
     };
     
@@ -2761,7 +2762,7 @@ void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
     
     //draw circles
     
-    Vector3 points[3][_circle_granularity] = {};
+    Vec3 points[3][_circle_granularity] = {};
     
     for(u32 i = 0; i < 3; i++){
         
@@ -2770,12 +2771,12 @@ void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
         for(u32 j = 0; j < _circle_granularity; j++){
             
             auto dir = axis.dir;
-            Vector3 rot_axis = {};
+            Vec3 rot_axis = {};
             
             rot_axis.floats[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
             
             
-            auto p = Normalize(RotateVector(dir,rot_axis));
+            auto p = NormalizeVec3(RotateVec3(dir,rot_axis));
             
             points[i][j] = WorldSpaceToClipSpaceVec3(p + obj_w,viewproj);
         }
@@ -2815,7 +2816,7 @@ void InternalGUIDrawRotAxis(Vector3 obj_w,Matrix4b4 viewproj,u32 selected_id,
 }
 
 
-b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
+b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
     
     auto ret = false;
     
@@ -2831,7 +2832,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
     auto obj_w = world_pos;
     auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
     
-    Vector3 mouse_c = {};
+    Vec3 mouse_c = {};
     mouse_c.vec2 = GUIMouseCoordToScreenCoord();
     mouse_c.z = 0;
     mouse_c.y *= -1.0f;
@@ -2864,14 +2865,14 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
         
         Point3 pi;
         
-        if(Intersect(line,rot_planes[i],&pi)){
+        if(IntersectOutLine3Plane(line,rot_planes[i],&pi)){
             
             if(gui->rot_selected == i){
                 curpi = pi;	
             }
             
             
-            auto k = fabsf(1.0f - Magnitude(pi - obj_w));
+            auto k = fabsf(1.0f - MagnitudeVec3(pi - obj_w));
             
             if(k < diff && k < 0.3f){
                 diff = k;
@@ -2889,8 +2890,8 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
         draw_unselected = false;
         selected = gui->rot_selected;
         
-        auto d1 = Normalize(curpi - obj_w);
-        auto d2 = Normalize(gui->rot_intersection_point - obj_w);
+        auto d1 = NormalizeVec3(curpi - obj_w);
+        auto d2 = NormalizeVec3(gui->rot_intersection_point - obj_w);
         
         auto p1 = obj_w + d1;
         auto p2 = obj_w + d2;
@@ -2916,7 +2917,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot){
             
         }
         
-        *rot = ConstructQuaternion(rot_planes[selected].norm,angle) * gui->start_rot;
+        *rot = ConstructQuat(rot_planes[selected].norm,angle) * gui->start_rot;
         
         if(GUIMouseUpL() && gui->internal_active_state == token){
             gui->internal_active_state = false; 
@@ -2947,9 +2948,9 @@ void GUIDrawPosMarker(GUIVec3 world_pos,Color color){
     
     auto obj_w = world_pos;
     
-    auto a = WorldSpaceToClipSpaceVec3(obj_w + (Vector3{1,1,0} * 0.5f),viewproj);
-    auto b = WorldSpaceToClipSpaceVec3(obj_w + (Vector3{-1,1,0}  * 0.5f),viewproj);
-    auto c = WorldSpaceToClipSpaceVec3(obj_w + Vector3{0,1,0},viewproj);
+    auto a = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * 0.5f),viewproj);
+    auto b = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{-1,1,0}  * 0.5f),viewproj);
+    auto c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj);
     auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
     
     InternalGUIDrawLine(obj_c,a,color);

@@ -29,7 +29,7 @@ enum AAnimationBehaviour{
 
 struct AAnimationKey{
   f32 time;
-  Vector4 value;
+  Vec4 value;
 };
 
 struct AAnimationData{
@@ -60,8 +60,8 @@ struct ALinearBone{
 };
 
 struct ADQBone{
-  DualQuaternion offset;
-  DualQuaternion final;//we will be using this afterall
+  DualQuat offset;
+  DualQuat final;//we will be using this afterall
   //u32 bone_hash;//we only use this to map to corresponding animation data.might as well replace w data
   //AAnimationData* animationdata
   u32 children_count;
@@ -72,7 +72,7 @@ struct ADQBone{
 void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array,
 		  ALinearBone* root,DBGPTR(Mat4) result);
 
-void ADualQuaternionBlend(f32 time_ms,ADQBone* root,AAnimationSet animation);
+void ADualQuatBlend(f32 time_ms,ADQBone* root,AAnimationSet animation);
 
 //NOTE: We can interpolate between both. sounds slow though?
 //void LinearDQ(f32 time_ms,LinearSkeleton skeleton,AAnimation animation);
