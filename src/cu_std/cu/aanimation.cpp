@@ -7,21 +7,21 @@
 #if 1
 
 struct VectorTransform{
-    Vector4 translation;
-    Quaternion rotation;
-    Vector4 scale;
+    Vec4 translation;
+    Quat rotation;
+    Vec4 scale;
 };
 
 VectorTransform _ainline IdentityVectorTransform(){
     VectorTransform transform;
-    transform.translation = Vector4{};
-    transform.rotation = MQuaternionIdentity();
-    transform.scale = Vector4{1.0f,1.0f,1.0f,1.0f};
+    transform.translation = Vec4{};
+    transform.rotation = MQuatIdentity();
+    transform.scale = Vec4{1.0f,1.0f,1.0f,1.0f};
     
     return transform;
 }
 
-Vector4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
+Vec4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
     
     if(key_count ==1){
         return key_array[0].value;
@@ -49,7 +49,7 @@ Vector4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 ani
     printf("cur %f    %f    %f    \n",(f64)current.value.x,(f64)current.value.y,(f64)current.value.z);
     printf("next %f    %f    %f    \n",(f64)next.value.x,(f64)next.value.y,(f64)next.value.z);
     
-    return InterpolateVector(current.value,next.value,step);
+    return InterpolateVec4(current.value,next.value,step);
 }
 
 // void PrintAnimationData(AAnimationSet animation){
@@ -83,7 +83,7 @@ Vector4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 ani
 // }
 
 
-Vector4 _ainline AInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
+Vec4 _ainline AInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
     
     if(key_count ==1){
         return key_array[0].value;
@@ -109,14 +109,14 @@ Vector4 _ainline AInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f3
     
     f32 step = (animationtime - current.time)/(next.time - current.time);
     
-    return InterpolateVector(current.value,next.value,step);
+    return InterpolateVec4(current.value,next.value,step);
 }
 
-Quaternion _ainline  AInterpolateAnimationQuaternion(AAnimationKey* key_array,u32 key_count,
+Quat _ainline  AInterpolateAnimationQuat(AAnimationKey* key_array,u32 key_count,
                                                      f32 animationtime){
     if(key_count ==1){
         
-        Quaternion ret;
+        Quat ret;
         
         ret.w = key_array[0].value.x;
         ret.x = key_array[0].value.y;
@@ -144,18 +144,18 @@ Quaternion _ainline  AInterpolateAnimationQuaternion(AAnimationKey* key_array,u3
     
     f32 step = (animationtime - current.time)/(next.time - current.time);
     
-    return NLerp(Quaternion{current.value.x,current.value.y,current.value.z,current.value.w},
-                 Quaternion{next.value.x,next.value.y,next.value.z,next.value.w},step);
+    return NLerpQuat(Quat{current.value.x,current.value.y,current.value.z,current.value.w},
+                 Quat{next.value.x,next.value.y,next.value.z,next.value.w},step);
 }
 
 void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
-                                    ALinearBone* _restrict node,Matrix4b4 parent_matrix,
-                                    DBGPTR(Matrix4b4) result,
+                                    ALinearBone* _restrict node,Mat4 parent_matrix,
+                                    DBGPTR(Mat4) result,
                                     u32* _restrict result_count){
     
     //hand optimize this. the compiler has no idea wtf it's doing
     
-    Matrix4b4 matrix;
+    Mat4 matrix;
     VectorTransform transform = IdentityVectorTransform();
     
     AAnimationData* animationdata = node->animationdata_array;
@@ -173,21 +173,21 @@ void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
                                   animationdata->scalekey_count,animationtime);
         
         transform.rotation = 
-            AInterpolateAnimationQuaternion(animationdata->rotationkey_array,
+            AInterpolateAnimationQuat(animationdata->rotationkey_array,
                                             animationdata->rotationkey_count,animationtime);
     }
     
     matrix =
-        WorldMatrix(ToVec3(transform.translation),
+        WorldMat4Q(Vec4ToVec3(transform.translation),
                     transform.rotation,
-                    ToVec3(transform.scale));
+                    Vec4ToVec3(transform.scale));
     
     matrix = parent_matrix * matrix;
     
     result[*result_count] = 
 #if _row_major
     
-        Transpose(matrix * node->offset);
+        TransposeMat4(matrix * node->offset);
     
 #else
     
@@ -210,7 +210,7 @@ void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
 
 
 void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array,
-                  ALinearBone* root,DBGPTR(Matrix4b4) result){
+                  ALinearBone* root,DBGPTR(Mat4) result){
     
     TIMEBLOCK(DarkViolet);
     
@@ -225,7 +225,7 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
     u32 result_count = 0;
     
     ALinearTransformLinearSkeleton(animation_index,animationtime,root,
-                                   IdentityMatrix4b4(),result,&result_count);
+                                   IdentityMat4(),result,&result_count);
 }
 
 #endif

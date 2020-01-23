@@ -3,11 +3,13 @@
 #include "iintrin.h"
 #include "aallocator.h"
 
+#include "pthread.h"
+#include "semaphore.h"
+
+#include "ttimer.h"
+
 void TWaitSemaphore(TSemaphore sem,f32 time_ms){
-    
-    timespec time = {};
-    time.tv_nsec = (long)(time_ms * 1000000.0f);
-    
+    auto time =  MsToTimespec(time_ms);
     sem_timedwait(sem,&time); 
 }
 
@@ -15,15 +17,19 @@ void TWaitSemaphore(TSemaphore sem){
     sem_wait(sem);
 }
 
-ThreadID TGetThisThreadID(){
+TThreadID TGetThisThreadID(){
     return pthread_self();
 }
 
-void TSetThreadAffinity(u32 cpu_mask){
+void TSetThreadAffinity(u32 cpu_mask,TThreadID id){
     
     _kill("mask of 0 used\n",!cpu_mask);
     
-    ThreadID threadid = TGetThisThreadID();
+    if(!id){
+        id = TGetThisThreadID();
+    }
+    
+    TThreadID threadid = id;
     
     u32 count = 32 - BSR(cpu_mask);
     
@@ -44,7 +50,7 @@ void TSetThreadAffinity(u32 cpu_mask){
     
 }
 
-TThreadContext  TCreateThread(s64 (*call_fptr)(void*),u32 stack_size,void* args){
+TThreadContext TCreateThread(s64 (*call_fptr)(void*),u32 stack_size,void* args){
     
     TThreadContext context;
     pthread_attr_t attr;
@@ -86,7 +92,11 @@ void TSignalSemaphore(TSemaphore sem){
 }
 
 
-void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline){
+void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline,TThreadID id){
+    
+    if(!id){
+        id = TGetThisThreadID();
+    }
     
     _kill("not supported yet\n",policy == TSCHED_LINUX_POLICY_REALTIME_DEADLINE);
     _kill("priority out of range\n",policy > 1.0f || policy < 0.0f);
@@ -101,19 +111,22 @@ void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadl
     sched.sched_priority = (s32)(priority * len) + min;
     
     
-    auto ret = pthread_setschedparam(TGetThisThreadID(),(s32)policy,&sched);
+    auto ret = pthread_setschedparam(id,(s32)policy,&sched);
     
     _kill("call failed\n",ret);
     
 }
 
-void TGetThreadPriority(TSchedulerPoicy* pl,f32* pr,TLinuxSchedulerDeadline* dl){
+void TGetThreadPriority(TSchedulerPoicy* pl,f32* pr,TLinuxSchedulerDeadline* dl,TThreadID id){
+    
+    if(!id){
+        id = TGetThisThreadID();
+    }
     
     s32 policy = 0;
     sched_param sched = {};
     
-    auto ret = pthread_getschedparam(TGetThisThreadID(),&policy,
-                                     &sched);
+    auto ret = pthread_getschedparam(id,&policy,&sched);
     
     _kill("call failed\n",ret);
     

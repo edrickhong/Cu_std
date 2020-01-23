@@ -22,8 +22,8 @@ struct GUIBoundingRect{
     u16 height;
 };
 
-typedef Vector2 GUIVec2;
-typedef Vector3 GUIVec3;
+typedef Vec2 GUIVec2;
+typedef Vec3 GUIVec3;
 
 struct GUIDim2{
     f32 w;
@@ -57,7 +57,7 @@ void GUIInit(VDeviceContext* vdevice,VSwapchainContext* swap,
              GUIFont* fonthandle = 0);
 
 void GUIUpdate(VSwapchainContext* swapchain,KeyboardState* keyboardstate,s8* keyboard_ascii_buffer,u32 keyboard_ascii_count,
-               MouseState* mousestate,Matrix4b4 view,Matrix4b4 proj);
+               MouseState* mousestate,Mat4 view,Mat4 proj);
 
 void GUIDraw(VkCommandBuffer cmdbuffer);
 
@@ -122,7 +122,7 @@ b32 GUITranslateGizmo(GUIVec3* world_pos);
 
 b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
 
-b32 GUIRotationGizmo(GUIVec3 world_pos,Quaternion* rot);
+b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot);
 
 void GUIDrawPosMarker(GUIVec3 world_pos,Color color);
 
@@ -139,7 +139,7 @@ void GUIGenFontFile(const s8* filepath,const s8* writepath,f32 fontsize);
 
 void GUIDebugGetCurrentHolder();
 
-void GUIDrawAxisSphere(Vector3 obj_w,f32 radius,Color x = White,Color y = White,Color z = White);
+void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color x = White,Color y = White,Color z = White);
 
 
 

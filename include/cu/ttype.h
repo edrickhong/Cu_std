@@ -144,7 +144,7 @@ typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
 #endif
 
-union m32{
+typedef union{
     
     u32 u;
     s32 i;
@@ -156,6 +156,9 @@ union m32{
     s8 sbyte[4];
     s16 sword[2];
     
+
+#ifdef __cplusplus
+
     operator u32(){
         
         return u;
@@ -178,9 +181,12 @@ union m32{
     void operator=(f32 o){
         f= o;
     }
-};
 
-union m64{
+#endif
+
+}m32;
+
+typedef union{
     
     u64 u;
     s64 i;
@@ -211,6 +217,8 @@ union m64{
     
     
     m32 array[2];
+
+#ifdef __cplusplus
     
     m32& operator [](ptrsize index){
         
@@ -239,12 +247,14 @@ union m64{
     void operator=(f64 o){
         f= o;
     }
-};
+
+#endif
+}m64;
 
 
 void _ainline ClearPtrTop16Bits(void** ptr){
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = *ptr;
     
     v.u ^= 0xFFFF000000000000;
@@ -257,17 +267,17 @@ void _ainline WritePtrTop16Bits(void** ptr,u16 value){
     
     ClearPtrTop16Bits(ptr);
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = *ptr;
     
     v.u |= ((u64)value) << 48;
     
     *ptr = v.ptr;
-};
+}
 
 u16 _ainline GetPtrTop16Bits(void* ptr){
     
-    m64 v ={};
+    m64 v ={0};
     v.ptr = ptr;
     
     return (v.u >> 48);

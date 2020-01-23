@@ -14,6 +14,10 @@ typedef DWORD ThreadID;
 
 #else
 
+#include "thread_mode.h"
+
+#if _use_pthread
+
 #include "pthread.h"
 #include "semaphore.h"
 #include "linux/sched.h"
@@ -23,8 +27,17 @@ struct TThreadContext{
 };
 
 typedef sem_t* TSemaphore;
+typedef pthread_t TThreadID;
 
-typedef pthread_t ThreadID;
+#else
+
+#include "linux/sched.h"
+
+typedef u32 TThreadContext;
+typedef TThreadContext TThreadID;
+typedef volatile _cachealign u32* TSemaphore;
+
+#endif
 
 #endif
 
@@ -45,13 +58,14 @@ enum TSchedulerPoicy{
 #else
     
     TSCHED_POLICY_STATIC_IDLE = SCHED_IDLE,
-    TSCHED_POLICY_STATIC_NORMAL = SCHED_OTHER,
+    TSCHED_POLICY_STATIC_NORMAL = SCHED_NORMAL,
     
     TSCHED_LINUX_POLICY_STATIC_BATCH = SCHED_BATCH,
     TSCHED_LINUX_POLICY_REALTIME_FIFO = SCHED_FIFO,
     TSCHED_LINUX_POLICY_REALTIME_RR = SCHED_RR,
     
-    //TODO: implement this when we overhaul everything to not use pthreads
+    
+    //NOTE: this is not posix standard and is only available on Linux 3.14 and above
     TSCHED_LINUX_POLICY_REALTIME_DEADLINE = SCHED_DEADLINE,
     
 #endif
@@ -59,9 +73,12 @@ enum TSchedulerPoicy{
 };
 
 struct TLinuxSchedulerDeadline{
-    u64 sched_runtime;
-    u64 sched_deadline;
-    u64 sched_period;
+    u64 runtime;
+    u64 deadline;
+    u64 period;
+    
+    //SCHED_FLAG_RECLAIM or SCHED_FLAG_DL_OVERRUN
+    u32 flags;
 };
 
 
@@ -77,10 +94,10 @@ void TWaitSemaphore(TSemaphore sem);
 
 void TWaitSemaphore(TSemaphore sem,f32 time_ms);
 
-ThreadID TGetThisThreadID();
+TThreadID TGetThisThreadID();
 
-void TSetThreadAffinity(u32 cpu_mask);
+void TSetThreadAffinity(u32 cpu_mask,TThreadID id = 0);
 
-void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {});
+void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {},TThreadID id = 0);
 
-void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline = 0);
+void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline = 0,TThreadID id = 0);
