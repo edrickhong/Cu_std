@@ -78,6 +78,14 @@ typedef union Vec4 {
 		f32 x, y, z, w;
 	};
 
+	struct {
+		f32 R,G,B,A;
+	};
+
+	struct {
+		f32 r,g,b,a;
+	};
+
 	Vec2 vec2[2];
 
 	f32 floats[4];
@@ -117,6 +125,8 @@ typedef struct DualQuat {
 	Quat q1, q2;
 } DualQuat;
 
+
+typedef Vec4 Color;
 typedef Vec4 Point4;
 typedef Vec3 Point3;
 typedef Vec2 Point2;
@@ -190,7 +200,9 @@ typedef struct Line2{
 	Vec2 dir;
 }Line2;
 
-//TODO: this isn't being used
+typedef Line3 Ray3;
+typedef Line2 Ray2;
+
 typedef enum IntersectType{
 	INTERSECT_FALSE = 0,
 	INTERSECT_FINITE = 1,
@@ -200,6 +212,10 @@ typedef enum IntersectType{
 typedef Vec4SOA PolygonSOA;
 
 //MARK: Identities
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 Mat4 _ainline IdentityMat4() {
 	Mat4 matrix = {
@@ -426,7 +442,6 @@ Vec4 Vec4MulConstL(f32 lhs, Vec4 rhs);
 Vec4 Vec4MulConstR(Vec4 lhs, f32 rhs);
 Vec4 Vec4DivConstR(Vec4 lhs, f32 rhs);
 
-
 Vec3 Vec3Add(Vec3 lhs, Vec3 rhs);
 Vec3 Vec3Sub(Vec3 lhs, Vec3 rhs);
 Vec3 Vec3MulConstL(f32 lhs, Vec3 rhs);
@@ -480,81 +495,6 @@ DualQuat DualQMul(DualQuat lhs, DualQuat rhs);
 DualQuat DualQMulConstL(f32 lhs, DualQuat rhs);
 DualQuat DualQMulConstR(DualQuat lhs, f32 rhs);
 
-#ifdef __cplusplus
-
-Mat4 operator+(Mat4 lhs, Mat4 rhs);
-Mat4 operator-(Mat4 lhs, Mat4 rhs);
-Mat4 operator*(Mat4 lhs, Mat4 rhs);
-Mat4 operator*(f32 lhs, Mat4 rhs);
-Mat4 operator*(Mat4 lhs, f32 rhs);
-Mat4 operator/(Mat4 lhs, Mat4 rhs);
-
-
-Mat3 operator+(Mat3 lhs, Mat3 rhs);
-Mat3 operator-(Mat3 lhs, Mat3 rhs);
-Mat3 operator*(Mat3 lhs, Mat3 rhs);
-Mat3 operator*(f32 lhs, Mat3 rhs);
-Mat3 operator*(Mat3 lhs, f32 rhs);
-Mat3 operator/(Mat3 lhs, Mat3 rhs);
-
-
-Mat2 operator+(Mat2 lhs, Mat2 rhs);
-Mat2 operator-(Mat2 lhs, Mat2 rhs);
-Mat2 operator*(Mat2 lhs, Mat2 rhs);
-Mat2 operator*(f32 lhs, Mat2 rhs);
-Mat2 operator*(Mat2 lhs, f32 rhs);
-Mat2 operator/(Mat2 lhs, Mat2 rhs);
-
-Vec4 operator+(Vec4 lhs, Vec4 rhs);
-Vec4 operator-(Vec4 lhs, Vec4 rhs);
-Vec4 operator*(f32 lhs, Vec4 rhs);
-Vec4 operator*(Vec4 lhs, f32 rhs);
-Vec4 operator/(Vec4 lhs, f32 rhs);
-
-Vec3 operator+(Vec3 lhs, Vec3 rhs);
-Vec3 operator-(Vec3 lhs, Vec3 rhs);
-Vec3 operator*(f32 lhs, Vec3 rhs);
-Vec3 operator*(Vec3 lhs, f32 rhs);
-Vec3 operator/(Vec3 lhs, f32 rhs);
-
-Vec2 operator+(Vec2 lhs, Vec2 rhs);
-Vec2 operator-(Vec2 lhs, Vec2 rhs);
-Vec2 operator*(f32 lhs, Vec2 rhs);
-Vec2 operator*(Vec2 lhs, f32 rhs);
-Vec2 operator/(Vec2 lhs, f32 rhs);
-
-Quat _ainline operator+(Quat lhs, Quat rhs) {
-	return QuatAdd(lhs,rhs);
-}
-
-Quat _ainline operator-(Quat lhs, Quat rhs) {
-	return QuatSub(lhs,rhs);
-}
-
-Quat _ainline operator*(f32 lhs, Quat rhs) {
-	return QuatMulConstL(lhs,rhs);
-}
-
-Quat _ainline operator*(Quat lhs, f32 rhs) {
-	return QuatMulConstR(lhs,rhs);
-}
-
-Quat _ainline operator/(Quat lhs, f32 rhs) {
-	return QuatDivConstR(lhs,rhs);
-}
-
-Quat operator*(Quat lhs, Quat rhs);
-
-DualQuat operator+(DualQuat lhs, DualQuat rhs);
-DualQuat operator-(DualQuat lhs, DualQuat rhs);
-DualQuat operator*(DualQuat lhs, DualQuat rhs);
-DualQuat operator*(f32 lhs, DualQuat rhs);
-DualQuat operator*(DualQuat lhs, f32 rhs);
-
-
-
-#endif
-
 // MARK: SPECIAL MATH OPS (can only be expressed in functions)
 //TODO: we should also include Rejection functios
 Mat4 CompMulMat4(Mat4 a,Mat4 b);
@@ -567,7 +507,6 @@ Mat3 InverseMat3(Mat3 matrix);
 
 Mat2 TransposeMat2(Mat2 matrix);
 Mat2 InverseMat2(Mat2 matrix);
-
 
 f32 MagnitudeVec4(Vec4 vec);
 f32 DotVec4(Vec4 vec1, Vec4 vec2);
@@ -616,7 +555,6 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b);
 b32 IntersectLine2(Line2 a, Line2 b);
 b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point);
 b32 TypedIntersectLine2(Line2 a, Line2 b);
-
 
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
@@ -705,3 +643,82 @@ void PrintVec3(Vec3 vec);
 void PrintVec2(Vec2 vec);
 
 void PrintQuat(Quat quat);
+
+
+#ifdef __cplusplus
+
+}
+
+Mat4 operator+(Mat4 lhs, Mat4 rhs);
+Mat4 operator-(Mat4 lhs, Mat4 rhs);
+Mat4 operator*(Mat4 lhs, Mat4 rhs);
+Mat4 operator*(f32 lhs, Mat4 rhs);
+Mat4 operator*(Mat4 lhs, f32 rhs);
+Mat4 operator/(Mat4 lhs, Mat4 rhs);
+
+
+Mat3 operator+(Mat3 lhs, Mat3 rhs);
+Mat3 operator-(Mat3 lhs, Mat3 rhs);
+Mat3 operator*(Mat3 lhs, Mat3 rhs);
+Mat3 operator*(f32 lhs, Mat3 rhs);
+Mat3 operator*(Mat3 lhs, f32 rhs);
+Mat3 operator/(Mat3 lhs, Mat3 rhs);
+
+
+Mat2 operator+(Mat2 lhs, Mat2 rhs);
+Mat2 operator-(Mat2 lhs, Mat2 rhs);
+Mat2 operator*(Mat2 lhs, Mat2 rhs);
+Mat2 operator*(f32 lhs, Mat2 rhs);
+Mat2 operator*(Mat2 lhs, f32 rhs);
+Mat2 operator/(Mat2 lhs, Mat2 rhs);
+
+Vec4 operator+(Vec4 lhs, Vec4 rhs);
+Vec4 operator-(Vec4 lhs, Vec4 rhs);
+Vec4 operator*(f32 lhs, Vec4 rhs);
+Vec4 operator*(Vec4 lhs, f32 rhs);
+Vec4 operator/(Vec4 lhs, f32 rhs);
+
+Vec3 operator+(Vec3 lhs, Vec3 rhs);
+Vec3 operator-(Vec3 lhs, Vec3 rhs);
+Vec3 operator*(f32 lhs, Vec3 rhs);
+Vec3 operator*(Vec3 lhs, f32 rhs);
+Vec3 operator/(Vec3 lhs, f32 rhs);
+
+Vec2 operator+(Vec2 lhs, Vec2 rhs);
+Vec2 operator-(Vec2 lhs, Vec2 rhs);
+Vec2 operator*(f32 lhs, Vec2 rhs);
+Vec2 operator*(Vec2 lhs, f32 rhs);
+Vec2 operator/(Vec2 lhs, f32 rhs);
+
+Quat _ainline operator+(Quat lhs, Quat rhs) {
+	return QuatAdd(lhs,rhs);
+}
+
+Quat _ainline operator-(Quat lhs, Quat rhs) {
+	return QuatSub(lhs,rhs);
+}
+
+Quat _ainline operator*(f32 lhs, Quat rhs) {
+	return QuatMulConstL(lhs,rhs);
+}
+
+Quat _ainline operator*(Quat lhs, f32 rhs) {
+	return QuatMulConstR(lhs,rhs);
+}
+
+Quat _ainline operator/(Quat lhs, f32 rhs) {
+	return QuatDivConstR(lhs,rhs);
+}
+
+Quat operator*(Quat lhs, Quat rhs);
+
+DualQuat operator+(DualQuat lhs, DualQuat rhs);
+DualQuat operator-(DualQuat lhs, DualQuat rhs);
+DualQuat operator*(DualQuat lhs, DualQuat rhs);
+DualQuat operator*(f32 lhs, DualQuat rhs);
+DualQuat operator*(DualQuat lhs, f32 rhs);
+
+
+
+#endif
+

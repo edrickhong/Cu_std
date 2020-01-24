@@ -197,6 +197,7 @@ Quat _ainline Neighbourhood(Quat a,Quat b){
 
 //MARK: conversions
 
+extern "C" {
 Mat4 QuatToMat4(Quat quaternion){
     
     Quat squared;
@@ -857,183 +858,6 @@ DualQuat DualQMulConstR(DualQuat lhs,f32 rhs){
     return DualQMulConstL(rhs,lhs);
 }
 
-//MARK:cpp operators here
-
-Mat4 operator+(Mat4 lhs,Mat4 rhs){
-    
-    return Mat4Add(lhs,rhs);
-}
-
-Mat4 operator-(Mat4 lhs,Mat4 rhs){
-    
-    return Mat4Sub(lhs,rhs);
-}
-
-Mat4 operator*(Mat4 lhs,Mat4 rhs){
-       return Mat4Mul(lhs,rhs);
-}
-
-Mat4 operator*(f32 lhs,Mat4 rhs){
-    
-    return Mat4MulConstL(lhs,rhs);
-}
-
-Mat4 operator*(Mat4 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-Mat4 operator/(Mat4 lhs,Mat4 rhs){
-    
-    return Mat4Div(lhs,rhs);
-}
-
-Mat3 operator+(Mat3 lhs,Mat3 rhs){
-    
-    return Mat3Add(lhs,rhs);
-}
-
-Mat3 operator-(Mat3 lhs,Mat3 rhs){
-    
-    return Mat3Sub(lhs,rhs);
-    
-}
-
-Mat3 operator*(Mat3 lhs,Mat3 rhs){
-   return Mat3Mul(lhs,rhs);
-    
-}
-
-Mat3 operator*(f32 lhs,Mat3 rhs){
-    
-    return Mat3MulConstL(lhs,rhs);
-}
-
-Mat3 operator*(Mat3 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-Mat3 operator/(Mat3 lhs,Mat3 rhs){
-    return Mat3Div(lhs,rhs);
-}
-
-Mat2 operator+(Mat2 lhs,Mat2 rhs){
-    
-    return Mat2Add(lhs,rhs);
-}
-
-Mat2 operator-(Mat2 lhs,Mat2 rhs){
-    
-    return Mat2Sub(lhs,rhs);
-    
-}
-
-Mat2 operator*(Mat2 lhs,Mat2 rhs){
-       return Mat2Mul(lhs,rhs);
-}
-
-Mat2 operator*(f32 lhs,Mat2 rhs){
-    
-    return Mat2MulConstL(lhs,rhs);
-}
-
-Mat2 operator*(Mat2 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-Vec4 operator+(Vec4 lhs,Vec4 rhs){
-    
-    return Vec4Add(lhs,rhs);
-}
-
-Vec4 operator-(Vec4 lhs,Vec4 rhs){
-	return Vec4Sub(lhs,rhs);
-}
-
-Vec4 operator*(f32 lhs,Vec4 rhs){
-    return Vec4MulConstL(lhs,rhs);
-}
-
-Vec4 operator*(Vec4 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-
-Vec4 operator/(Vec4 lhs,f32 rhs){
-    
-    return Vec4DivConstR(lhs,rhs);
-}
-
-Vec3 operator+(Vec3 lhs,Vec3 rhs){
-    
-    return Vec3Add(lhs,rhs);
-}
-
-Vec3 operator-(Vec3 lhs,Vec3 rhs){
-    
-    return Vec3Sub(lhs,rhs);
-}
-
-Vec3 operator*(f32 lhs,Vec3 rhs){
-    
-    return Vec3MulConstL(lhs,rhs);
-}
-
-Vec3 operator*(Vec3 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-
-Vec3 operator/(Vec3 lhs,f32 rhs){
-    
-    return Vec3DivConstR(lhs,rhs);
-}
-
-Vec2 operator+(Vec2 lhs,Vec2 rhs){
-    return Vec2Add(lhs,rhs);
-}
-
-Vec2 operator-(Vec2 lhs,Vec2 rhs){
-    return Vec2Sub(lhs,rhs);
-}
-
-
-Vec2 operator*(f32 lhs,Vec2 rhs){
-    return Vec2MulConstL(lhs,rhs);
-}
-
-Vec2 operator*(Vec2 lhs,f32 rhs){
-    return rhs * lhs;
-}
-
-Vec2 operator/(Vec2 lhs,f32 rhs){
-    return Vec2DivConstR(lhs,rhs);
-}
-
-
-
-Quat operator*(Quat lhs,Quat rhs){
-    return QuatMul(lhs,rhs);
-}
-
-DualQuat operator+(DualQuat lhs,DualQuat rhs){
-    return DualQAdd(lhs,rhs);
-}
-
-DualQuat operator-(DualQuat lhs,DualQuat rhs){
-    return DualQSub(lhs,rhs);
-}
-
-DualQuat operator*(DualQuat lhs,DualQuat rhs){
-    return DualQMul(lhs,rhs);
-}
-
-DualQuat operator*(f32 lhs,DualQuat rhs){
-    return DualQMulConstL(lhs,rhs);
-}
-
-DualQuat operator*(DualQuat lhs,f32 rhs){
-    return rhs * lhs;
-}
 
 
 
@@ -2019,4 +1843,184 @@ void PrintVec2(Vec2 vec){
 
 void PrintQuat(Quat vec){
     printf("%f   %f   %f   %f\n",(f64)vec.w,(f64)vec.x,(f64)vec.y,(f64)vec.z);
+}
+
+}
+
+//MARK:cpp Math operators here
+
+Mat4 operator+(Mat4 lhs,Mat4 rhs){
+    
+    return Mat4Add(lhs,rhs);
+}
+
+Mat4 operator-(Mat4 lhs,Mat4 rhs){
+    
+    return Mat4Sub(lhs,rhs);
+}
+
+Mat4 operator*(Mat4 lhs,Mat4 rhs){
+       return Mat4Mul(lhs,rhs);
+}
+
+Mat4 operator*(f32 lhs,Mat4 rhs){
+    
+    return Mat4MulConstL(lhs,rhs);
+}
+
+Mat4 operator*(Mat4 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+Mat4 operator/(Mat4 lhs,Mat4 rhs){
+    
+    return Mat4Div(lhs,rhs);
+}
+
+Mat3 operator+(Mat3 lhs,Mat3 rhs){
+    
+    return Mat3Add(lhs,rhs);
+}
+
+Mat3 operator-(Mat3 lhs,Mat3 rhs){
+    
+    return Mat3Sub(lhs,rhs);
+    
+}
+
+Mat3 operator*(Mat3 lhs,Mat3 rhs){
+   return Mat3Mul(lhs,rhs);
+    
+}
+
+Mat3 operator*(f32 lhs,Mat3 rhs){
+    
+    return Mat3MulConstL(lhs,rhs);
+}
+
+Mat3 operator*(Mat3 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+Mat3 operator/(Mat3 lhs,Mat3 rhs){
+    return Mat3Div(lhs,rhs);
+}
+
+Mat2 operator+(Mat2 lhs,Mat2 rhs){
+    
+    return Mat2Add(lhs,rhs);
+}
+
+Mat2 operator-(Mat2 lhs,Mat2 rhs){
+    
+    return Mat2Sub(lhs,rhs);
+    
+}
+
+Mat2 operator*(Mat2 lhs,Mat2 rhs){
+       return Mat2Mul(lhs,rhs);
+}
+
+Mat2 operator*(f32 lhs,Mat2 rhs){
+    
+    return Mat2MulConstL(lhs,rhs);
+}
+
+Mat2 operator*(Mat2 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+Vec4 operator+(Vec4 lhs,Vec4 rhs){
+    
+    return Vec4Add(lhs,rhs);
+}
+
+Vec4 operator-(Vec4 lhs,Vec4 rhs){
+	return Vec4Sub(lhs,rhs);
+}
+
+Vec4 operator*(f32 lhs,Vec4 rhs){
+    return Vec4MulConstL(lhs,rhs);
+}
+
+Vec4 operator*(Vec4 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+
+Vec4 operator/(Vec4 lhs,f32 rhs){
+    
+    return Vec4DivConstR(lhs,rhs);
+}
+
+Vec3 operator+(Vec3 lhs,Vec3 rhs){
+    
+    return Vec3Add(lhs,rhs);
+}
+
+Vec3 operator-(Vec3 lhs,Vec3 rhs){
+    
+    return Vec3Sub(lhs,rhs);
+}
+
+Vec3 operator*(f32 lhs,Vec3 rhs){
+    
+    return Vec3MulConstL(lhs,rhs);
+}
+
+Vec3 operator*(Vec3 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+
+Vec3 operator/(Vec3 lhs,f32 rhs){
+    
+    return Vec3DivConstR(lhs,rhs);
+}
+
+Vec2 operator+(Vec2 lhs,Vec2 rhs){
+    return Vec2Add(lhs,rhs);
+}
+
+Vec2 operator-(Vec2 lhs,Vec2 rhs){
+    return Vec2Sub(lhs,rhs);
+}
+
+
+Vec2 operator*(f32 lhs,Vec2 rhs){
+    return Vec2MulConstL(lhs,rhs);
+}
+
+Vec2 operator*(Vec2 lhs,f32 rhs){
+    return rhs * lhs;
+}
+
+Vec2 operator/(Vec2 lhs,f32 rhs){
+    return Vec2DivConstR(lhs,rhs);
+}
+
+
+
+Quat operator*(Quat lhs,Quat rhs){
+    return QuatMul(lhs,rhs);
+}
+
+DualQuat operator+(DualQuat lhs,DualQuat rhs){
+    return DualQAdd(lhs,rhs);
+}
+
+DualQuat operator-(DualQuat lhs,DualQuat rhs){
+    return DualQSub(lhs,rhs);
+}
+
+DualQuat operator*(DualQuat lhs,DualQuat rhs){
+    return DualQMul(lhs,rhs);
+}
+
+DualQuat operator*(f32 lhs,DualQuat rhs){
+    return DualQMulConstL(lhs,rhs);
+}
+
+DualQuat operator*(DualQuat lhs,f32 rhs){
+    return rhs * lhs;
 }
