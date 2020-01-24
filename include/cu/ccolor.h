@@ -143,11 +143,3 @@
 #define     WhiteSmoke           Color{0.960784376f, 0.960784376f, 0.960784376f, 1.000000000f}
 #define     Yellow               Color{1.000000000f, 1.000000000f, 0.000000000f, 1.000000000f}
 #define     YellowGreen          Color{0.603921592f, 0.803921640f, 0.196078449f, 1.000000000f}
-
-
-struct Color{
-    f32 R;
-    f32 G;
-    f32 B;
-    f32 A;
-};//do we put this into mmath?
