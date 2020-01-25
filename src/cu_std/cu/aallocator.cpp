@@ -340,11 +340,15 @@ void SetAAllocatorContext(AAllocatorContext* this_context){
 
 #ifdef DEBUG
 
+#ifdef VERBOSE
 #pragma message ("MALLOC TRACKING ENABLED")
+#endif
 
 #if  _enable_allocboundscheck
 
+#ifdef VERBOSE
 #pragma message ("TALLOC BOUNDS CHECKING ENABLED")
+#endif
 
 #endif
 

@@ -11,7 +11,10 @@ have automatic conversions between f32* to our types for better integration with
 #ifdef DEBUG
 
 #if (_test__matrices)
+
+#ifdef VERBOSE
 #pragma message ("MATRIX TESTING ENABLED")
+#endif
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE 1
 #define GLM_FORCE_RIGHT_HANDED 1
