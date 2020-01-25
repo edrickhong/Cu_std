@@ -254,7 +254,7 @@ WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
         {
             sizeof(BITMAPINFOHEADER),
             (s32)width,
-            (s32)height,
+            (s32)-height,
             1,
             32,
             BI_RGB
