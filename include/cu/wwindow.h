@@ -39,8 +39,18 @@ typedef struct WBackBufferContext {
 	InternalBackBufferData* data;
 } WBackBufferContext;
 
+#ifdef _WIN32
+
+#define _WAYLAND_WINDOW ((u32)(0))
+#define _X11_WINDOW ((u32)(0))
+
+#else
+
 #define _WAYLAND_WINDOW ((u32)(1 << 31))
 #define _X11_WINDOW ((u32)(1 << 30))
+
+#endif
+
 
 typedef enum WCreateFlags {
 	W_CREATE_NONE = 0,
