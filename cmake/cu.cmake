@@ -7,6 +7,10 @@ if(DEBUG)
   add_definitions(-DDEBUG)
 endif()
 
+if(VERBOSE)
+	add_definitions(-DVERBOSE)
+endif()
+
 if(UNIX)
 
   set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")

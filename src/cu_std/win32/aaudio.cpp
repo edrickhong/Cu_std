@@ -736,7 +736,7 @@ void APlayAudioDevice(AAudioContext* _restrict  context,void* data,u32 write_fra
 _global HANDLE thread_priority = 0;
 
 #ifdef DEBUG
-_global ThreadID init_thread = {};
+_global TThreadID init_thread = {};
 #endif
 
 

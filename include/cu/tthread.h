@@ -10,7 +10,7 @@ struct TThreadContext{
 };
 
 typedef HANDLE TSemaphore;
-typedef DWORD ThreadID;
+typedef DWORD TThreadID;
 
 #else
 

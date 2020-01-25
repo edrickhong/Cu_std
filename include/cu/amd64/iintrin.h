@@ -62,7 +62,7 @@ u32 _ainline BSR(u32 r){
 
 __m128 _ainline _intrin_cvtpi16_ps(__m64 a){
     
-    __m128i ret = {};
+    __m128i ret = {0};
     
     s16* src = (s16*)&a;
     s32* dst = (s32*)&ret;
@@ -77,11 +77,11 @@ __m128 _ainline _intrin_cvtpi16_ps(__m64 a){
 
 __m64 _ainline _intrin_cvtps_pi16(__m128 a){
     
-    auto pi = _mm_cvtps_epi32(a);
-    __m64 ret = {};
+    __m128i pi = _mm_cvtps_epi32(a);
+    __m64 ret = {0};
     
-    auto src = (s32*)&pi;
-    auto dst = (s16*)&ret;
+    s32* src = (s32*)&pi;
+    s16* dst = (s16*)&ret;
     
     dst[0] = src[0];
     dst[1] = src[1];
