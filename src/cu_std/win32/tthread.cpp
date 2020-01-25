@@ -44,13 +44,13 @@ void TWaitSemaphore(TSemaphore sem,f32 time_ms){
 
 
 
-ThreadID TGetThisThreadID(){
+TThreadID TGetThisThreadID(){
     return GetCurrentThreadId();
 }
 
 void TSetThreadAffinity(u32 cpu_mask){
     
-    ThreadID threadid = TGetThisThreadID();
+    TThreadID threadid = TGetThisThreadID();
     
     auto handle = OpenThread(THREAD_SET_LIMITED_INFORMATION  |
                              THREAD_QUERY_LIMITED_INFORMATION ,false,threadid);

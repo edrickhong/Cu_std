@@ -71,7 +71,7 @@ typedef union Vec3 {
 	Vec2 vec2;
 } Vec3;
 
-typedef union Vec4 {
+_align(16) typedef union Vec4 {
 	__m128 simd;
 
 	struct {
@@ -90,7 +90,7 @@ typedef union Vec4 {
 
 	f32 floats[4];
 
-} Vec4 _align(16);
+} Vec4;
 
 typedef struct Vec4SOA {
 	ptrsize count;
@@ -112,14 +112,14 @@ typedef struct Vec4SOA {
 
 } Vec4SOA;
 
-typedef union Quat {
+_align(16) typedef union Quat {
 	__m128 simd;
 
 	struct {
 		f32 w, x, y, z;
 	};
 
-} Quat _align(16);
+} Quat;
 
 typedef struct DualQuat {
 	Quat q1, q2;
@@ -131,17 +131,17 @@ typedef Vec4 Point4;
 typedef Vec3 Point3;
 typedef Vec2 Point2;
 
-typedef union Mat4 {
+_align(16) typedef union Mat4 {
 	f32 container[16];
 	__m128 simd[4];
 
 #ifdef __cplusplus_
 	f32& operator[](u32 index) { return container[index]; }
 #endif
-} Mat4 _align(16);
+} Mat4;
 
 // NOTE: do we want to use simd for 3
-typedef union Mat3 {
+_align(16) typedef union Mat3 {
 	f32 container[9];
 
 	struct {
@@ -151,9 +151,9 @@ typedef union Mat3 {
 #ifdef __cplusplus
 	f32& operator[](u32 index) { return container[index]; }
 #endif
-} Mat3 _align(16);
+} Mat3;
 
-typedef union Mat2 {
+_align(16) typedef union Mat2 {
 	f32 container[4];
 
 	struct {
@@ -162,7 +162,7 @@ typedef union Mat2 {
 #ifdef __cplusplus
 	f32& operator[](u32 index) { return container[index]; }
 #endif
-} Mat2 _align(16);
+} Mat2;
 
 
 typedef struct Triangle{
@@ -173,7 +173,7 @@ typedef struct Triangle{
 
 //typedef struct Teathedron{}Teathedron;
 
-typedef struct Polygon{
+typedef struct Poly{
 	Point3* point_array;
 	ptrsize count;
 
@@ -181,7 +181,7 @@ typedef struct Polygon{
 	Point3& operator[](u32 index) { return point_array[index]; }
 #endif
 
-}Polygon;
+}Poly;
 
 
 
