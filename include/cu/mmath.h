@@ -499,7 +499,7 @@ DualQuat DualQMulConstR(DualQuat lhs, f32 rhs);
 //TODO: we should also include Rejection functios
 Mat4 CompMulMat4(Mat4 a,Mat4 b);
 Mat4 TransposeMat4(Mat4 matrix);
-Mat4 InverseMat4(Mat4 matrix);
+Mat4 InverseMat4(Mat4 matrix); //there is a way to compute this faster
 
 Mat3 CompMulMat3(Mat3 a,Mat3 b);
 Mat3 TransposeMat3(Mat3 matrix);
