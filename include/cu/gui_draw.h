@@ -65,10 +65,10 @@ void GUISetRenderMode(GUIRenderMode rendermode);
 
 void GUISetCameraMode(GUICameraMode cameramode);
 
-void GUISetBackColor(Color color);
-void GUISetFrontColor(Color color);
-void GUISetTitleColor(Color color);
-void GUISetTextColor(Color color);
+void GUISetBackColor(Color4 color);
+void GUISetFrontColor(Color4 color);
+void GUISetTitleColor(Color4 color);
+void GUISetTextColor(Color4 color);
 
 enum GUIWindowBehavoir{
     GUIWINDOW_NONE = 0,
@@ -124,7 +124,7 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
 
 b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot);
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color color);
+void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color);
 
 GUIVec2 GUIMouseCoordToScreenCoord();
 
@@ -139,7 +139,7 @@ void GUIGenFontFile(const s8* filepath,const s8* writepath,f32 fontsize);
 
 void GUIDebugGetCurrentHolder();
 
-void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color x = White,Color y = White,Color z = White);
+void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color4 x = White,Color4 y = White,Color4 z = White);
 
 
 

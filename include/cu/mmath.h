@@ -19,6 +19,9 @@
 #define _fourpi (_pi * 4.0f)
 #define _halfpi (_pi * 0.5f)
 
+//NOTE: This defines the margin of error for fp intersection tests
+#define _f32_error_offset  0.0001f
+
 #ifdef _row_major
 
 #define MATRIX_ROW_MAJOR _row_major
@@ -65,6 +68,14 @@ typedef struct Vec2 {
 typedef union Vec3 {
 	struct {
 		f32 x, y, z;
+	};
+
+	struct {
+		f32 r,g,b;
+	};
+
+	struct {
+		f32 R,G,B;
 	};
 
 	f32 floats[3];
@@ -126,7 +137,8 @@ typedef struct DualQuat {
 } DualQuat;
 
 
-typedef Vec4 Color;
+typedef Vec4 Color4;
+typedef Vec3 Color3;
 typedef Vec4 Point4;
 typedef Vec3 Point3;
 typedef Vec2 Point2;
@@ -519,6 +531,19 @@ f32 DotVec3(Vec3 vec1, Vec3 vec2);
 Vec3 NormalizeVec3(Vec3 vec);
 Vec3 CrossVec3(Vec3 vec1, Vec3 vec2);
 f32 CompVec3(Vec3 a, Vec3 b);
+
+Vec3 _ainline InterpolateVec3(Vec3 a ,Vec3 b,f32 step){
+	return Vec4ToVec3(InterpolateVec4(Vec3ToVec4(a),Vec3ToVec4(b),step));
+}
+
+Vec3 _ainline CompMulVec3(Vec3 a,Vec3 b){
+
+	Vec4 v_a = Vec3ToVec4(a);
+	Vec4 v_b = Vec3ToVec4(b);
+
+	return Vec4ToVec3(CompMulVec4(v_a,v_b));
+}
+
 Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane);
 Vec3 GetVecRotation(Vec3 lookat);

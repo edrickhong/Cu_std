@@ -482,19 +482,19 @@ struct GUIContext{
     GUIRenderMode cur_rendermode;
     GUICameraMode cur_cameramode;
     
-    Color back_color;
-    Color front_color;
-    Color title_color;
-    Color text_color;
-    Color textbox_color;
-    Color graph_back_color;
-    Color graph_bar_color;
-    Color graph_bar_select_color;
-    Color graph_bar_highlight_color;
+    Color4 back_color;
+    Color4 front_color;
+    Color4 title_color;
+    Color4 text_color;
+    Color4 textbox_color;
+    Color4 graph_back_color;
+    Color4 graph_bar_color;
+    Color4 graph_bar_select_color;
+    Color4 graph_bar_highlight_color;
     
-    Color axis_x_color;
-    Color axis_y_color;
-    Color axis_z_color;
+    Color4 axis_x_color;
+    Color4 axis_y_color;
+    Color4 axis_z_color;
     
     f32 default_font_size;
     
@@ -628,7 +628,7 @@ b32 GUIMouseUpL(){
 
 #define _cellwidth 1.0f/95.0f
 
-void InternalGUIDrawRect(f32 x,f32 y,f32 width,f32 height,Color color){
+void InternalGUIDrawRect(f32 x,f32 y,f32 width,f32 height,Color4 color){
     
 #define _blanktexcoord 94.0f/95.0f
     
@@ -681,7 +681,7 @@ void InternalGUIDrawRect(f32 x,f32 y,f32 width,f32 height,Color color){
 #undef _blanktexcoord
 }
 
-void InternalGUIDrawLine(GUIVec3 a,GUIVec3 b,Color color = White){
+void InternalGUIDrawLine(GUIVec3 a,GUIVec3 b,Color4 color = White){
     
     u32 curvert = gui->vert_offset;
     
@@ -783,7 +783,7 @@ void _ainline InternalGetTextDim(GUIFont* font,f32* w,f32* h,f32 scale,const s8*
     
 }
 
-void InternalDrawString(const s8* string,f32 x,f32 y,f32 scale,GUIFont* font,Color color){
+void InternalDrawString(const s8* string,f32 x,f32 y,f32 scale,GUIFont* font,Color4 color){
     
     f32 width;
     f32 height;
@@ -2297,7 +2297,7 @@ b32 GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 dat
         
         f32 bar_height = data_array[i].y/highest_value;
         
-        Color barcolor = gui->graph_bar_color;
+        Color4 barcolor = gui->graph_bar_color;
         
         if(highlight_index){
             
@@ -2457,7 +2457,7 @@ b32 GUIProfileView(const s8* profilename,const DebugTable* table,GUIDim2 dim){
             
             auto bar_width = (record->timelen/_upperlimit);
             
-            Color barcolor = record->color;
+            Color4 barcolor = record->color;
             
             if(InternalIsWithinBounds(InternalPushBounds(start_x,y,bar_width,bar_height))){
                 
@@ -2504,7 +2504,7 @@ b32 GUIIsAnyElementActive(){
 
 
 
-void InternalGUIDrawLine(GUIVec2 a,GUIVec2 b,Color color = White){
+void InternalGUIDrawLine(GUIVec2 a,GUIVec2 b,Color4 color = White){
     InternalGUIDrawLine(GUIVec3{a.x,a.y,0},GUIVec3{b.x,b.y,0},color);
 }
 
@@ -2678,7 +2678,7 @@ void GUIDrawCube(){
 
 #define _circle_granularity 32
 
-void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
+void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color4 c_x,Color4 c_y,Color4 c_z){
     
     GUISetRenderMode(GUI_RENDER_LINE);
     GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2690,7 +2690,7 @@ void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color c_x,Color c_y,Color c_z){
     struct DrawRotAxisData{
         u32 axis_index;
         Vec3 dir;
-        Color color;
+        Color4 color;
     };
     
     DrawRotAxisData rotaxis[] = {
@@ -2751,7 +2751,7 @@ void InternalGUIDrawRotAxis(Vec3 obj_w,Mat4 viewproj,u32 selected_id,
     struct DrawRotAxisData{
         u32 axis_index;
         Vec3 dir;
-        Color color;
+        Color4 color;
     };
     
     DrawRotAxisData rotaxis[] = {
@@ -2937,7 +2937,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
     return ret;
 }
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color color){
+void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color){
     
     GUISetRenderMode(GUI_RENDER_LINE);
     GUISetCameraMode(GUI_CAMERA_NONE);

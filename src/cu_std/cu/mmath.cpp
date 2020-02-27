@@ -1359,7 +1359,6 @@ DualQuat NormalizeDualQ(DualQuat d){
     return d;
 }
 
-#define _f32_error_offset  0.0001f
 
 b32 IntersectLine3(Line3 a,Line3 b){
     

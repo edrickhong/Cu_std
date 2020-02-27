@@ -45,7 +45,10 @@ typedef unsigned int ptrsize;
 
 #endif
 
-
+#ifndef __cplusplus
+#define true 1
+#define false 0
+#endif
 
 
 //
@@ -100,6 +103,24 @@ typedef unsigned int ptrsize;
 #define _unsigned_max16 _unsigned_max(u16)
 #define _unsigned_max32 _unsigned_max(u32)
 #define _unsigned_max64 _unsigned_max(u64)
+
+
+#define _signed_min(value) ((s64)(_unsigned_max(value)))
+#define _signed_min8 _signed_min(s8)
+#define _signed_min16 _signed_min(s16)
+#define _signed_min32 _signed_min(s32)
+#define _signed_min64 _signed_min(s64)
+
+
+#define _signed_max(value) (~(_signed_min(value)))
+#define _signed_max8 _signed_max(s8)
+#define _signed_max16 _signed_max(s16)
+#define _signed_max32 _signed_max(s32)
+#define _signed_max64 _signed_max(s64)
+
+
+
+
 
 #define _kilobytes(value) ((value) * 1024)
 #define _megabytes(value) (_kilobytes(value) * 1024)

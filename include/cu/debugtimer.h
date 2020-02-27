@@ -69,7 +69,7 @@
 
 struct DebugRecord{
     
-    Color color;
+    Color4 color;
     
     TimeSpec start_stamp;
     f32 timelen;
@@ -102,10 +102,10 @@ struct TimeBlock{
     const s8* file;
     const s8* function;
     u32 line;
-    Color color;
+    Color4 color;
     
     
-    TimeBlock(const s8* File,u32 Line,const s8* Function,Color c){
+    TimeBlock(const s8* File,u32 Line,const s8* Function,Color4 c){
         
         file = File;
         line = Line;
@@ -135,7 +135,7 @@ struct TimeBlock{
 
 struct MasterTimeBlock : TimeBlock{
     
-    MasterTimeBlock(const s8* File,u32 Line,const s8* Function,Color c) :
+    MasterTimeBlock(const s8* File,u32 Line,const s8* Function,Color4 c) :
     TimeBlock(File,Line,Function,c){
         SetStartTimeBlock(start_stamp);
     }
@@ -154,7 +154,7 @@ struct MasterTimeBlock : TimeBlock{
 
 struct ExecTimeBlock : TimeBlock{
     
-    ExecTimeBlock(const s8* File,u32 Line,const s8* Function,Color c) :
+    ExecTimeBlock(const s8* File,u32 Line,const s8* Function,Color4 c) :
     TimeBlock(File,Line,Function,c){}
     
     ~ExecTimeBlock(){
@@ -170,7 +170,7 @@ struct ExecTimeBlock : TimeBlock{
 
 struct PrintTimeBlock : TimeBlock{
     
-    PrintTimeBlock(const s8* File,u32 Line,const s8* Function,Color c) :
+    PrintTimeBlock(const s8* File,u32 Line,const s8* Function,Color4 c) :
     TimeBlock(File,Line,Function,c){
     }
     
