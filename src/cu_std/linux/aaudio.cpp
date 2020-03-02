@@ -1359,13 +1359,14 @@ void AInitThisAudioThread(){
     init_thread = TGetThisThreadID();
 #endif
     
-    TGetThreadPriority(&policy,&priority,&deadline);
+    TGetThreadPriority(&policy,&priority,&deadline,0);
     
-    TSetThreadPriority(TSCHED_LINUX_POLICY_REALTIME_FIFO,1.0f);
+    TSetThreadPriority(TSCHED_LINUX_POLICY_REALTIME_FIFO,1.0f,
+		    {},0);
 }
 
 
 void AUninitThisAudioThread(){
     _kill("the init thread has to call this\n",TGetThisThreadID() != init_thread);
-    TSetThreadPriority(policy,AUDIO_THREAD_PRIORITY,deadline);
+    TSetThreadPriority(policy,AUDIO_THREAD_PRIORITY,deadline,0);
 }

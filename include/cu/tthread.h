@@ -5,9 +5,9 @@
 #include "iintrin.h"
 #include "Windows.h"
 
-struct TThreadContext{
+typedef struct TThreadContext{
     HANDLE handle;
-};
+}TThreadContext;
 
 typedef HANDLE TSemaphore;
 typedef DWORD TThreadID;
@@ -22,9 +22,9 @@ typedef DWORD TThreadID;
 #include "semaphore.h"
 #include "linux/sched.h"
 
-struct TThreadContext{
+typedef struct TThreadContext{
     pthread_t handle;
-};
+}TThreadContext;
 
 typedef sem_t* TSemaphore;
 typedef pthread_t TThreadID;
@@ -42,7 +42,7 @@ typedef volatile _cachealign u32* TSemaphore;
 #endif
 
 
-enum TSchedulerPoicy{
+typedef enum TSchedulerPoicy{
     
 #ifdef _WIN32
     
@@ -70,21 +70,21 @@ enum TSchedulerPoicy{
     
 #endif
     
-};
+}TSchedulerPoicy;
 
-struct TLinuxSchedulerDeadline{
+typedef struct TLinuxSchedulerDeadline{
     u64 runtime;
     u64 deadline;
     u64 period;
     
     //SCHED_FLAG_RECLAIM or SCHED_FLAG_DL_OVERRUN
     u32 flags;
-};
+}TLinuxSchedulerDeadline;
 
 
 TThreadContext TCreateThread(s64(*call_fptr)(void*),u32 stack_size,void* args);
 
-TSemaphore TCreateSemaphore(u32 value = 0);
+TSemaphore TCreateSemaphore(u32 value);
 
 void TDestroySemaphore(TSemaphore sem);
 
@@ -92,12 +92,12 @@ void TSignalSemaphore(TSemaphore sem);
 
 void TWaitSemaphore(TSemaphore sem);
 
-void TWaitSemaphore(TSemaphore sem,f32 time_ms);
+void TWaitSemaphoreTimed(TSemaphore sem,f32 time_ms);
 
 TThreadID TGetThisThreadID();
 
-void TSetThreadAffinity(u32 cpu_mask,TThreadID id = 0);
+void TSetThreadAffinity(u32 cpu_mask,TThreadID id);
 
-void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline = {},TThreadID id = 0);
+void TSetThreadPriority(TSchedulerPoicy policy,f32 priority,TLinuxSchedulerDeadline deadline,TThreadID id);
 
-void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline = 0,TThreadID id = 0);
+void TGetThreadPriority(TSchedulerPoicy* policy,f32* priority,TLinuxSchedulerDeadline* deadline,TThreadID id);

@@ -212,8 +212,16 @@ typedef struct Line2{
 	Vec2 dir;
 }Line2;
 
-typedef Line3 Ray3;
-typedef Line2 Ray2;
+typedef struct Ray2{
+	Point2 pos;
+	Vec2 dir;
+}Ray2;
+
+typedef struct Ray3{
+	Point3 pos;
+	Vec3 dir;
+}Ray3;
+
 
 typedef enum IntersectType{
 	INTERSECT_FALSE = 0,
@@ -427,93 +435,93 @@ Vec3 _ainline ClipSpaceToWorldSpaceVec3(Vec3 pos, Mat4 viewproj) {
 
 
 // MARK: MATH OPS (OPS that can be expressed w math notation -- * - / etc
-Mat4 Mat4Add(Mat4 lhs, Mat4 rhs);
-Mat4 Mat4Sub(Mat4 lhs, Mat4 rhs);
-Mat4 Mat4Mul(Mat4 lhs, Mat4 rhs);
-Mat4 Mat4MulConstL(f32 lhs, Mat4 rhs);
-Mat4 Mat4MulConstR(Mat4 lhs, f32 rhs);
-Mat4 Mat4Div(Mat4 lhs, Mat4 rhs);
+Mat4 AddMat4(Mat4 lhs, Mat4 rhs);
+Mat4 SubMat4(Mat4 lhs, Mat4 rhs);
+Mat4 MulMat4(Mat4 lhs, Mat4 rhs);
+Mat4 MulConstLMat4(f32 lhs, Mat4 rhs);
+Mat4 MulConstRMat4(Mat4 lhs, f32 rhs);
+Mat4 DivMat4(Mat4 lhs, Mat4 rhs);
 
-Mat3 Mat3Add(Mat3 lhs, Mat3 rhs);
-Mat3 Mat3Sub(Mat3 lhs, Mat3 rhs);
-Mat3 Mat3Mul(Mat3 lhs, Mat3 rhs);
-Mat3 Mat3MulConstL(f32 lhs, Mat3 rhs);
-Mat3 Mat3MulConstR(Mat3 lhs, f32 rhs);
-Mat3 Mat3Div(Mat3 lhs, Mat3 rhs);
+Mat3 AddMat3(Mat3 lhs, Mat3 rhs);
+Mat3 SubMat3(Mat3 lhs, Mat3 rhs);
+Mat3 MulMat3(Mat3 lhs, Mat3 rhs);
+Mat3 MulConstLMat3(f32 lhs, Mat3 rhs);
+Mat3 MulConstRMat3(Mat3 lhs, f32 rhs);
+Mat3 DivMat3(Mat3 lhs, Mat3 rhs);
 
-Mat2 Mat2Add(Mat2 lhs, Mat2 rhs);
-Mat2 Mat2Sub(Mat2 lhs, Mat2 rhs);
-Mat2 Mat2Mul(Mat2 lhs, Mat2 rhs);
-Mat2 Mat2MulConstL(f32 lhs, Mat2 rhs);
-Mat2 Mat2MulConstR(Mat2 lhs, f32 rhs);
-Mat2 Mat2Div(Mat2 lhs, Mat2 rhs);
+Mat2 AddMat2(Mat2 lhs, Mat2 rhs);
+Mat2 SubMat2(Mat2 lhs, Mat2 rhs);
+Mat2 MulMat2(Mat2 lhs, Mat2 rhs);
+Mat2 MulConstLMat2(f32 lhs, Mat2 rhs);
+Mat2 MulConstRMat2(Mat2 lhs, f32 rhs);
+Mat2 DivMat2(Mat2 lhs, Mat2 rhs);
 
-Vec4 Vec4Add(Vec4 lhs, Vec4 rhs);
-Vec4 Vec4Sub(Vec4 lhs, Vec4 rhs);
-Vec4 Vec4MulConstL(f32 lhs, Vec4 rhs);
-Vec4 Vec4MulConstR(Vec4 lhs, f32 rhs);
-Vec4 Vec4DivConstR(Vec4 lhs, f32 rhs);
+Vec4 AddVec4(Vec4 lhs, Vec4 rhs);
+Vec4 SubVec4(Vec4 lhs, Vec4 rhs);
+Vec4 MulConstLVec4(f32 lhs, Vec4 rhs);
+Vec4 MulConstRVec4(Vec4 lhs, f32 rhs);
+Vec4 DivConstRVec4(Vec4 lhs, f32 rhs);
 
-Vec3 Vec3Add(Vec3 lhs, Vec3 rhs);
-Vec3 Vec3Sub(Vec3 lhs, Vec3 rhs);
-Vec3 Vec3MulConstL(f32 lhs, Vec3 rhs);
-Vec3 Vec3MulConstR(Vec3 lhs, f32 rhs);
-Vec3 Vec3DivConstR(Vec3 lhs, f32 rhs);
+Vec3 AddVec3(Vec3 lhs, Vec3 rhs);
+Vec3 SubVec3(Vec3 lhs, Vec3 rhs);
+Vec3 MulConstLVec3(f32 lhs, Vec3 rhs);
+Vec3 MulConstRVec3(Vec3 lhs, f32 rhs);
+Vec3 DivConstRVec3(Vec3 lhs, f32 rhs);
 
-Vec2 Vec2Add(Vec2 lhs, Vec2 rhs);
-Vec2 Vec2Sub(Vec2 lhs, Vec2 rhs);
-Vec2 Vec2MulConstL(f32 lhs, Vec2 rhs);
-Vec2 Vec2MulConstR(Vec2 lhs, f32 rhs);
-Vec2 Vec2DivConstR(Vec2 lhs, f32 rhs);
+Vec2 AddVec2(Vec2 lhs, Vec2 rhs);
+Vec2 SubVec2(Vec2 lhs, Vec2 rhs);
+Vec2 MulConstLVec2(f32 lhs, Vec2 rhs);
+Vec2 MulConstRVec2(Vec2 lhs, f32 rhs);
+Vec2 DivConstRVec2(Vec2 lhs, f32 rhs);
 
 
-Quat _ainline QuatAdd(Quat lhs, Quat rhs) {
+Quat _ainline AddQuat(Quat lhs, Quat rhs) {
 	Vec4 l = QuatToVec4(lhs);
 	Vec4 r = QuatToVec4(rhs);
 
-	return Vec4ToQuat(Vec4Add(l,r));
+	return Vec4ToQuat(AddVec4(l,r));
 }
 
-Quat _ainline QuatSub(Quat lhs, Quat rhs) {
+Quat _ainline SubQuat(Quat lhs, Quat rhs) {
 	Vec4 l = QuatToVec4(lhs);
 	Vec4 r = QuatToVec4(rhs);
 
-	return Vec4ToQuat(Vec4Sub(l,r));
+	return Vec4ToQuat(SubVec4(l,r));
 }
 
-Quat _ainline QuatMulConstL(f32 lhs, Quat rhs) {
+Quat _ainline MulConstLQuat(f32 lhs, Quat rhs) {
 	Vec4 r = QuatToVec4(rhs);
 
-	return Vec4ToQuat(Vec4MulConstL(lhs,r));
+	return Vec4ToQuat(MulConstLVec4(lhs,r));
 }
 
-Quat _ainline QuatMulConstR(Quat lhs, f32 rhs) {
-	return QuatMulConstL(rhs,lhs);
+Quat _ainline MulConstRQuat(Quat lhs, f32 rhs) {
+	return MulConstLQuat(rhs,lhs);
 }
 
-Quat _ainline QuatDivConstR(Quat lhs, f32 rhs) {
+Quat _ainline DivConstRQuat(Quat lhs, f32 rhs) {
 	Vec4 l = QuatToVec4(lhs);
 
-	return Vec4ToQuat(Vec4DivConstR(l,rhs));
+	return Vec4ToQuat(DivConstRVec4(l,rhs));
 }
 
 
 
-Quat QuatMul(Quat lhs,Quat rhs);
+Quat MulQuat(Quat lhs,Quat rhs);
 
-DualQuat DualQAdd(DualQuat lhs, DualQuat rhs);
-DualQuat DualQSub(DualQuat lhs, DualQuat rhs);
-DualQuat DualQMul(DualQuat lhs, DualQuat rhs);
-DualQuat DualQMulConstL(f32 lhs, DualQuat rhs);
-DualQuat DualQMulConstR(DualQuat lhs, f32 rhs);
+DualQuat AddDualQ(DualQuat lhs, DualQuat rhs);
+DualQuat SubDualQ(DualQuat lhs, DualQuat rhs);
+DualQuat MulDualQ(DualQuat lhs, DualQuat rhs);
+DualQuat MulConstLDualQ(f32 lhs, DualQuat rhs);
+DualQuat MulConstRDualQ(DualQuat lhs, f32 rhs);
 
 // MARK: SPECIAL MATH OPS (can only be expressed in functions)
 //TODO: we should also include Rejection functios
-Mat4 CompMulMat4(Mat4 a,Mat4 b);
+Mat4 SchurMat4(Mat4 a,Mat4 b);
 Mat4 TransposeMat4(Mat4 matrix);
 Mat4 InverseMat4(Mat4 matrix); //there is a way to compute this faster
 
-Mat3 CompMulMat3(Mat3 a,Mat3 b);
+Mat3 SchurMat3(Mat3 a,Mat3 b);
 Mat3 TransposeMat3(Mat3 matrix);
 Mat3 InverseMat3(Mat3 matrix);
 
@@ -523,7 +531,7 @@ Mat2 InverseMat2(Mat2 matrix);
 f32 MagnitudeVec4(Vec4 vec);
 f32 DotVec4(Vec4 vec1, Vec4 vec2);
 Vec4 NormalizeVec4(Vec4 vec);
-Vec4 CompMulVec4(Vec4 a, Vec4 b);
+Vec4 SchurVec4(Vec4 a, Vec4 b);
 Vec4 InterpolateVec4(Vec4 a, Vec4 b, f32 step); 
 
 f32 MagnitudeVec3(Vec3 vec);
@@ -536,12 +544,12 @@ Vec3 _ainline InterpolateVec3(Vec3 a ,Vec3 b,f32 step){
 	return Vec4ToVec3(InterpolateVec4(Vec3ToVec4(a),Vec3ToVec4(b),step));
 }
 
-Vec3 _ainline CompMulVec3(Vec3 a,Vec3 b){
+Vec3 _ainline SchurVec3(Vec3 a,Vec3 b){
 
 	Vec4 v_a = Vec3ToVec4(a);
 	Vec4 v_b = Vec3ToVec4(b);
 
-	return Vec4ToVec3(CompMulVec4(v_a,v_b));
+	return Vec4ToVec3(SchurVec4(v_a,v_b));
 }
 
 Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
@@ -554,7 +562,7 @@ f32 Cosf(Vec3 vec1, Vec3 vec2);
 f32 MagnitudeVec2(Vec2 vec);
 f32 DotVec2(Vec2 a, Vec2 b);
 Vec2 NormalizeVec2(Vec2 a);
-Vec2 CompMulVec2(Vec2 a, Vec2 b);
+Vec2 SchurVec2(Vec2 a, Vec2 b);
 Vec2 RotateVec2(Vec2 vec, f32 rotation);
 
 f32 _ainline MagnitudeQuat(Quat a) { return MagnitudeVec4(QuatToVec4(a)); }
@@ -568,7 +576,6 @@ Quat InterpolateQuat(Quat a, Quat b, f32 step);
 
 DualQuat NormalizeDualQ(DualQuat d);
 
-
 b32 IntersectLine3(Line3 a, Line3 b);
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point);
 b32 TypedIntersectLine3(Line3 a, Line3 b);
@@ -580,6 +587,18 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b);
 b32 IntersectLine2(Line2 a, Line2 b);
 b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point);
 b32 TypedIntersectLine2(Line2 a, Line2 b);
+
+b32 IntersectRay3(Ray3 a, Ray3 b);
+b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point);
+b32 TypedIntersectRay3(Ray3 a, Ray3 b);
+
+b32 IntersectRay3Plane(Ray3 a, Plane b);
+b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point);
+b32 TypedIntersectRay3Plane(Ray3 a, Plane b);
+
+b32 IntersectRay2(Ray2 a, Ray2 b);
+b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point);
+b32 TypedIntersectRay2(Ray2 a, Ray2 b);
 
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
@@ -640,7 +659,7 @@ Mat3 _ainline RotationMat3(Vec3 rotation) {
 	rotationz_matrix3.container[_rc3(1, 1)]= cosv;
 
 
-	return Mat3Mul(Mat3Mul(rotationz_matrix3,rotationy_matrix3),rotationx_matrix3);
+	return MulMat3(MulMat3(rotationz_matrix3,rotationy_matrix3),rotationx_matrix3);
 }
 
 Mat4 _ainline ScaleMat4(Vec3 scale) {
@@ -716,23 +735,23 @@ Vec2 operator*(Vec2 lhs, f32 rhs);
 Vec2 operator/(Vec2 lhs, f32 rhs);
 
 Quat _ainline operator+(Quat lhs, Quat rhs) {
-	return QuatAdd(lhs,rhs);
+	return AddQuat(lhs,rhs);
 }
 
 Quat _ainline operator-(Quat lhs, Quat rhs) {
-	return QuatSub(lhs,rhs);
+	return SubQuat(lhs,rhs);
 }
 
 Quat _ainline operator*(f32 lhs, Quat rhs) {
-	return QuatMulConstL(lhs,rhs);
+	return MulConstLQuat(lhs,rhs);
 }
 
 Quat _ainline operator*(Quat lhs, f32 rhs) {
-	return QuatMulConstR(lhs,rhs);
+	return MulConstRQuat(lhs,rhs);
 }
 
 Quat _ainline operator/(Quat lhs, f32 rhs) {
-	return QuatDivConstR(lhs,rhs);
+	return DivConstRQuat(lhs,rhs);
 }
 
 Quat operator*(Quat lhs, Quat rhs);

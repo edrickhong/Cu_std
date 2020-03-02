@@ -1,10 +1,13 @@
 #pragma once
+
+
+
 #include "x86intrin.h"
 #include "time.h"
 
 #define Rdtsc __rdtsc
 
-typedef timespec TimeSpec;
+typedef struct timespec TimeSpec;
 
 #define TInitTimer();
 
@@ -15,16 +18,18 @@ void _ainline GetTime(TimeSpec* timespec){
 
 f32 GetTimeDifferenceMS(TimeSpec,TimeSpec);
 
-_intern timespec MsToTimespec(f32 time){
-    auto sec = (f32)((u32)(time/1000.0f));
-    auto nsec = (time * 1000000.0f) - (sec * 1000000000.0f);
+TimeSpec MsToTimespec(f32 time){
+    f32 sec = (f32)((u32)(time/1000.0f));
+    f32 nsec = (time * 1000000.0f) - (sec * 1000000000.0f);
+
+    TimeSpec spec = {(long)sec,(long)(nsec)};
     
-    return {(long)sec,(long)(nsec)};
+    return spec;
 }
 
 void _ainline SleepMS(f32 time){
     
-    auto time1 = MsToTimespec(time);
+    TimeSpec time1 = MsToTimespec(time);
     
     nanosleep(&time1,0);
 }

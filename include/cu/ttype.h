@@ -1,6 +1,11 @@
 #pragma once
 
 
+//NOTE: This is for std c
+#ifndef __cplusplus
+#define _GNU_SOURCE
+#endif
+
 //MARK:C dep
 #include "stdio.h"
 #include "stdlib.h"
@@ -117,9 +122,6 @@ typedef unsigned int ptrsize;
 #define _signed_max16 _signed_max(s16)
 #define _signed_max32 _signed_max(s32)
 #define _signed_max64 _signed_max(s64)
-
-
-
 
 
 #define _kilobytes(value) ((value) * 1024)

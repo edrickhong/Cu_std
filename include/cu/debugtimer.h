@@ -67,7 +67,7 @@
 #define PRINTTIMEBLOCKTAGGED(NAME)
 #endif
 
-struct DebugRecord{
+typedef struct DebugRecord{
     
     Color4 color;
     
@@ -78,7 +78,7 @@ struct DebugRecord{
     const s8* file;
     const s8* function;
     u32 line;
-};
+}DebugRecord;
 
 void InitDebugTimer();
 
@@ -94,7 +94,7 @@ void SetExecTime(f32 time);
 
 u32 GetThreadIndex(TThreadID tid);
 
-struct TimeBlock{
+typedef struct TimeBlock{
     
     TimeSpec start_stamp;
     u64 start_cycle;
@@ -103,6 +103,8 @@ struct TimeBlock{
     const s8* function;
     u32 line;
     Color4 color;
+
+#ifdef __cplusplus
     
     
     TimeBlock(const s8* File,u32 Line,const s8* Function,Color4 c){
@@ -131,7 +133,8 @@ struct TimeBlock{
         
         SubmitRecord(TGetThisThreadID(),{color,start_stamp,len,cyclediff,file,function,line});
     }
-};
+#endif
+}TimeBlock;
 
 struct MasterTimeBlock : TimeBlock{
     

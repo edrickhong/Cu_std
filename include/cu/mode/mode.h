@@ -1,6 +1,8 @@
 #pragma  once
 
 
+
+
 //conf for math
 #include "math_mode.h"
 
