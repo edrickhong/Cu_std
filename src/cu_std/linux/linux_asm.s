@@ -20,19 +20,23 @@ Linux_ThreadProc:
 
 	callq *%rax
 
-	movq %rax,%rcx // save the return value
+// save the return value
+	movq %rax,%rcx 
 
+
+//sys_munmap
 	movq 0x18(%rbp),%rdi
 	movq 0x20(%rbp),%rsi
 	movl $11,%eax
-	syscall //sys_munmap
+	syscall 
 
 	popq %rbp
 	popq %rdi
 
+//sys_exit
 	movq %rcx,%rdi
 	movl $60,%eax
-	syscall //sys_exit
+	syscall 
 
 // u32 clone_flags,void* newsp,void* parent_tid,void* child_tid
 Linux_Syscall_Clone:
@@ -41,3 +45,4 @@ Linux_Syscall_Clone:
 	syscall
 
 	ret
+

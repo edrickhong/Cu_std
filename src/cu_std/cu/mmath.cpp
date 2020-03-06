@@ -4,6 +4,11 @@ move glm compare to tests
 make quaternions xyzw
 have automatic conversions between f32* to our types for better integration with
 external code bases
+
+Remove extraneous Normalizes
+Add a test suite
+
+Go through each of the is_inline. We need to fabsf them too
 */
 
 // MARK: Internal
@@ -172,6 +177,45 @@ Quat _ainline Neighbourhood(Quat a, Quat b) {
 	}
 
 	return b;
+}
+
+
+_ainline b32 InternalIsInline(Line3 a,Line3 b){
+	auto diff = NormalizeVec3(b.pos - a.pos);
+	f32 dot = DotVec3(diff,a.dir);
+	return (u32)(fabsf(dot) + _f32_error_offset);
+}
+
+_ainline b32 InternalIsInline(Line2 a,Line2 b){
+	auto diff = NormalizeVec2(b.pos - a.pos);
+	f32 dot = DotVec2(diff,a.dir);
+	return (u32)(fabsf(dot) + _f32_error_offset);
+}
+
+_ainline b32 InternalIsInline(Ray3 a,Ray3 b){
+	return InternalIsInline(Ray3ToLine3(a),Ray3ToLine3(b));
+}
+
+_ainline b32 InternalIsInline(Ray2 a,Ray2 b){
+	return InternalIsInline(Ray2ToLine2(a),Ray2ToLine2(b));
+}
+
+_ainline b32 InternalIsParallel(Line3 a,Line3 b){
+	f32 dot = DotVec3(a.dir,b.dir);
+	return (u32)(fabsf(dot) + _f32_error_offset);
+}
+
+_ainline b32 InternalIsParallel(Line2 a,Line2 b){
+	f32 dot = DotVec2(a.dir,b.dir);
+	return (u32)(fabsf(dot) + _f32_error_offset);
+}
+
+_ainline b32 InternalIsParallel(Ray3 a,Ray3 b){
+	return InternalIsParallel(Ray3ToLine3(a),Ray3ToLine3(b));
+}
+
+_ainline b32 InternalIsParallel(Ray2 a,Ray2 b){
+	return InternalIsParallel(Ray2ToLine2(a),Ray2ToLine2(b));
 }
 
 // MARK: conversions
@@ -1273,6 +1317,8 @@ DualQuat NormalizeDualQ(DualQuat d) {
 	return d;
 }
 
+// TODO:  Test these
+
 
 b32 IntersectLine3(Line3 a, Line3 b) {
 	/*
@@ -1302,26 +1348,39 @@ b32 IntersectLine3(Line3 a, Line3 b) {
 
 	*/
 
-	auto cross_ab = CrossVec3(a.dir, b.dir);
-	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
+	b32 is_parallel = InternalIsParallel(a,b);
 
-	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
+	if (is_parallel) {
+		return false;
+	}
 
+
+	auto cross_ab = NormalizeVec3(CrossVec3(a.dir, b.dir));
+	auto cross_diff = NormalizeVec3(CrossVec3(b.pos - a.pos, b.dir));
+	auto dot = DotVec3(cross_ab, cross_diff);
+
+	//TODO: replace this with InternalIsParallel
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point) {
-	auto cross_ab = CrossVec3(a.dir, b.dir);
-	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
+	auto cross_ab = NormalizeVec3(CrossVec3(a.dir, b.dir));
+	auto cross_diff = NormalizeVec3(CrossVec3(b.pos - a.pos, b.dir));
 
-	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
+	auto dot = DotVec3(cross_ab, cross_diff);
 
-	if (!(u32)(fabsf(dot) + _f32_error_offset)) {
+	if (IntersectLine3(a, b)) {
 		return false;
 	}
 
 	f32 t = 0.0f;
 
+	// the two terms are now
+	// t * cross(a.dir,b.dir) = cross((b.pos - a.pos),b.dir)
+	// to get t, we either get the magnitude of both sides
+	// and div LHS by RHS, or
+	// do what we do below and look for the first non-zero term
+	// and get the ratio of the LHS and RHS of the terms instead
 	for (u32 i = 0; i < 3; i++) {
 		m32 fi1;
 
@@ -1339,18 +1398,15 @@ b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point) {
 }
 
 b32 TypedIntersectLine3(Line3 a, Line3 b) {
-	auto dir =
-	    NormalizeVec3(b.pos - a.pos);  // checks if the lines are the same
+	b32 is_intersect = IntersectLine3(a, b);
+	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_inline = InternalIsInline(a,b);
 
-	b32 res = (u32)(fabsf(DotVec3(NormalizeVec3(a.dir), dir)) +
-			_f32_error_offset) +
-		  IntersectLine3(a, b);
-
-	if (res) {
-		return res;
+	if (is_inline & is_parallel) {
+		return INTERSECT_INFINITE;
 	}
 
-	return false;
+	return is_intersect;
 }
 
 b32 IntersectLine3Plane(Line3 a, Plane b) {
@@ -1406,7 +1462,7 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b) {
 
 	m32 fi;
 
-	auto dir = NormalizeVec3(b.pos - a.pos);
+	auto dir = NormalizeVec3(a.pos - b.pos);
 
 	fi.f = DotVec3(dir, NormalizeVec3(b.norm));  // check if on the plane
 
@@ -1416,39 +1472,26 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b) {
 		return INTERSECT_INFINITE;
 	}
 
-	else if (!is_intersect) {
-		return INTERSECT_FALSE;
-	}
-
-	return INTERSECT_FINITE;
+	return is_intersect;
 }
 
-b32 IntersectLine2(Line2 a_2, Line2 b_2) {
-	a_2.dir = NormalizeVec2(a_2.dir);
-	b_2.dir = NormalizeVec2(b_2.dir);
-
-	auto dot = DotVec2(a_2.dir, b_2.dir);
-
-	return !(u32)(fabsf(dot) + _f32_error_offset);
+b32 IntersectLine2(Line2 a, Line2 b) {
+	return !InternalIsParallel(a,b);
 }
 
-b32 IntersectOutLine2(Line2 a_2, Line2 b_2, Point2* out_point) {
-	a_2.dir = NormalizeVec2(a_2.dir);
-	b_2.dir = NormalizeVec2(b_2.dir);
+b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point) {
 
-	auto dot = DotVec2(a_2.dir, b_2.dir);
-
-	if (!(u32)(fabsf(dot) + _f32_error_offset)) {
+	if (!IntersectLine2(a,b)) {
 		return false;
 	}
 
 	// this uses y = mx + c (TODO: test this)
 
-	auto m1 = a_2.dir.y / a_2.dir.x;
-	auto m2 = b_2.dir.y / b_2.dir.x;
+	auto m1 = a.dir.y / a.dir.x;
+	auto m2 = b.dir.y / b.dir.x;
 
-	auto c1 = a_2.pos.y - (a_2.pos.x * m1);
-	auto c2 = b_2.pos.y - (b_2.pos.x * m2);
+	auto c1 = a.pos.y - (a.pos.x * m1);
+	auto c2 = b.pos.y - (b.pos.x * m2);
 
 	auto x = (-1.0f * (c1 - c2)) / (m1 - m2);
 	auto y = (m1 * x) + c1;
@@ -1458,45 +1501,38 @@ b32 IntersectOutLine2(Line2 a_2, Line2 b_2, Point2* out_point) {
 	return true;
 }
 
-b32 TypedIntersectLine2(Line2 a_2, Line2 b_2) {
-	Line3 a = {Vec3{a_2.pos.x, a_2.pos.y, 1.0f},
-		   Vec3{a_2.dir.x, a_2.dir.y, 1.0f}};
-	Line3 b = {Vec3{b_2.pos.x, b_2.pos.y, 1.0f},
-		   Vec3{b_2.dir.x, b_2.dir.y, 1.0f}};
+b32 TypedIntersectLine2(Line2 a, Line2 b) {
+	a.dir = NormalizeVec2(a.dir);
+	b.dir = NormalizeVec2(b.dir);
 
-	auto dir =
-	    NormalizeVec3(b.pos - a.pos);  // checks if the lines are the same
+	Vec2 dir = NormalizeVec2(b.pos - a.pos);
 
-	b32 res = (u32)(fabsf(DotVec3(NormalizeVec3(a.dir), dir)) +
-			_f32_error_offset) +
-		  IntersectLine3(a, b);
+	auto dot = DotVec2(a.dir, b.dir);
 
-	if (res) {
-		return res;
+	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_intersect = IntersectLine2(a,b);
+	b32 is_inline = InternalIsInline(a,b);
+
+	if (is_parallel && is_inline) {
+		return INTERSECT_INFINITE;
 	}
 
-	return false;
+	return is_intersect;
 }
 
 b32 IntersectRay3(Ray3 a, Ray3 b) {
-	auto cross_ab = CrossVec3(a.dir, b.dir);
-	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
+	b32 is_parallel = InternalIsParallel(a,b);
 
-	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
-
-
-	return dot >= _f32_error_offset;
-}
-
-b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point){
-	auto cross_ab = CrossVec3(a.dir, b.dir);
-	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
-
-	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
-
-	if (dot >= _f32_error_offset) {
+	if (is_parallel) {
 		return false;
 	}
+
+	auto cross_ab = CrossVec3(a.dir, b.dir);
+	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
+
+	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
+
+	f32 sum_cross_ab = cross_ab.x + cross_ab.y + cross_ab.z;
 
 	f32 t = 0.0f;
 
@@ -1511,48 +1547,96 @@ b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point){
 		}
 	}
 
-	*out_point = (a.dir * t) + a.pos;
+	// We need the k term and make sure that that is positive too
 
-	return true;
-}
-b32 TypedIntersectRay3(Ray3 a, Ray3 b){
-	auto dir =
-	    NormalizeVec3(b.pos - a.pos);  // checks if the lines are the same
+	Point3 p = (a.dir * t) + a.pos;
+	f32 k_value = DotVec3(p - b.pos, b.dir);
 
-	b32 res = (u32)(fabsf(DotVec3(NormalizeVec3(a.dir), dir)) +
-			_f32_error_offset) +
-		  IntersectRay3(a, b);
-
-	if (res) {
-		return res;
-	}
-
-	return false;
-}
-
-b32 IntersectRay3Plane(Ray3 a, Plane b){
-
-	// if they are perpendicular, f is 0 and they do not intersect
-	return DotVec3(NormalizeVec3(a.dir), NormalizeVec3(b.norm))
-		> _f32_error_offset;
-}
-
-b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point){
-	if (!IntersectRay3Plane(a, b)) {
+	if (t < 0.0f || k_value < 0.0f) {
 		return false;
 	}
 
+	return true;
+}
+
+b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point) {
+	b32 is_parallel = InternalIsParallel(a,b);
+
+	if (is_parallel) {
+		return false;
+	}
+
+	auto cross_ab = CrossVec3(a.dir, b.dir);
+	auto cross_diff = CrossVec3(b.pos - a.pos, b.dir);
+
+	auto dot = DotVec3(NormalizeVec3(cross_ab), NormalizeVec3(cross_diff));
+
+	f32 sum_cross_ab = cross_ab.x + cross_ab.y + cross_ab.z;
+
+	f32 t = 0.0f;
+
+	for (u32 i = 0; i < 3; i++) {
+		m32 fi1;
+
+		fi1.f = cross_ab.floats[i];
+
+		if (fi1.u) {
+			t = cross_diff.floats[i] / cross_ab.floats[i];
+			break;
+		}
+	}
+
+	// We need the k term and make sure that that is positive too
+
+	Point3 p = (a.dir * t) + a.pos;
+	f32 k_value = DotVec3(p - b.pos, b.dir);
+
+	if (t < 0.0f || k_value < 0.0f) {
+		return false;
+	}
+
+	*out_point = p;
+
+	return true;
+}
+
+b32 TypedIntersectRay3(Ray3 a, Ray3 b) {
+
+	b32 is_intersect = IntersectRay3(a, b);
+	b32 is_parallel = InternalIsParallel(a,b);
+
+	b32 is_inline = InternalIsInline(a,b);
+
+	if (is_inline && is_parallel) {
+		return INTERSECT_INFINITE;
+	}
+
+	return is_intersect;
+}
+
+b32 IntersectRay3Plane(Ray3 a, Plane b) {
+	auto n = NormalizeVec3(b.norm);
+	auto dir = NormalizeVec3(a.dir);
+
+	auto t = (DotVec3((b.pos - a.pos), n)) / (DotVec3(dir, n));
+	return t > _f32_error_offset;
+}
+
+b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
 	auto n = NormalizeVec3(b.norm);
 	auto dir = NormalizeVec3(a.dir);
 
 	auto t = (DotVec3((b.pos - a.pos), n)) / (DotVec3(dir, n));
 
-	*out_point = a.pos + (t * dir);
+	if (t >= _f32_error_offset) {
+		*out_point = a.pos + (t * dir);
+		return true;
+	}
 
-	return true;
+	return false;
 }
 
-b32 TypedIntersectRay3Plane(Ray3 a, Plane b){
+b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 	auto is_intersect = IntersectRay3Plane(a, b);
 
 	m32 fi = {};
@@ -1567,66 +1651,87 @@ b32 TypedIntersectRay3Plane(Ray3 a, Plane b){
 		return INTERSECT_INFINITE;
 	}
 
-	else if (!is_intersect) {
-		return INTERSECT_FALSE;
-	}
-
-	return INTERSECT_FINITE;
+	return is_intersect;
 }
 
-b32 IntersectRay2(Ray2 a_2, Ray2 b_2){
-	a_2.dir = NormalizeVec2(a_2.dir);
-	b_2.dir = NormalizeVec2(b_2.dir);
+b32 IntersectRay2(Ray2 a, Ray2 b) {
 
-	auto dot = DotVec2(a_2.dir, b_2.dir);
+	b32 is_parallel = InternalIsParallel(a,b);
 
-	return dot >= _f32_error_offset;
-}
-
-b32 IntersectOutRay2(Ray2 a_2, Ray2 b_2, Point2* out_point){
-	a_2.dir = NormalizeVec2(a_2.dir);
-	b_2.dir = NormalizeVec2(b_2.dir);
-
-	auto dot = DotVec2(a_2.dir, b_2.dir);
-
-	if (dot >= _f32_error_offset) {
+	if (is_parallel) {
 		return false;
 	}
 
 	// this uses y = mx + c (TODO: test this)
 
-	auto m1 = a_2.dir.y / a_2.dir.x;
-	auto m2 = b_2.dir.y / b_2.dir.x;
+	auto m1 = a.dir.y / a.dir.x;
+	auto m2 = b.dir.y / b.dir.x;
 
-	auto c1 = a_2.pos.y - (a_2.pos.x * m1);
-	auto c2 = b_2.pos.y - (b_2.pos.x * m2);
+	auto c1 = a.pos.y - (a.pos.x * m1);
+	auto c2 = b.pos.y - (b.pos.x * m2);
 
 	auto x = (-1.0f * (c1 - c2)) / (m1 - m2);
 	auto y = (m1 * x) + c1;
 
-	*out_point = {x, y};
+	Point2 p = {x, y};
 
-	return true;
+	Vec2 p_to_a = NormalizeVec2(a.pos - p);
+	Vec2 p_to_b = NormalizeVec2(b.pos - p);
+
+	b32 is_a_valid = (u32)(DotVec2(a.dir, p_to_a) + _f32_error_offset);
+
+	b32 is_b_valid = (u32)(DotVec2(b.dir, p_to_b) + _f32_error_offset);
+
+	return is_a_valid && is_b_valid;
 }
 
-b32 TypedIntersectRay2(Ray2 a_2, Ray2 b_2){
-	Ray3 a = {Vec3{a_2.pos.x, a_2.pos.y, 1.0f},
-		   Vec3{a_2.dir.x, a_2.dir.y, 1.0f}};
-	Ray3 b = {Vec3{b_2.pos.x, b_2.pos.y, 1.0f},
-		   Vec3{b_2.dir.x, b_2.dir.y, 1.0f}};
+b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point) {
 
-	auto dir =
-	    NormalizeVec3(b.pos - a.pos);  // checks if the lines are the same
+	b32 is_parallel = InternalIsParallel(a,b);
 
-	b32 res = (u32)(fabsf(DotVec3(NormalizeVec3(a.dir), dir)) +
-			_f32_error_offset) +
-		  IntersectRay3(a, b);
+	if (is_parallel) {
+		return false;
+	}
 
-	if (res) {
-		return res;
+	// this uses y = mx + c (TODO: test this)
+
+	auto m1 = a.dir.y / a.dir.x;
+	auto m2 = b.dir.y / b.dir.x;
+
+	auto c1 = a.pos.y - (a.pos.x * m1);
+	auto c2 = b.pos.y - (b.pos.x * m2);
+
+	auto x = (-1.0f * (c1 - c2)) / (m1 - m2);
+	auto y = (m1 * x) + c1;
+
+	Point2 p = {x, y};
+
+	Vec2 p_to_a = NormalizeVec2(a.pos - p);
+	Vec2 p_to_b = NormalizeVec2(b.pos - p);
+
+	b32 is_a_valid = (u32)(DotVec2(a.dir, p_to_a) + _f32_error_offset);
+
+	b32 is_b_valid = (u32)(DotVec2(b.dir, p_to_b) + _f32_error_offset);
+
+	if (is_a_valid && is_b_valid) {
+		*out_point = p;
+		return true;
 	}
 
 	return false;
+}
+
+b32 TypedIntersectRay2(Ray2 a, Ray2 b) {
+
+	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_intersect = IntersectRay2(a, b);
+	b32 is_inline = InternalIsInline(a,b);
+
+	if (is_inline && is_parallel) {
+		return INTERSECT_INFINITE;
+	}
+
+	return is_intersect;
 }
 
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count,

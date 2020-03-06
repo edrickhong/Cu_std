@@ -85,11 +85,11 @@ void Interleave_2(f32* dst,f32* left,f32* right){
     _mm_store_ps(dst + 4,res2);
 }
 
-void Deinterleave_2(f32* left,f32* right,f32* src,u32 samples){
+void Deinterleave_2(f32* left,f32* right,f32* src,u32 sample_count){
     
     u32 count = 0;
     
-    for(u32 i = 0; i < samples; i += 8){
+    for(u32 i = 0; i < sample_count; i += 8){
         
         DeInterleavedSamples samples = {};
         
@@ -103,11 +103,11 @@ void Deinterleave_2(f32* left,f32* right,f32* src,u32 samples){
     }
 }
 
-void Interleave_2(f32* dst,f32* left,f32* right,u32 samples){
+void Interleave_2(f32* dst,f32* left,f32* right,u32 sample_count){
     
     u32 count = 0;
     
-    for(u32 i = 0; i < samples; i += 4){
+    for(u32 i = 0; i < sample_count; i += 4){
         
         auto l = left + i;
         auto r = right + i;

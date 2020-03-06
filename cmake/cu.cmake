@@ -18,17 +18,6 @@ if(UNIX)
 
   if(DEBUG)
 
-    if(BUILD_STEP)
-
-      if(IS_INDEPENDENT)
-
-        set(CMAKE_C_COMPILER /usr/bin/clang)
-        set(CMAKE_CXX_COMPILER /usr/bin/clang++)
-
-      endif()
-
-    endif()
-
     # set(CLANG_DEBUG "-fsanitize=address,memory,undefined,safe-stack,thread")
     set(CLANG_DEBUG "") # break here __asan::ReportGenericError
 

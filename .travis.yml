@@ -6,6 +6,7 @@ os:
     - linux
 
 compiler:
+    - gcc        
     - clang
 
 before_install:  
@@ -14,7 +15,6 @@ before_install:
 
 install:
   - sudo apt-get install clang libasound2-dev libx11-dev libwayland-client0 libwayland-dev libxkbcommon-dev libdbus-1-dev wayland-protocols
-  - export CXX="clang++"
 
   
 script:

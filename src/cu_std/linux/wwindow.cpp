@@ -102,7 +102,7 @@ void WSetTitle(WWindowContext* context,const s8* title){
 #include "vvulkan.h"
 
 #ifdef __cplusplus
-extern "C"
+extern "C" {
 #endif
 
 
@@ -176,6 +176,11 @@ WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext){
 void WPresentBackBuffer(WWindowContext* windowcontext,WBackBufferContext* buffer){
 	impl_wpresentbackbuffer(windowcontext,buffer);
 }
+
+
+#ifdef __cplusplus
+}
+#endif
 
 void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
 	impl_getwindowsize(window,w,h);
