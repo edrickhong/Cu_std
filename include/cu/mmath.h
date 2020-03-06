@@ -586,6 +586,7 @@ Vec3 GetVecRotation(Vec3 lookat);
 Vec3 QuatRotateVec3(Vec3 v, Quat q);
 Vec3 RotateVec3(Vec3 vec, Vec3 rotation);
 f32 Cosf(Vec3 vec1, Vec3 vec2);
+Vec3 ReflectVec3(Vec3 vec, Vec3 normal);
 
 f32 MagnitudeVec2(Vec2 vec);
 f32 DotVec2(Vec2 a, Vec2 b);
@@ -623,6 +624,9 @@ b32 TypedIntersectRay3(Ray3 a, Ray3 b);
 b32 IntersectRay3Plane(Ray3 a, Plane b);
 b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point);
 b32 TypedIntersectRay3Plane(Ray3 a, Plane b);
+
+b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point);
+b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point);
 
 b32 IntersectRay2(Ray2 a, Ray2 b);
 b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point);
@@ -708,6 +712,8 @@ Color3 _ainline ConstructColor3(f32 R,f32 G,f32 B){
 	Color3 color = {R,G,B};
 	return color;
 }
+
+Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere);
 
 // MARK: deconstructors
 

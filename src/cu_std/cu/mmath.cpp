@@ -179,43 +179,42 @@ Quat _ainline Neighbourhood(Quat a, Quat b) {
 	return b;
 }
 
-
-_ainline b32 InternalIsInline(Line3 a,Line3 b){
+_ainline b32 InternalIsInline(Line3 a, Line3 b) {
 	auto diff = NormalizeVec3(b.pos - a.pos);
-	f32 dot = DotVec3(diff,a.dir);
+	f32 dot = DotVec3(diff, a.dir);
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
-_ainline b32 InternalIsInline(Line2 a,Line2 b){
+_ainline b32 InternalIsInline(Line2 a, Line2 b) {
 	auto diff = NormalizeVec2(b.pos - a.pos);
-	f32 dot = DotVec2(diff,a.dir);
+	f32 dot = DotVec2(diff, a.dir);
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
-_ainline b32 InternalIsInline(Ray3 a,Ray3 b){
-	return InternalIsInline(Ray3ToLine3(a),Ray3ToLine3(b));
+_ainline b32 InternalIsInline(Ray3 a, Ray3 b) {
+	return InternalIsInline(Ray3ToLine3(a), Ray3ToLine3(b));
 }
 
-_ainline b32 InternalIsInline(Ray2 a,Ray2 b){
-	return InternalIsInline(Ray2ToLine2(a),Ray2ToLine2(b));
+_ainline b32 InternalIsInline(Ray2 a, Ray2 b) {
+	return InternalIsInline(Ray2ToLine2(a), Ray2ToLine2(b));
 }
 
-_ainline b32 InternalIsParallel(Line3 a,Line3 b){
-	f32 dot = DotVec3(a.dir,b.dir);
+_ainline b32 InternalIsParallel(Line3 a, Line3 b) {
+	f32 dot = DotVec3(a.dir, b.dir);
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
-_ainline b32 InternalIsParallel(Line2 a,Line2 b){
-	f32 dot = DotVec2(a.dir,b.dir);
+_ainline b32 InternalIsParallel(Line2 a, Line2 b) {
+	f32 dot = DotVec2(a.dir, b.dir);
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
-_ainline b32 InternalIsParallel(Ray3 a,Ray3 b){
-	return InternalIsParallel(Ray3ToLine3(a),Ray3ToLine3(b));
+_ainline b32 InternalIsParallel(Ray3 a, Ray3 b) {
+	return InternalIsParallel(Ray3ToLine3(a), Ray3ToLine3(b));
 }
 
-_ainline b32 InternalIsParallel(Ray2 a,Ray2 b){
-	return InternalIsParallel(Ray2ToLine2(a),Ray2ToLine2(b));
+_ainline b32 InternalIsParallel(Ray2 a, Ray2 b) {
+	return InternalIsParallel(Ray2ToLine2(a), Ray2ToLine2(b));
 }
 
 // MARK: conversions
@@ -1230,6 +1229,10 @@ f32 Cosf(Vec3 vec1, Vec3 vec2) {
 	       (MagnitudeVec3(vec1) * MagnitudeVec3(vec2));
 }
 
+Vec3 ReflectVec3(Vec3 vec, Vec3 normal) {
+	return SubVec3(vec, MulConstRVec3(ProjectOntoVec3(vec, normal), 2.0f));
+}
+
 f32 MagnitudeVec2(Vec2 a) {
 	a.x = a.x * a.x;
 	a.y = a.y * a.y;
@@ -1319,7 +1322,6 @@ DualQuat NormalizeDualQ(DualQuat d) {
 
 // TODO:  Test these
 
-
 b32 IntersectLine3(Line3 a, Line3 b) {
 	/*
 	  the form of a vector as a line is as follows:
@@ -1348,18 +1350,17 @@ b32 IntersectLine3(Line3 a, Line3 b) {
 
 	*/
 
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 
 	if (is_parallel) {
 		return false;
 	}
 
-
 	auto cross_ab = NormalizeVec3(CrossVec3(a.dir, b.dir));
 	auto cross_diff = NormalizeVec3(CrossVec3(b.pos - a.pos, b.dir));
 	auto dot = DotVec3(cross_ab, cross_diff);
 
-	//TODO: replace this with InternalIsParallel
+	// TODO: replace this with InternalIsParallel
 	return (u32)(fabsf(dot) + _f32_error_offset);
 }
 
@@ -1399,8 +1400,8 @@ b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point) {
 
 b32 TypedIntersectLine3(Line3 a, Line3 b) {
 	b32 is_intersect = IntersectLine3(a, b);
-	b32 is_parallel = InternalIsParallel(a,b);
-	b32 is_inline = InternalIsInline(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
+	b32 is_inline = InternalIsInline(a, b);
 
 	if (is_inline & is_parallel) {
 		return INTERSECT_INFINITE;
@@ -1475,13 +1476,10 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b) {
 	return is_intersect;
 }
 
-b32 IntersectLine2(Line2 a, Line2 b) {
-	return !InternalIsParallel(a,b);
-}
+b32 IntersectLine2(Line2 a, Line2 b) { return !InternalIsParallel(a, b); }
 
 b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point) {
-
-	if (!IntersectLine2(a,b)) {
+	if (!IntersectLine2(a, b)) {
 		return false;
 	}
 
@@ -1509,9 +1507,9 @@ b32 TypedIntersectLine2(Line2 a, Line2 b) {
 
 	auto dot = DotVec2(a.dir, b.dir);
 
-	b32 is_parallel = InternalIsParallel(a,b);
-	b32 is_intersect = IntersectLine2(a,b);
-	b32 is_inline = InternalIsInline(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
+	b32 is_intersect = IntersectLine2(a, b);
+	b32 is_inline = InternalIsInline(a, b);
 
 	if (is_parallel && is_inline) {
 		return INTERSECT_INFINITE;
@@ -1521,7 +1519,7 @@ b32 TypedIntersectLine2(Line2 a, Line2 b) {
 }
 
 b32 IntersectRay3(Ray3 a, Ray3 b) {
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 
 	if (is_parallel) {
 		return false;
@@ -1560,7 +1558,7 @@ b32 IntersectRay3(Ray3 a, Ray3 b) {
 }
 
 b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point) {
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 
 	if (is_parallel) {
 		return false;
@@ -1601,11 +1599,10 @@ b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point) {
 }
 
 b32 TypedIntersectRay3(Ray3 a, Ray3 b) {
-
 	b32 is_intersect = IntersectRay3(a, b);
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 
-	b32 is_inline = InternalIsInline(a,b);
+	b32 is_inline = InternalIsInline(a, b);
 
 	if (is_inline && is_parallel) {
 		return INTERSECT_INFINITE;
@@ -1654,9 +1651,78 @@ b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 	return is_intersect;
 }
 
-b32 IntersectRay2(Ray2 a, Ray2 b) {
+b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point) {
 
-	b32 is_parallel = InternalIsParallel(a,b);
+	Vec3 line_to_sphere = SubVec3(sphere.pos, line.pos);
+
+	f32 a = DotVec3(line.dir, line.dir);
+	f32 b = -2.0f * DotVec3(line.dir, line_to_sphere);
+	f32 c = DotVec3(line_to_sphere, line_to_sphere) -
+		(sphere.radius * sphere.radius);
+	f32 discriminant = (b * b) - (4.0f * a * c);
+
+	if (discriminant < 0.0f) {
+		return 0;
+	}
+
+	f32 root = sqrtf(discriminant);
+	f32 t0 = ((-1.0f * b) + root) / (2.0f * a);
+	f32 t1 = ((-1.0f * b) - root) / (2.0f * a);
+
+	f32 abs_t0 = fabsf(t0);
+	f32 abs_t1 = fabsf(t1);
+
+	f32 error_margin = _f32_error_offset;
+
+	b32 line_condition =  (abs_t0 < _f32_error_offset) || 
+		(abs_t1 < _f32_error_offset);
+			    
+	if (line_condition) {
+		return 0;
+	}
+
+	if (abs_t0 < abs_t1) {
+		*point = AddVec3((MulConstRVec3(line.dir, t0)), line.pos);
+	} else {
+		*point = AddVec3((MulConstRVec3(line.dir, t1)), line.pos);
+	}
+
+	return 1;
+}
+
+b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
+
+	Vec3 ray_to_sphere = SubVec3(sphere.pos, ray.pos);
+
+	f32 a = DotVec3(ray.dir, ray.dir);
+	f32 b = -2.0f * DotVec3(ray.dir, ray_to_sphere);
+	f32 c = DotVec3(ray_to_sphere, ray_to_sphere) -
+		(sphere.radius * sphere.radius);
+	f32 discriminant = (b * b) - (4.0f * a * c);
+
+	if (discriminant < 0.0f) {
+		return 0;
+	}
+
+	f32 root = sqrtf(discriminant);
+	f32 t0 = ((-1.0f * b) + root) / (2.0f * a);
+	f32 t1 = ((-1.0f * b) - root) / (2.0f * a);
+
+	if (t0 <= _f32_error_offset || t1 <= _f32_error_offset) {
+		return 0;
+	}
+
+	if (t0 < t1) {
+		*point = AddVec3((MulConstRVec3(ray.dir, t0)), ray.pos);
+	} else {
+		*point = AddVec3((MulConstRVec3(ray.dir, t1)), ray.pos);
+	}
+
+	return 1;
+}
+
+b32 IntersectRay2(Ray2 a, Ray2 b) {
+	b32 is_parallel = InternalIsParallel(a, b);
 
 	if (is_parallel) {
 		return false;
@@ -1686,8 +1752,7 @@ b32 IntersectRay2(Ray2 a, Ray2 b) {
 }
 
 b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point) {
-
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 
 	if (is_parallel) {
 		return false;
@@ -1722,10 +1787,9 @@ b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point) {
 }
 
 b32 TypedIntersectRay2(Ray2 a, Ray2 b) {
-
-	b32 is_parallel = InternalIsParallel(a,b);
+	b32 is_parallel = InternalIsParallel(a, b);
 	b32 is_intersect = IntersectRay2(a, b);
-	b32 is_inline = InternalIsInline(a,b);
+	b32 is_inline = InternalIsInline(a, b);
 
 	if (is_inline && is_parallel) {
 		return INTERSECT_INFINITE;
@@ -1914,6 +1978,25 @@ DualQuat ConstructDualQ(Quat rotation, Vec3 translation) {
 	d.q2 =
 	    Quat{0, translation.x, translation.y, translation.z} * d.q1 * 0.5f;
 	return d;
+}
+
+Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere) {
+	Vec3 normal = SubVec3(point_on_sphere, sphere.pos);
+
+#if 0
+	{
+		f32 magnitude = MagnitudeVec3(normal);
+		b32 condition =
+		    (sphere.radius > magnitude || sphere.radius < magnitude);
+
+		if(condition){
+			printf("ERROR: %f\n",(f64)magnitude);
+		}
+		//_kill("point is not on sphere\n", condition);
+	}
+#endif
+
+	return NormalizeVec3(normal);
 }
 
 // MARK: deconstrutors
