@@ -24,6 +24,7 @@ struct wl_surface;
 struct wl_shm;
 
 struct wl_compositor;
+struct wl_subcompositor;
 struct wl_shell;
 struct wl_seat;
 struct wl_pointer;
@@ -85,6 +86,7 @@ extern s32 (*wl_display_dispatch_ftpr)(wl_display*);
 extern "C" const wl_interface* wl_display_interface_ptr;
 extern "C" const wl_interface* wl_registry_interface_ptr;
 extern "C" const wl_interface* wl_compositor_interface_ptr;
+extern "C" const wl_interface* wl_subcompositor_interface_ptr;
 extern "C" const wl_interface* wl_seat_interface_ptr;
 extern "C" const wl_interface* wl_shell_interface_ptr;
 extern "C" const wl_interface* wl_pointer_interface_ptr;
@@ -104,6 +106,7 @@ extern "C" const wl_interface* wl_shm_interface_ptr;
 #define wl_display_interface *wl_display_interface_ptr
 #define wl_registry_interface *wl_registry_interface_ptr
 #define wl_compositor_interface *wl_compositor_interface_ptr
+#define wl_subcompositor_interface *wl_subcompositor_interface_ptr
 #define wl_seat_interface *wl_seat_interface_ptr
 #define wl_shell_interface *wl_shell_interface_ptr
 #define wl_pointer_interface *wl_pointer_interface_ptr
