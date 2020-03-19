@@ -22,7 +22,7 @@ struct WaylandData {
 	// We don't touch these alot
 	wl_compositor* compositor;
 	wl_subcompositor* subcompositor;
-	wl_shell* shell;
+	xdg_wm_base* base;
 	wl_seat* seat;
 	wl_pointer* pointer;
 	wl_keyboard* keyboard;
@@ -44,7 +44,9 @@ struct InternalWindowData {
 		};
 
 		struct {
-			void* wayland_shell_surface;
+			//TODO: replace this with wayland xdg
+			xdg_surface* wayland_xdg_surface;
+			xdg_toplevel* wayland_xdg_toplevel;
 			WaylandData wayland_data;
 		};
 	};

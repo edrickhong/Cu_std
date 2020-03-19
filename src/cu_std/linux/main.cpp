@@ -1,25 +1,26 @@
 #include "thread_mode.h"
 
 #ifdef DEBUG
-//cos thread tracking in the vulkan layers will not work withh raw threads
+// cos thread tracking in the vulkan layers will not work withh raw threads
 //#include "tthread.cpp"
 #else
 #endif
 
-//thread
+// thread
 #if _use_pthread
 #include "pthread_tthread.cpp"
 #else
 #include "raw_tthread.cpp"
 #endif
 
-//audio
+// audio
 #include "aaudio.cpp"
-//controller
+// controller
 #include "ccontroller.cpp"
-//fileio
+// fileio
 #include "ffileio.cpp"
-//timer
+// timer
 #include "ttimer.cpp"
-//window
+
+// window
 #include "wwindow.cpp"
