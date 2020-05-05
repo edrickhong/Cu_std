@@ -7,14 +7,24 @@
 /*
 TODO:
 fix the pointer to use the default pointer (requires dumb parsing)
-fix quit message (requires xdg extensions)
 
 xdg-shell-client-protocol.h
 
-wl_shell is deprecated. we should be using xdg shell
-we will need this for minmax and hide
+Implement:
+Hide -- xdg_toplevel_set_minimized
+Minimize/Maximize -- window size is determined by the buffer size. In 
+wayland, the functionality is known as maximize and unmaximize
+Drag -- xdg_toplevel_move(struct xdg_toplevel *xdg_toplevel, struct wl_seat *seat, uint32_t serial)
+{
+Resize
 
+NORESIZE -- set the max and min size to the same thing
 */
+
+#if 0
+enum InternalEvent : WWindowEvent{
+};
+#endif
 
 struct WaylandDecoratorHandler {
 	wl_surface* surface;
@@ -112,6 +122,22 @@ const wl_interface* wl_touch_interface_ptr = 0;
 const wl_interface* wl_subsurface_interface_ptr = 0;
 const wl_interface* wl_shm_interface_ptr = 0;
 const wl_interface* wl_output_interface_ptr = 0;
+
+WWindowEvent* InternalGetNextEvent(){
+
+	_kill("too many events\n",
+	      wayland_event_count > _arraycount(wayland_event_array));
+
+	auto event = &wayland_event_array[wayland_event_count];
+	wayland_event_count++;
+
+	return event;
+}
+
+void InternalPushEvent(WWindowEvent event){
+	wayland_event_array[wayland_event_count] = event;
+	wayland_event_count++;
+}
 
 b32 InternalLoadLibraryWayland() {
 	if (wwindowlib_handle) {
@@ -252,11 +278,9 @@ void WaylandKeyboardLeave(void* data, wl_keyboard* keyboard, u32 serial,
 
 void WaylandKeyboardKey(void* data, wl_keyboard* keyboard, u32 serial, u32 time,
 			u32 key, u32 state) {
-	_kill("too many events\n",
-	      wayland_event_count > _arraycount(wayland_event_array));
 
-	auto event = &wayland_event_array[wayland_event_count];
-	wayland_event_count++;
+	auto event = InternalGetNextEvent();
+
 
 	if (state) {
 		event->type = W_EVENT_KBEVENT_KEYDOWN;
@@ -294,11 +318,9 @@ void WaylandPointerLeave(void* data, wl_pointer* pointer, u32 serial,
 
 void WaylandPointerMotion(void* data, wl_pointer* pointer, u32 time,
 			  wl_fixed_t sx, wl_fixed_t sy) {
-	_kill("too many events\n",
-	      wayland_event_count > _arraycount(wayland_event_array));
 
-	auto event = &wayland_event_array[wayland_event_count];
-	wayland_event_count++;
+	auto event = InternalGetNextEvent();
+
 
 	event->type = W_EVENT_MSEVENT_MOVE;
 
@@ -315,11 +337,7 @@ void WaylandPointerButton(void* data, wl_pointer* pointer, u32 serial, u32 time,
 			  u32 button, u32 state) {
 	// NOTE: the serial needs to be stored to perform drag operations
 
-	_kill("too many events\n",
-	      wayland_event_count > _arraycount(wayland_event_array));
-
-	auto event = &wayland_event_array[wayland_event_count];
-	wayland_event_count++;
+	auto event = InternalGetNextEvent();
 
 	if (state) {
 		event->type = W_EVENT_MSEVENT_DOWN;
@@ -349,8 +367,7 @@ void WaylandPointerButton(void* data, wl_pointer* pointer, u32 serial, u32 time,
 					&out_event);
 
 		if (out_event.type) {
-			wayland_event_array[wayland_event_count] = out_event;
-			wayland_event_count++;
+			InternalPushEvent(out_event);
 		}
 	}
 }
@@ -378,7 +395,8 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel,s32 width, s32 heig
 }
 
 void Wayland_Close(void* data,xdg_toplevel* toplevel){
-	//TODO: see xdg-shell.h line 1128
+	auto event = InternalGetNextEvent();
+	event->type = W_EVENT_CLOSE;
 }
 
 void Wayland_SurfaceConfigure(void* data,xdg_surface* surface, u32 serial){
@@ -809,7 +827,12 @@ void InternalHandleDecorator(void* data, void* args, void* out) {
 			switch (element->type) {
 				case WaylandDecoratorHandler::Element::
 				    ElementType::ELEMENT_HIDE: {
-					// TODO:perform hide
+//MARK:
+#if 0
+					    xdg_toplevel_set_minimized(
+							    //toplevel
+							    );
+#endif
 				} break;
 				case WaylandDecoratorHandler::Element::
 				    ElementType::ELEMENT_MINMAX: {

@@ -8,6 +8,14 @@
 // able to just step through and find out how it figures out the default file
 // manager
 
+enum WaylandDecoratorStatus{
+	WAYLAND_DEC_STATUS_NONE = 0,
+	WAYLAND_DEC_STATUS_ACTIVE,
+	WAYLAND_DEC_STATUS_MINMAX,
+	WAYLAND_DEC_STATUS_CLOSE,
+	WAYLAND_DEC_STATUS_HIDE,
+};
+
 struct WaylandDecorator {
 	wl_surface* surface;
 	wl_subsurface* subsurface;
