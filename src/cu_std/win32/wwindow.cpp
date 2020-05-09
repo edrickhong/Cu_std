@@ -18,6 +18,8 @@ void _ainline PostEvent(WWindowEvent event){
 #define _WIN32_DOWN_BIT (1 << 30)
 
 LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
+
+	//TODO: we should check if hwnd can be encapsulated in 32 bits
     
     LRESULT result = 0;
     
@@ -25,18 +27,18 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         
         case WM_DESTROY:
         {
-            PostEvent({W_EVENT_CLOSE});
+            PostEvent({W_EVENT_CLOSE,(u64)hwnd});
             PostQuitMessage(0);
         } break;
         
         case WM_CLOSE:
         {
-            PostEvent({W_EVENT_CLOSE});
+            PostEvent({W_EVENT_CLOSE,(u64)hwnd});
             PostQuitMessage(0);
         } break;
         
         case WM_ACTIVATEAPP:{
-            PostEvent({(WEventType)uMsg});
+            PostEvent({(WEventType)uMsg,(u64)hwnd});
         }break;
         
         case WM_SYSKEYDOWN:
@@ -48,6 +50,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             if(!(_WIN32_DOWN_BIT & lParam)){
                 WWindowEvent event = {};
                 event.type = W_EVENT_KBEVENT_KEYDOWN;
+		event.window = (u64)hwnd;
                 event.keyboard_event.keycode = vcode;
                 PostEvent(event);
             }
@@ -60,6 +63,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             if((_WIN32_DOWN_BIT & lParam)){
                 WWindowEvent event = {};
                 event.type = W_EVENT_KBEVENT_KEYUP;
+		event.window = (u64)hwnd;
                 event.keyboard_event.keycode = vcode;
                 PostEvent(event);
             }
@@ -69,6 +73,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_MOUSEMOVE:{
             WWindowEvent event = {};
             event.type = W_EVENT_MSEVENT_MOVE;
+	    event.window = (u64)hwnd;
             event.mouse_event.x = GET_X_LPARAM(lParam);
             event.mouse_event.y = GET_Y_LPARAM(lParam);
             PostEvent(event);
@@ -77,6 +82,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_LBUTTONDOWN:{
             WWindowEvent event = {};
             event.type = W_EVENT_MSEVENT_DOWN;
+	    event.window = (u64)hwnd;
             event.mouse_event.keycode = MOUSEBUTTON_LEFT;
             PostEvent(event);
         }break;
@@ -84,6 +90,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_LBUTTONUP:{
             WWindowEvent event = {};
             event.type = W_EVENT_MSEVENT_UP;
+	    event.window = (u64)hwnd;
             event.mouse_event.keycode = MOUSEBUTTON_LEFT;
             PostEvent(event);
         }break;
@@ -91,6 +98,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_RBUTTONDOWN: {
             WWindowEvent event = {};
             event.type = W_EVENT_MSEVENT_DOWN;
+	    event.window = (u64)hwnd;
             event.mouse_event.keycode = MOUSEBUTTON_RIGHT;
             PostEvent(event);
         }break;
@@ -98,6 +106,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_RBUTTONUP: {
             WWindowEvent event = {};
             event.type = W_EVENT_MSEVENT_UP;
+	    event.window = (u64)hwnd;
             event.mouse_event.keycode = MOUSEBUTTON_RIGHT;
             PostEvent(event);
         }break;
@@ -106,6 +115,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             
             WWindowEvent event = {};
             event.type = W_EVENT_RESIZE;
+	    event.window = (u64)hwnd;
             
             union U32_PACKED{
                 u64 u;
@@ -175,8 +185,9 @@ u32 WWaitForWindowEvent(WWindowContext* windowcontext,WWindowEvent* event){
     MSG msg;
     
     auto ret = event_count;
-    
-    while(PeekMessage(&msg,(HWND)windowcontext->window,0,0,PM_REMOVE | PM_NOYIELD) > 0){
+   
+   //NOTE: we are now looking at all messages instead of per window. we will remove the first param in this funtion soon 
+    while(PeekMessage(&msg,0,0,0,PM_REMOVE | PM_NOYIELD) > 0){
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }

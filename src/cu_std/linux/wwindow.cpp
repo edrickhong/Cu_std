@@ -16,18 +16,13 @@ enum WaylandDecoratorStatus{
 	WAYLAND_DEC_STATUS_HIDE,
 };
 
-struct WaylandDecorator {
-	wl_surface* surface;
-	wl_subsurface* subsurface;
-	wl_buffer* buffer;
-	u32* pixels;
-};
 
 struct WaylandData {
 	u16 width;
 	u16 height;
 
 	// We don't touch these alot
+	// We could move these out
 	wl_compositor* compositor;
 	wl_subcompositor* subcompositor;
 	xdg_wm_base* base;
@@ -37,8 +32,6 @@ struct WaylandData {
 
 	// for sw rendering
 	wl_shm* shm;
-
-	WaylandDecorator decor;
 };
 
 struct InternalWindowData {
@@ -52,9 +45,7 @@ struct InternalWindowData {
 		};
 
 		struct {
-			//TODO: replace this with wayland xdg
 			xdg_surface* wayland_xdg_surface;
-			xdg_toplevel* wayland_xdg_toplevel;
 			WaylandData wayland_data;
 		};
 	};

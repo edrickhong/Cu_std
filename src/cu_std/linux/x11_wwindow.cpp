@@ -126,14 +126,17 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 
 			case Expose:{
 					    event->type = W_EVENT_EXPOSE;
+					    event->window = (u64)xevent.xany.window;
 				    }break;
 
 			case ClientMessage:{
 						   event->type = W_EVENT_CLOSE;
+						   event->window = (u64)xevent.xany.window;
 					   }break;
 
 			case ConfigureNotify:{
 						     event->type = W_EVENT_RESIZE;
+						     event->window = (u64)xevent.xany.window;
 						     event->width = xevent.xconfigure.width;
 						     event->height = xevent.xconfigure.height;
 					     }break;
@@ -145,6 +148,7 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 			case KeyPress:{
 
 					      event->type = W_EVENT_KBEVENT_KEYDOWN;
+					      event->window = (u64)xevent.xany.window;
 					      event->keyboard_event.keycode = xevent.xkey.keycode;
 
 					      XLookupString(&xevent.xkey,&wtext_buffer[xevent.xkey.keycode],1,0,0);
@@ -153,11 +157,13 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 
 			case KeyRelease:{
 						event->type = W_EVENT_KBEVENT_KEYUP;
+						event->window = (u64)xevent.xany.window;
 						event->keyboard_event.keycode = xevent.xkey.keycode;
 					}break;
 
 			case MotionNotify:{
 						  event->type = W_EVENT_MSEVENT_MOVE;
+						  event->window = (u64)xevent.xany.window;
 						  event->mouse_event.x = xevent.xmotion.x;
 						  event->mouse_event.y = xevent.xmotion.y;
 					  }break;
@@ -165,6 +171,7 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 			case ButtonPress:{
 
 						 event->type = W_EVENT_MSEVENT_DOWN;
+						 event->window = (u64)xevent.xany.window;
 
 						 switch(xevent.xbutton.button){
 
@@ -203,6 +210,7 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 			case ButtonRelease:{
 
 						   event->type = W_EVENT_MSEVENT_UP;
+						   event->window = (u64)xevent.xany.window;
 
 						   switch(xevent.xbutton.button){
 

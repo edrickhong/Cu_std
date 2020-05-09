@@ -66,6 +66,14 @@ typedef enum WEventType {
 	W_EVENT_CLOSE = (s32)0xFFFFFFFF,
 	W_EVENT_RESIZE = (s32)0xFFFFFFFE,
 
+	//NOTE: These are internal events that 
+	//the user will never see
+	
+	W_EVENT_INTERN_MS_I = (s32)0xFFFFFFFD,
+	W_EVENT_INTERN_MS_O = (s32)0xFFFFFFFC,
+	W_EVENT_INTERN_KB_I = (s32)0xFFFFFFFB,
+	W_EVENT_INTERN_KB_O = (s32)0xFFFFFFFA,
+
 #ifdef _WIN32
 
 	W_EVENT_EXPOSE = WM_ACTIVATEAPP,
@@ -102,7 +110,7 @@ typedef struct WMouseEvent {
 } WMouseEvent;
 
 typedef struct WWindowEvent {
-	WEventType type;
+	WEventType type; //32 bits
 
 	union {
 		WKeyboardEvent keyboard_event;
@@ -112,7 +120,8 @@ typedef struct WWindowEvent {
 			u16 width;
 			u16 height;
 		};
-	};
+	}; // 32 bits
+	u64 window; 
 } WWindowEvent;
 
 typedef struct KeyboardState {
