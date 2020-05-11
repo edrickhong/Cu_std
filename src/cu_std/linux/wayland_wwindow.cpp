@@ -12,6 +12,7 @@ xdg-shell-client-protocol.h
 
 Implement:
 Resize
+move all the global variables to one file
 
 NORESIZE -- set the max and min size to the same thing
 */
@@ -556,8 +557,6 @@ void SeatCapabilities(void* data, wl_seat* seat, u32 caps) {
 		wl_keyboard_add_listener(wayland_keyboard, &keyboard_listener, data);
 	}
 }
-
-// MARK: Listeners TODO: Do we really need these to be global??
 
 _global const wl_seat_listener seat_listener = {SeatCapabilities};
 _global wl_shm_listener shm_listener = {WaylandSHMFormat};
