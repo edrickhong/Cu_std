@@ -2294,13 +2294,13 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     
     if(window->data->type == _WAYLAND_WINDOW){
         surface =
-            CreateSurfaceWayland(global_instance,(wl_display*)window->handle, (wl_surface*)window->window);
+            CreateSurfaceWayland(global_instance,(wl_display*)WGetWindowConnection(), (wl_surface*)window->window);
     }
     
     else{
         
         surface =
-            CreateSurfaceX11(global_instance,(Display*)window->handle, (Window)window->window);
+            CreateSurfaceX11(global_instance,(Display*)WGetWindowConnection(), (Window)window->window);
     }
     
 #endif
@@ -3542,7 +3542,7 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
                               );
                     
                     present_support = vkGetPhysicalDeviceWaylandPresentationSupportKHR(
-                        d,famindex,(wl_display*)window->handle);
+                        d,famindex,(wl_display*)WGetWindowConnection());
                 }
                 
                 else{
@@ -3552,7 +3552,7 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
                               );
                     
                     
-                    present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)window->handle,window->data->x11_visualid);
+                    present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)WGetWindowConnection(),window->data->x11_visualid);
                     
                     
                 }

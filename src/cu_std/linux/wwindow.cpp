@@ -8,30 +8,15 @@
 // able to just step through and find out how it figures out the default file
 // manager
 
-enum WaylandDecoratorStatus{
-	WAYLAND_DEC_STATUS_NONE = 0,
-	WAYLAND_DEC_STATUS_ACTIVE,
-	WAYLAND_DEC_STATUS_MINMAX,
-	WAYLAND_DEC_STATUS_CLOSE,
-	WAYLAND_DEC_STATUS_HIDE,
+union InternalConnection{
+	Display* x11_display;
+	wl_display* wayland_display;
 };
 
 
 struct WaylandData {
 	u16 width;
 	u16 height;
-
-	// We don't touch these alot
-	// We could move these out
-	wl_compositor* compositor;
-	wl_subcompositor* subcompositor;
-	xdg_wm_base* base;
-	wl_seat* seat;
-	wl_pointer* pointer;
-	wl_keyboard* keyboard;
-
-	// for sw rendering
-	wl_shm* shm;
 };
 
 struct InternalWindowData {
@@ -65,13 +50,16 @@ struct InternalBackBufferData {
 	};
 };
 
+
+_global InternalConnection internal_windowconnection = {};
+
 _global LibHandle wwindowlib_handle = 0;
 _global u32 loaded_lib_type = 0;
 _global s8 wtext_buffer[256] = {};
 
 // function implementations
 _global s8 (*impl_wkeycodetoascii)(u32) = 0;
-_global u32 (*impl_wwaitforevent)(WWindowContext*, WWindowEvent*) = 0;
+_global u32 (*impl_wwaitforevent)(WWindowEvent*) = 0;
 _global void (*impl_wsettitle)(WWindowContext*, const s8*) = 0;
 _global WBackBufferContext (*impl_wcreatebackbuffer)(WWindowContext*) = 0;
 _global void (*impl_getwindowsize)(WWindowContext*, u32*, u32*) = 0;
@@ -81,12 +69,17 @@ _global void (*impl_wpresentbackbuffer)(WWindowContext*,
 #include "wayland_wwindow.cpp"
 #include "x11_wwindow.cpp"
 
+
+void* WGetWindowConnection(){
+	return (void*)internal_windowconnection.x11_display;
+}
+
 // TODO: We can probably get rid of some of the branching
 
 s8 WKeyCodeToASCII(u32 keycode) { return impl_wkeycodetoascii(keycode); }
 
-u32 WWaitForWindowEvent(WWindowContext* windowcontext, WWindowEvent* event) {
-	return impl_wwaitforevent(windowcontext, event);
+u32 WWaitForWindowEvent(WWindowEvent* event) {
+	return impl_wwaitforevent(event);
 }
 
 void WSetTitle(WWindowContext* context, const s8* title) {
@@ -161,7 +154,7 @@ WWindowContext WCreateVulkanWindow(const s8* title, WCreateFlags flags, u32 x,
 					 W_CREATE_NO_CHECK),
 			  x, y, width, height);
 
-	if (!context.handle) {
+	if (!internal_windowconnection.wayland_display) {
 		context =
 		    WCreateWindow(title,
 				  (WCreateFlags)(flags | W_CREATE_BACKEND_XLIB |
@@ -172,7 +165,7 @@ WWindowContext WCreateVulkanWindow(const s8* title, WCreateFlags flags, u32 x,
 	_kill(
 	    "Create window failed: either failed to load window lib,failed to "
 	    "connect to window manager or failed to get a hw enabled window\n",
-	    !context.handle);
+	    !internal_windowconnection.wayland_display);
 
 	return context;
 }

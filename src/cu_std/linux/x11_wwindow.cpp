@@ -109,18 +109,18 @@ s8 WKeyCodeToASCIIX11(u32 keycode){
 	return wtext_buffer[keycode];
 }
 
-u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
-		WWindowEvent* event){
+u32 WWaitForWindowEventX11(WWindowEvent* event){
 
 	//NOTE: we might need to create the exit atom. I have an example in the handmade dir
 
-	auto queue_count = XPending((Display*)windowcontext->handle);
+	auto display = internal_windowconnection.x11_display;
+	auto queue_count = XPending(display);
 
 
 	if(queue_count){
 
 		XEvent xevent = {};
-		XNextEvent((Display*)windowcontext->handle,&xevent);
+		XNextEvent(display,&xevent);
 
 		switch(xevent.type){
 
@@ -257,7 +257,8 @@ u32 WWaitForWindowEventX11(WWindowContext* windowcontext,
 }
 
 void WSetTitleX11(WWindowContext* context,const s8* title){
-	XStoreName((Display*)context->handle,(Window)context->window,(s8*)title);
+	XStoreName(internal_windowconnection.x11_display,
+			(Window)context->window,(s8*)title);
 }
 
 
@@ -267,7 +268,8 @@ void GetWindowSizeX11(WWindowContext* window,u32* w,u32* h){
 
 	XWindowAttributes attribs = {};
 
-	XGetWindowAttributes_fptr((Display*)window->handle,(Window)window->window,&attribs);
+	XGetWindowAttributes_fptr(internal_windowconnection.x11_display,
+			(Window)window->window,&attribs);
 
 	*w = attribs.width;
 	*h = attribs.height;
@@ -333,11 +335,13 @@ WBackBufferContext InternalCreateBackBufferX11(WWindowContext* context){
 
 #endif
 
-	buffer.data->pixmap = XCreatePixmap_fptr((Display*)context->handle,(Window)context->window,width,height,context->data->x11_depth);
+	auto display = internal_windowconnection.x11_display;
+
+	buffer.data->pixmap = XCreatePixmap_fptr(display,(Window)context->window,width,height,context->data->x11_depth);
 
 	XGCValues values = {};
 
-	buffer.data->gc = XCreateGC_fptr((Display*)context->handle,buffer.data->pixmap,0,&values);
+	buffer.data->gc = XCreateGC_fptr(display,buffer.data->pixmap,0,&values);
 
 	if(!wfptr_x11_xputimage){
 		wfptr_x11_xputimage = LGetLibFunction(wwindowlib_handle,"XPutImage");
@@ -356,13 +360,15 @@ void InternalPresentBackBufferX11(WWindowContext* window,WBackBufferContext* buf
 	//for drawing
 	//copy the image to the pixmap
 
-	XPutImage((Display*)window->handle,buffer->data->pixmap,buffer->data->gc,
+	auto display = internal_windowconnection.x11_display;
+
+	XPutImage(display,buffer->data->pixmap,buffer->data->gc,
 			&buffer->data->ximage,
 			0,0,0,0,
 			buffer->width,buffer->height
 		 );
 
-	XCopyArea((Display*)window->handle,buffer->data->pixmap,(Window)window->window,buffer->data->gc,0,0,buffer->width,buffer->height,0,0);
+	XCopyArea(display,buffer->data->pixmap,(Window)window->window,buffer->data->gc,0,0,buffer->width,buffer->height,0,0);
 
 }
 
@@ -427,11 +433,36 @@ _intern XVisualInfo* GetVisualInfoArray(Display* dpy,s32* _restrict count){
 	return ret;
 }
 
-b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
-		u32 x,u32 y,u32 width,u32 height){
+b32 InternalX11InitOneTime(){
 
 	if(!InternalLoadLibraryX11()){
 		return false;
+	}
+
+	auto XOpenDisplay_fptr =
+		(Display* (*)(s8*))LGetLibFunction(wwindowlib_handle,"XOpenDisplay");
+
+	internal_windowconnection.x11_display = XOpenDisplay_fptr(0);
+	auto display = internal_windowconnection.x11_display;
+
+	if(!display){
+		LUnloadLibrary(wwindowlib_handle);
+		wwindowlib_handle = 0;
+		loaded_lib_type = 0;
+		return false;
+	}
+
+
+	return true;
+}
+
+b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags flags,
+		u32 x,u32 y,u32 width,u32 height){
+
+	if(!internal_windowconnection.x11_display){
+		if(!InternalX11InitOneTime()){
+			return false;
+		}
 	}
 
 	impl_wkeycodetoascii = WKeyCodeToASCIIX11;
@@ -442,9 +473,6 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 	impl_wpresentbackbuffer = InternalPresentBackBufferX11;
 
 	//get all the functions needed for init
-
-	auto XOpenDisplay_fptr =
-		(Display* (*)(s8*))LGetLibFunction(wwindowlib_handle,"XOpenDisplay");
 
 	auto XCreateWindow_fptr =
 		(Window (*)(Display*,Window,s32,s32,u32,u32,u32,s32, u32, Visual*,unsigned long,
@@ -474,19 +502,11 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 	auto XCreateColormap_fptr = (Colormap (*)(Display*,Window,Visual*,s32))LGetLibFunction(wwindowlib_handle,"XCreateColormap");
 
 	context->data->type = _X11_WINDOW;
+	auto display = internal_windowconnection.x11_display;
 
-	context->handle = XOpenDisplay_fptr(0);
+	_kill("failed to open display\n",!display);
 
-	if(!context->handle){
-		LUnloadLibrary(wwindowlib_handle);
-		wwindowlib_handle = 0;
-		loaded_lib_type = 0;
-		return false;
-	}
-
-	_kill("failed to open display\n",!context->handle);
-
-	auto screen_no = XDefaultScreen_fptr((Display*)context->handle);
+	auto screen_no = XDefaultScreen_fptr(display);
 
 #ifdef DEBUG
 	printf("The default screen no is %d\n",screen_no);
@@ -497,7 +517,7 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 
 	{
 		s32 info_count = 0;
-		auto info_array = GetVisualInfoArray((Display*)context->handle,&info_count);
+		auto info_array = GetVisualInfoArray(display,&info_count);
 
 #if 0
 
@@ -526,11 +546,11 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 	}
 
 	XSetWindowAttributes frame_attrib = {};
-	frame_attrib.background_pixel = XWhitePixel_fptr((Display*)context->handle,screen_no);
+	frame_attrib.background_pixel = XWhitePixel_fptr(display,screen_no);
 
 
 	//MARK: handling visual
-	context->data->x11_colormap = XCreateColormap_fptr((Display*)context->handle,XRootWindow_fptr((Display*)context->handle,screen_no),visual_ptr,AllocNone);
+	context->data->x11_colormap = XCreateColormap_fptr(display,XRootWindow_fptr(display,screen_no),visual_ptr,AllocNone);
 
 	frame_attrib.colormap = context->data->x11_colormap;
 
@@ -543,8 +563,8 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 	u32 mask = 
 		CWBackPixel | CWColormap | CWBackPixmap | CWBorderPixel;
 
-	context->window = (void*)XCreateWindow_fptr((Display*)context->handle,
-			XRootWindow_fptr((Display*)context->handle,screen_no),
+	context->window = (void*)XCreateWindow_fptr(display,
+			XRootWindow_fptr(display,screen_no),
 			x,y,width,height,borderwidth,depth,InputOutput,
 			visual_ptr,mask,&frame_attrib);
 	
@@ -552,7 +572,7 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 
 	WSetTitle(context,title);
 
-	XSelectInput_fptr((Display*)context->handle,(Window)context->window,
+	XSelectInput_fptr(display,(Window)context->window,
 			ExposureMask|ButtonPressMask|
 			ButtonReleaseMask|KeyReleaseMask|KeyPressMask|
 			StructureNotifyMask | PointerMotionMask);
@@ -575,13 +595,13 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 
 	}
 
-	XSetWMNormalHints((Display*)context->handle,(Window)context->window,&hints);
+	XSetWMNormalHints(display,(Window)context->window,&hints);
 
 	//create exit atom - MARK:Idk if this handles the case where the atom already exists
-	auto atom_exit = XInternAtom_fptr((Display*)context->handle,"WM_DELETE_WINDOW",false);
+	auto atom_exit = XInternAtom_fptr(display,"WM_DELETE_WINDOW",false);
 
 	if(atom_exit){
-		XSetWMProtocols((Display*)context->handle,(Window)context->window,&atom_exit,1);  
+		XSetWMProtocols(display,(Window)context->window,&atom_exit,1);  
 	}
 
 	//Set window class
@@ -591,12 +611,12 @@ b32 InternalCreateX11Window(WWindowContext* context,const s8* title,WCreateFlags
 
 	XClassHint hint = {(s8*)title,(s8*)title};
 
-	XSetClassHint_fptr((Display*)context->handle,(Window)context->window,&hint);
+	XSetClassHint_fptr(display,(Window)context->window,&hint);
 
-	XMapRaised_fptr((Display*)context->handle,(Window)context->window);
+	XMapRaised_fptr(display,(Window)context->window);
 
 	//MARK: we can set multiple with XSetWMProperties
-	XFlush((Display*)context->handle);
+	XFlush(display);
 
 	return true;
 }

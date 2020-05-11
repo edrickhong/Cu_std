@@ -144,20 +144,30 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return result;
 }
 
+void* WGetConnection(){
+
+	void* connection = 0;
+
+    GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 0,
+                      (HMODULE*)&connection);
+
+    return connection;
+}
+
 WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
                              u32 height){
     
     WWindowContext context = {};
+
+    HMODULE connection = WGetConnection();
     
-    GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 0,
-                      (HMODULE*)&context.handle);
     
     WNDCLASSEX wndclass = {};
     
     wndclass.cbSize = sizeof(WNDCLASSEX);
     wndclass.style = flags;
     wndclass.lpfnWndProc = WindowCallback;
-    wndclass.hInstance = (HMODULE)context.handle;
+    wndclass.hInstance = (HMODULE)connection;
     wndclass.lpszClassName = title;
     wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
     
@@ -172,7 +182,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     
     context.window =
         (void*)CreateWindow(wndclass.lpszClassName,title,style, x, y,
-                            width, height, 0, 0, (HMODULE)context.handle, 0);
+                            width, height, 0, 0, (HMODULE)connection, 0);
     
     _kill("Failed to register WNDCLASS", !res);
     _kill("Unable to create window", !(context.window));
@@ -180,7 +190,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     return context;
 }
 
-u32 WWaitForWindowEvent(WWindowContext* windowcontext,WWindowEvent* event){
+u32 WWaitForWindowEvent(WWindowEvent* event){
     
     MSG msg;
     

@@ -24,7 +24,6 @@ typedef struct InternalWindowData InternalWindowData;
 typedef struct InternalBackBufferData InternalBackBufferData;
 
 typedef struct WWindowContext {
-	void* handle;  // why have this?? each program can only have one anyway
 	void* window;
 
 	InternalWindowData*
@@ -150,7 +149,15 @@ typedef enum MouseButton {
 extern "C" {
 #endif
 
-u32 WWaitForWindowEvent(WWindowContext* windowcontext, WWindowEvent* event);
+//TODO: add these
+//WCreateConnection
+//WDestroyConnection
+//WGetBackends -- add an option to pass a vk connection to specifiy
+//vulkan compatible backends only
+
+void* WGetWindowConnection();
+
+u32 WWaitForWindowEvent(WWindowEvent* event);
 
 // TODO: we should make selecting the backend a separate thing
 WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
