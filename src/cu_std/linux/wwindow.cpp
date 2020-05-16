@@ -14,10 +14,6 @@ union InternalConnection{
 };
 
 
-struct WaylandData {
-	u16 width;
-	u16 height;
-};
 
 struct InternalWindowData {
 	u32 type;
@@ -31,7 +27,6 @@ struct InternalWindowData {
 
 		struct {
 			xdg_surface* wayland_xdg_surface;
-			WaylandData wayland_data;
 		};
 	};
 };
@@ -46,6 +41,7 @@ struct InternalBackBufferData {
 
 		struct {
 			wl_buffer* buffer;
+			u32 fd;
 		};
 	};
 };
@@ -65,6 +61,9 @@ _global WBackBufferContext (*impl_wcreatebackbuffer)(WWindowContext*) = 0;
 _global void (*impl_getwindowsize)(WWindowContext*, u32*, u32*) = 0;
 _global void (*impl_wpresentbackbuffer)(WWindowContext*,
 					WBackBufferContext*) = 0;
+_global void (*impl_wdestroybackbuffer)(WBackBufferContext*) = 0;
+_global void (*impl_wretireevent)(WWindowEvent*) = 0;
+_global void (*impl_wackresizeevent)(WWindowEvent*) = 0;
 
 #include "wayland_wwindow.cpp"
 #include "x11_wwindow.cpp"
@@ -174,9 +173,33 @@ WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
 	return impl_wcreatebackbuffer(windowcontext);
 }
 
+void WDestroyBackBuffer(WBackBufferContext* buffer){
+	impl_wdestroybackbuffer(buffer);
+}
+
 void WPresentBackBuffer(WWindowContext* windowcontext,
 			WBackBufferContext* buffer) {
+
 	impl_wpresentbackbuffer(windowcontext, buffer);
+}
+
+
+void WAckResizeEvent(WWindowEvent* event){
+	event->ack_resize = 1;
+	impl_wackresizeevent(event);
+}
+
+void WIgnoreResizeEvent(WWindowEvent* event){
+	event->ack_resize = 2;
+}
+
+void WRetireEvent(WWindowEvent* event){
+
+#ifdef DEBUG
+	_kill("Resize events must be explicitly handled WIgnoreResizeEvent WAckResizeEvent\n",!event->ack_resize && event->type == W_EVENT_RESIZE);
+#endif
+
+	impl_wretireevent(event);
 }
 
 #ifdef __cplusplus

@@ -118,6 +118,7 @@ typedef struct WWindowEvent {
 		struct {
 			u16 width;
 			u16 height;
+			b32 ack_resize;
 		};
 	}; // 32 bits
 	u64 window; 
@@ -158,6 +159,9 @@ extern "C" {
 void* WGetWindowConnection();
 
 u32 WWaitForWindowEvent(WWindowEvent* event);
+void WRetireEvent(WWindowEvent* event);
+void WAckResizeEvent(WWindowEvent* event);
+void WIgnoreResizeEvent(WWindowEvent* event);
 
 // TODO: we should make selecting the backend a separate thing
 WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
@@ -167,6 +171,8 @@ WWindowContext WCreateVulkanWindow(const s8* title, WCreateFlags flags, u32 x,
 				   u32 y, u32 width, u32 height);
 
 WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext);
+
+void WDestroyBackBuffer(WBackBufferContext* buffer);
 
 void WPresentBackBuffer(WWindowContext* windowcontext,
 			WBackBufferContext* buffer);

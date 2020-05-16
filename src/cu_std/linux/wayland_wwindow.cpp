@@ -12,6 +12,8 @@ xdg-shell-client-protocol.h
 
 Implement:
 Resize
+Set mouse
+I need to make sure the user actually obeys the resize request
 move all the global variables to one file
 
 NORESIZE -- set the max and min size to the same thing
@@ -21,10 +23,13 @@ NORESIZE -- set the max and min size to the same thing
 #include "ssys.h"
 #include "xkbcommon/xkbcommon.h"
 
+#define _enable_resize 0
+
 #define _decor_height 45
 #define _element_dim 45
 #define _element_thickness 3
 #define _element_offset 15
+#define _border_thickness 8
 
 _global LibHandle xkb_lib = 0;
 _global xkb_context* xkb_ctx = 0;
@@ -55,6 +60,11 @@ struct InternWaylandDecorator {
 	b32 is_maximized;
 	u32 time;
 
+	//TODO: replace this with WBackBufferContext?
+	u16 width;
+	u16 height;
+	u32 fd;
+
 	union {
 		xdg_toplevel* parent_toplevel;
 		// It could be pop up or whatever
@@ -72,7 +82,6 @@ struct InternWaylandDecorator {
 		Element elements[4];
 	};
 };
-
 
 _global wl_compositor* wayland_compositor = 0;
 _global wl_subcompositor* wayland_subcompositor = 0;
@@ -161,10 +170,9 @@ void InternalPushEvent(WWindowEvent event) {
 	wayland_event_count++;
 }
 
-u32 InternalPopEvent(WWindowEvent* event) {
+u32 InternalTopEvent(WWindowEvent* event) {
 	if (wayland_event_count) {
-		wayland_event_count--;
-		*event = wayland_event_array[wayland_event_count];
+		*event = wayland_event_array[wayland_event_count - 1];
 
 		return 1;
 	}
@@ -238,7 +246,6 @@ s8 WKeyCodeToASCIIWayland(u32 keycode) {
 #include "debugtimer.h"
 
 u32 WWaitForWindowEventWayland(WWindowEvent* event) {
-
 	auto display = internal_windowconnection.wayland_display;
 
 	auto fd = wl_display_get_fd(display);
@@ -266,7 +273,11 @@ u32 WWaitForWindowEventWayland(WWindowEvent* event) {
 		wl_display_dispatch_pending(display);
 	}
 
-	return InternalPopEvent(event);
+	return InternalTopEvent(event);
+}
+
+void WRetireEventWayland(WWindowEvent* event){
+	wayland_event_count--;
 }
 
 void WSetTitleWayland(WWindowContext* context, const s8* title) {
@@ -313,7 +324,7 @@ void WaylandKeyboardMap(void* data, wl_keyboard* keyboard, u32 format, s32 fd,
 void WaylandKeyboardEnter(void* data, wl_keyboard* keyboard, u32 serial,
 		wl_surface* surface, wl_array* keys) {
 #ifdef DEBUG
-	// printf("keyboard enter surface %p\n", (void*)surface);
+	printf("keyboard enter surface %p\n", (void*)surface);
 #endif
 
 	active_kb_window = surface;
@@ -349,7 +360,7 @@ void WaylandPointerEnter(void* data, wl_pointer* pointer, u32 serial,
 	// NOTE: We can check for subsurface here
 
 #ifdef DEBUG
-	// printf("mouse enter surface %p \n", (void*)surface);
+	printf("mouse enter surface %p \n", (void*)surface);
 #endif
 	active_ms_window = surface;
 }
@@ -361,23 +372,21 @@ void WaylandPointerLeave(void* data, wl_pointer* pointer, u32 serial,
 
 void WaylandPointerMotion(void* data, wl_pointer* pointer, u32 time,
 		wl_fixed_t sx, wl_fixed_t sy) {
-	auto event = InternalGetNextEvent();
-
-	event->type = W_EVENT_MSEVENT_MOVE;
-
-	event->mouse_event.x = wl_fixed_to_int(sx);
-	event->mouse_event.y = wl_fixed_to_int(sy);
-
 	active_mouse_pos.x = wl_fixed_to_int(sx);
 	active_mouse_pos.y = wl_fixed_to_int(sy);
 
-	event->window = (u64)active_ms_window;
+	if (active_kb_window == active_ms_window) {
+		auto event = InternalGetNextEvent();
+
+		event->type = W_EVENT_MSEVENT_MOVE;
+		event->mouse_event.x = wl_fixed_to_int(sx);
+		event->mouse_event.y = wl_fixed_to_int(sy);
+		event->window = (u64)active_ms_window;
+	}
 }
 
-void InternalHandleDecoratorInput(InternWaylandDecorator* decor,
-		u32 serial, u32 state,
-		u32 time) {
-
+void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
+		u32 state, u32 time) {
 	for (u32 i = 0; i < _arraycount(decor->elements); i++) {
 		auto el = &decor->elements[i];
 
@@ -404,15 +413,11 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor,
 							  } break;
 
 				case INTERN_ELEMENT_MINMAX: {
-
 								    u32 diff = time - decor->time;
 
 								    if (diff > 100) {
-
-
 									    decor->time = time;
 									    if (decor->is_maximized) {
-
 										    xdg_toplevel_unset_maximized(
 												    decor
 												    ->parent_toplevel);
@@ -429,10 +434,10 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor,
 							    } break;
 
 				case INTERN_ELEMENT_CLOSE: {
-								   InternalPushEvent(
-										   {W_EVENT_CLOSE,
-										   {},
-										   (u64)decor->parent_surface});
+								   auto event = InternalGetNextEvent();
+								   event->type = W_EVENT_CLOSE;
+								   event->window =
+									   (u64)decor->parent_surface;
 							   } break;
 			}
 
@@ -442,19 +447,50 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor,
 
 exit_switch:
 
-	xdg_toplevel_move(decor->parent_toplevel, wayland_seat, serial);
+	auto t_height = decor->height + _decor_height;
+
+	if (active_mouse_pos.y < _decor_height) {
+		xdg_toplevel_move(decor->parent_toplevel, wayland_seat, serial);
+	}
+
+	else if (active_mouse_pos.y > t_height &&
+			active_mouse_pos.x > decor->width) {
+		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
+				serial,
+				XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT);
+
+		// printf("RESIZE EDGE\n");
+	}
+
+	else if (active_mouse_pos.y > t_height) {
+		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
+				serial, XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM);
+		// printf("RESIZE BOTTOM\n");
+	}
+
+	else if (active_mouse_pos.x < _border_thickness) {
+		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
+				serial, XDG_TOPLEVEL_RESIZE_EDGE_LEFT);
+		// printf("RESIZE LEFT\n");
+	} else if (active_mouse_pos.x > decor->width) {
+		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
+				serial, XDG_TOPLEVEL_RESIZE_EDGE_RIGHT);
+		// printf("RESIZE RIGHT\n");
+	}
 }
 
 void WaylandPointerButton(void* data, wl_pointer* pointer, u32 serial, u32 time,
 		u32 button, u32 state) {
+#if 0
 	printf("TIME %d\n",time);
+#endif
 
 	// This is to handle window decorators
 	for (u32 i = 0; i < decorator_count; i++) {
 		auto d = &decorator_array[i];
 
 		if (active_ms_window == d->decor_surface) {
-			InternalHandleDecoratorInput(d, serial, state,time);
+			InternalHandleDecoratorInput(d, serial, state, time);
 			return;
 		}
 	}
@@ -502,23 +538,49 @@ void Wayland_Ping(void* data, xdg_wm_base* wm_base, u32 serial) {
 	xdg_wm_base_pong(wm_base, serial);
 }
 
-
-//TODO: handle resizes
-//We send a message to resize but the user is expected to provide 
-//the appropriate sized buffer
+// TODO: handle resizes
+// We send a message to resize but the user is expected to provide
+// the appropriate sized buffer
 void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 		s32 height, wl_array* states) {
 	// TODO: need to send an ack configure
 	// See line 1111 of xdg-shell.h
 
+	width = width - (2 * _border_thickness);
+	height = height - (_decor_height + _border_thickness);
+
 #ifdef DEBUG
-	printf("TOP CONFIGURE WIDTH %d HEIGHT %d\n",width,height);
+	printf("TOP CONFIGURE WIDTH %d HEIGHT %d\n", width, height);
 #endif
+
+	// NOTE: We do not post if a specific dim isn't given
+	if ((width + height) > 0 && active_kb_window) {
+		auto event = InternalGetNextEvent();
+		event->type = W_EVENT_RESIZE;
+		event->width = width;
+		event->height = height;
+		event->window = (u64)active_kb_window;
+
+		InternWaylandDecorator* decor = 0;
+
+		for(u32 i = 0; i < decorator_count; i++){
+			auto d = &decorator_array[i];
+
+			if(d->parent_surface == active_kb_window){
+				decor = d;
+				break;
+			}
+		}
+
+		decor->width = width;
+		decor->height = height;
+	}
 }
 
 void Wayland_Close(void* data, xdg_toplevel* toplevel) {
 	auto event = InternalGetNextEvent();
 	event->type = W_EVENT_CLOSE;
+	event->window = (u64)active_kb_window;
 }
 
 void Wayland_SurfaceConfigure(void* data, xdg_surface* surface, u32 serial) {
@@ -531,9 +593,7 @@ void Wayland_SurfaceConfigure(void* data, xdg_surface* surface, u32 serial) {
 #endif
 
 	xdg_surface_ack_configure(surface, serial);
-
 }
-
 
 _global wl_pointer_listener pointer_listener = {
 	WaylandPointerEnter, WaylandPointerLeave, WaylandPointerMotion,
@@ -544,17 +604,18 @@ _global wl_keyboard_listener keyboard_listener = {
 	WaylandKeyboardKey, WaylandKeyboardModifiers};
 
 void SeatCapabilities(void* data, wl_seat* seat, u32 caps) {
-
 	if (caps & WL_SEAT_CAPABILITY_POINTER) {
 		wayland_pointer = wl_seat_get_pointer(seat);
 
-		wl_pointer_add_listener(wayland_pointer, &pointer_listener, data);
+		wl_pointer_add_listener(wayland_pointer, &pointer_listener,
+				data);
 	}
 
 	if (caps & WL_SEAT_CAPABILITY_KEYBOARD) {
 		wayland_keyboard = wl_seat_get_keyboard(seat);
 
-		wl_keyboard_add_listener(wayland_keyboard, &keyboard_listener, data);
+		wl_keyboard_add_listener(wayland_keyboard, &keyboard_listener,
+				data);
 	}
 }
 
@@ -571,7 +632,6 @@ _global const xdg_toplevel_listener toplevel_listener = {Wayland_TopConfigure,
 
 void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry,
 		u32 id, const s8* interface, u32 version) {
-
 	if (PHashString(interface) == PHashString("wl_compositor")) {
 		wayland_compositor = (wl_compositor*)wl_registry_bind(
 				registry, id, &wl_compositor_interface, 1);
@@ -589,8 +649,8 @@ void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry,
 	}
 
 	if (PHashString(interface) == PHashString("wl_seat")) {
-		wayland_seat = (wl_seat*)wl_registry_bind(registry, id,
-				&wl_seat_interface, 1);
+		wayland_seat = (wl_seat*)wl_registry_bind(
+				registry, id, &wl_seat_interface, 1);
 		wl_seat_add_listener(wayland_seat, &seat_listener, data);
 	}
 
@@ -722,8 +782,22 @@ void InternalLoadXkbSymbols() {
 }
 
 void GetWindowSizeWayland(WWindowContext* window, u32* w, u32* h) {
-	*w = window->data->wayland_data.width;
-	*h = window->data->wayland_data.height;
+
+	InternWaylandDecorator* decor = 0;
+
+	for (u32 i = 0; i < decorator_count; i++) {
+		auto d = &decorator_array[i];
+
+		if (window->window == d->parent_surface) {
+			decor = d;
+			break;
+		}
+	}
+
+	_kill("", !decor);
+
+	*w = decor->width;
+	*h = decor->height;
 }
 
 // MARK: this could actually be useful
@@ -749,15 +823,40 @@ FileHandle InternalCreateTempAnonymouseFile() {
 	return fd;
 }
 
+void WDestroyBackBufferWayland(WBackBufferContext* buffer){
+
+	wl_buffer_destroy(buffer->data->buffer);
+
+	munmap(buffer->pixels,4 * buffer->width * buffer->height);
+	close(buffer->data->fd);
+	unalloc(buffer->data);
+
+	*buffer = {};
+}
+
 WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext) {
-	auto width = windowcontext->data->wayland_data.width;
-	auto height = windowcontext->data->wayland_data.height;
+	InternWaylandDecorator* decor = 0;
+
+	for (u32 i = 0; i < decorator_count; i++) {
+		auto d = &decorator_array[i];
+
+		if (windowcontext->window == d->parent_surface) {
+			decor = d;
+			break;
+		}
+	}
+
+	_kill("", !decor);
+
+	auto width = decor->width;
+	auto height = decor->height;
 	auto shm = wayland_shm;
 	auto size = width * height * 4;
 
 	WBackBufferContext backbuffer = {};
+
 	backbuffer.data =
-		(InternalBackBufferData*)malloc(sizeof(InternalBackBufferData));
+		(InternalBackBufferData*)alloc(sizeof(InternalBackBufferData));
 
 	backbuffer.width = width;
 	backbuffer.height = height;
@@ -781,8 +880,12 @@ WBackBufferContext WCreateBackBufferWayland(WWindowContext* windowcontext) {
 
 	wl_shm_pool_destroy(pool);
 
+	backbuffer.data->fd = fd;
+
+
 	return backbuffer;
 }
+
 
 void WPresentBackBufferWayland(WWindowContext* windowcontext,
 		WBackBufferContext* buffer) {
@@ -790,6 +893,8 @@ void WPresentBackBufferWayland(WWindowContext* windowcontext,
 			buffer->data->buffer, 0, 0);
 	wl_surface_commit((wl_surface*)windowcontext->window);
 }
+
+
 
 void _ainline InternalDrawHide(u32* pixels, u32 width, u32 height) {
 	for (u32 y = 0; y < height; y++) {
@@ -906,14 +1011,77 @@ void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 	element_count++;
 }
 
-void InternalCreateWindowDecorator(WWindowContext* context,
-		xdg_toplevel* toplevel, WCreateFlags flags) {
 
+void WAckResizeEventWayland(WWindowEvent* event){
+	InternWaylandDecorator* decor = 0;
+
+	for(u32 i = 0; i < decorator_count; i++){
+		auto d = &decorator_array[i];
+
+		if(d->parent_surface == active_kb_window){
+			decor = d;
+			break;
+		}
+	}
+
+
+	u32 d_width = decor->width + (2 * _border_thickness); 
+	u32 d_height = _decor_height + decor->height + _border_thickness;
+
+#if _enable_resize
+
+	//TODO: redraw decor
+	munmap(decor->pixels,d_width * d_height * 4);
+	wl_buffer_destroy(decor->buffer);
+
+
+	decor->width = event->width;
+	decor->height = event->height;
+
+	u32 width = decor->width + (2 * _border_thickness); 
+	u32 height = _decor_height + decor->height + _border_thickness;
+
+	auto shm = wayland_shm;
+	auto size = width * height * 4;
+
+	ftruncate(decor->fd,size);
+
+	decor->pixels = (u32*)mmap(0, size, PROT_READ | PROT_WRITE,
+			MAP_SHARED,decor->fd, 0);
+
+	_kill("failed to map file\n", decor->pixels == MAP_FAILED);
+
+	auto pool = wl_shm_create_pool(shm,decor->fd,size);
+
+	decor->buffer = wl_shm_pool_create_buffer(
+			pool,0,width,height,width * 4,
+			WL_SHM_FORMAT_ARGB8888);
+
+	wl_shm_pool_destroy(pool);
+
+	u32 flags = 0;//TODO: handle this
+
+	InternalDrawDecor(decor, width, height, (WCreateFlags)flags);
+	wl_subsurface_set_position(decor->subsurface, -_border_thickness,
+			-_decor_height);
+
+	wl_subsurface_place_below(decor->subsurface, decor->parent_surface);
+
+	wl_surface_attach(decor->decor_surface, decor->buffer, 0, 0);
+	wl_surface_commit(decor->decor_surface);
+
+#endif
+}
+
+void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
+		xdg_toplevel* toplevel, WCreateFlags flags) {
 	auto decor = &decorator_array[decorator_count];
 	decorator_count++;
 
-	decor->decor_surface = wl_compositor_create_surface(
-			wayland_compositor);
+	decor->width = w;
+	decor->height = h;
+
+	decor->decor_surface = wl_compositor_create_surface(wayland_compositor);
 
 	decor->parent_surface = (wl_surface*)context->window;
 	decor->parent_toplevel = toplevel;
@@ -924,12 +1092,13 @@ void InternalCreateWindowDecorator(WWindowContext* context,
 
 	// TODO: this should be scaled by screen height
 
-	u32 width = context->data->wayland_data.width;
-	u32 height = _decor_height;
+	u32 width = decor->width + (2 * _border_thickness); 
+	u32 height = _decor_height + decor->height + _border_thickness;
 	{
 		auto shm = wayland_shm;
 		auto size = width * height * 4;
 
+		//TODO: track this
 		auto fd = InternalCreateTempAnonymouseFile();
 
 		// MARK: we cannot mmap an empty file
@@ -948,25 +1117,29 @@ void InternalCreateWindowDecorator(WWindowContext* context,
 				pool, 0, width, height, width * 4, WL_SHM_FORMAT_ARGB8888);
 
 		wl_shm_pool_destroy(pool);
+
+		decor->fd = fd;
 	}
 
 	decor->is_maximized = false;
 
 	InternalDrawDecor(decor, width, height, flags);
-	wl_subsurface_set_position(decor->subsurface, 0, -height);
+	wl_subsurface_set_position(decor->subsurface, -_border_thickness,
+			-_decor_height);
+
+	wl_subsurface_place_below(decor->subsurface, decor->parent_surface);
 
 	wl_surface_attach(decor->decor_surface, decor->buffer, 0, 0);
 	wl_surface_commit(decor->decor_surface);
 }
 
-b32 InternalWaylandInitOneTime(){
-
+b32 InternalWaylandInitOneTime() {
 	if (!InternalLoadLibraryWayland()) {
 		return false;
 	}
 
 	// get all the functions needed for init
-	
+
 	auto xkb_context_new_fptr = (xkb_context * (*)(xkb_context_flags))
 		LGetLibFunction(xkb_lib, "xkb_context_new");
 
@@ -1023,13 +1196,11 @@ b32 InternalWaylandInitOneTime(){
 b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 		WCreateFlags flags, u32 x, u32 y, u32 width,
 		u32 height) {
-
-	if(!internal_windowconnection.wayland_display){
-		if(!InternalWaylandInitOneTime()){
+	if (!internal_windowconnection.wayland_display) {
+		if (!InternalWaylandInitOneTime()) {
 			return false;
 		}
 	}
-
 
 	auto wl_display_roundtrip_fptr = (s32(*)(wl_display*))LGetLibFunction(
 			wwindowlib_handle, "wl_display_roundtrip");
@@ -1047,8 +1218,7 @@ b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 	auto wayland_xdg_surface = context->data->wayland_xdg_surface;
 	auto toplevel = xdg_surface_get_toplevel(wayland_xdg_surface);
 
-	xdg_surface_add_listener(wayland_xdg_surface, &surface_listener,
-			0);
+	xdg_surface_add_listener(wayland_xdg_surface, &surface_listener, 0);
 
 	xdg_toplevel_add_listener(toplevel, &toplevel_listener, 0);
 
@@ -1065,12 +1235,13 @@ b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 	impl_getwindowsize = GetWindowSizeWayland;
 	impl_wpresentbackbuffer = WPresentBackBufferWayland;
 	impl_wcreatebackbuffer = WCreateBackBufferWayland;
+	impl_wdestroybackbuffer = WDestroyBackBufferWayland;
+	impl_wackresizeevent = WAckResizeEventWayland;
+	impl_wretireevent = WRetireEventWayland;
 
 	context->data->type = _WAYLAND_WINDOW;
-	context->data->wayland_data.width = width;
-	context->data->wayland_data.height = height;
 
-	InternalCreateWindowDecorator(context, toplevel, flags);
+	InternalCreateWindowDecorator(context, width, height, toplevel, flags);
 
 	return true;
 }
