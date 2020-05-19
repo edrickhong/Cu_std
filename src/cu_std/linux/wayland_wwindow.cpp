@@ -6,18 +6,31 @@
 
 /*
 TODO:
-fix the pointer to use the default pointer (requires dumb parsing)
-
-xdg-shell-client-protocol.h
-
 Implement:
-Resize
-Set mouse
-I need to make sure the user actually obeys the resize request
+We need to at least optimize the decor drawing
 move all the global variables to one file
 
 NORESIZE -- set the max and min size to the same thing
+
+default cursor names --
+static const char *cursor_names[] = {
+	"bottom_left_corner",
+	"bottom_right_corner",
+	"bottom_side",
+	"grabbing",
+	"left_ptr",
+	"left_side",
+	"right_side",
+	"top_left_corner",
+	"top_right_corner",
+	"top_side",
+	"xterm",
+	"hand1",
+};
+
 */
+
+#include "wayland-cursor.h"
 
 #include "mmath.h"
 #include "ssys.h"
@@ -35,6 +48,30 @@ _global LibHandle xkb_lib = 0;
 _global xkb_context* xkb_ctx = 0;
 _global xkb_keymap* xkb_kbmap = 0;
 _global xkb_state* xkb_kbstate = 0;
+
+
+enum InternalCursorType{
+	INTERNAL_CURSORTYPE_PTR = 0,
+	INTERNAL_CURSORTYPE_LEFT = 1,
+	INTERNAL_CURSORTYPE_RIGHT = 2,
+	INTERNAL_CURSORTYPE_BOTTOM = 3,
+	INTERNAL_CURSORTYPE_BOTTOMRIGHT = 4,
+	INTERNAL_CURSORTYPE_NONE = -1,
+};
+
+struct InternalCursors{
+	wl_surface* surface;
+	wl_buffer* buffers[5] = {};
+
+	struct{
+		u32 x;
+		u32 y;
+	} hotspots[5];
+};
+
+_global InternalCursors internal_cursors = {};
+_global InternalCursorType cur_cursortype = INTERNAL_CURSORTYPE_NONE;
+
 
 _global WWindowEvent wayland_event_array[32] = {};
 _global u32 wayland_event_count = 0;
@@ -57,14 +94,6 @@ struct InternWaylandDecorator {
 
 	b32 is_maximized;
 	u32 time;
-
-#if 0
-	u32* pixels;
-	u16 width;
-	u16 height;
-	wl_buffer* buffer;
-	u32 fd;
-#endif
 
 	WBackBufferContext backbuffer;
 
@@ -364,6 +393,60 @@ void WaylandPointerEnter(void* data, wl_pointer* pointer, u32 serial,
 	// printf("mouse enter surface %p \n", (void*)surface);
 #endif
 	active_ms_window = surface;
+
+	InternalCursorType type = INTERNAL_CURSORTYPE_PTR;
+
+	if(active_ms_window != active_kb_window && 
+			active_mouse_pos.y >= _decor_height){
+
+		InternWaylandDecorator* decor = 0;
+
+		for (u32 i = 0; i < decorator_count; i++) {
+			auto d = &decorator_array[i];
+
+			if(active_ms_window == d->decor_surface){
+				decor = d;
+				break;
+			}
+		}
+
+		_kill("",!decor);
+
+		auto t_width = decor->backbuffer.width - _border_thickness;
+		auto t_height = decor->backbuffer.height - _border_thickness;
+
+		if (active_mouse_pos.y > t_height &&
+				active_mouse_pos.x > t_width) {
+			type = INTERNAL_CURSORTYPE_BOTTOMRIGHT;
+		}
+
+		else if (active_mouse_pos.y > t_height) {
+			type = INTERNAL_CURSORTYPE_BOTTOM;
+		}
+
+		else if (active_mouse_pos.x < _border_thickness) {
+			type = INTERNAL_CURSORTYPE_LEFT;
+		} 
+
+		else if (active_mouse_pos.x > t_width) {
+			type = INTERNAL_CURSORTYPE_RIGHT;
+		}
+
+	}
+
+	if(type != cur_cursortype){
+
+		wl_surface_attach(internal_cursors.surface,
+				internal_cursors.buffers[type],
+				0,0);
+		wl_surface_commit(internal_cursors.surface);
+
+		auto hotspot = internal_cursors.hotspots[type];
+
+		wl_pointer_set_cursor(pointer,serial,
+				internal_cursors.surface,
+				hotspot.x,hotspot.y);
+	}
 }
 
 void WaylandPointerLeave(void* data, wl_pointer* pointer, u32 serial,
@@ -384,6 +467,7 @@ void WaylandPointerMotion(void* data, wl_pointer* pointer, u32 time,
 		event->mouse_event.y = wl_fixed_to_int(sy);
 		event->window = (u64)active_ms_window;
 	}
+
 }
 
 void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
@@ -462,23 +546,19 @@ exit_switch:
 				    serial,
 				    XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT);
 
-		// printf("RESIZE EDGE\n");
 	}
 
 	else if (active_mouse_pos.y > t_height) {
 		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
 				    serial, XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM);
-		// printf("RESIZE BOTTOM\n");
 	}
 
 	else if (active_mouse_pos.x < _border_thickness) {
 		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
 				    serial, XDG_TOPLEVEL_RESIZE_EDGE_LEFT);
-		// printf("RESIZE LEFT\n");
 	} else if (active_mouse_pos.x > t_width) {
 		xdg_toplevel_resize(decor->parent_toplevel, wayland_seat,
 				    serial, XDG_TOPLEVEL_RESIZE_EDGE_RIGHT);
-		// printf("RESIZE RIGHT\n");
 	}
 }
 
@@ -489,13 +569,17 @@ void WaylandPointerButton(void* data, wl_pointer* pointer, u32 serial, u32 time,
 #endif
 
 	// This is to handle window decorators
-	for (u32 i = 0; i < decorator_count; i++) {
-		auto d = &decorator_array[i];
 
-		if (active_ms_window == d->decor_surface) {
-			InternalHandleDecoratorInput(d, serial, state, time);
-			return;
+	if(active_ms_window != active_kb_window){
+		for (u32 i = 0; i < decorator_count; i++) {
+			auto d = &decorator_array[i];
+
+			if (active_ms_window == d->decor_surface) {
+				InternalHandleDecoratorInput(d, serial, state, time);
+				return;
+			}
 		}
+
 	}
 
 	// NOTE: the serial needs to be stored to perform drag operations
@@ -541,13 +625,11 @@ void Wayland_Ping(void* data, xdg_wm_base* wm_base, u32 serial) {
 	xdg_wm_base_pong(wm_base, serial);
 }
 
-// TODO: handle resizes
-// We send a message to resize but the user is expected to provide
-// the appropriate sized buffer
 void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 			  s32 height, wl_array* states) {
-	// TODO: need to send an ack configure
-	// See line 1111 of xdg-shell.h
+
+	//TODO: actually use the states
+	//see xdg-shell.h xdg_toplevel_state
 
 #ifdef DEBUG
 	printf("TOP CONFIGURE WIDTH %d HEIGHT %d\n", width, height);
@@ -589,10 +671,11 @@ void Wayland_SurfaceConfigure(void* data, xdg_surface* surface, u32 serial) {
 
 #ifdef DEBUG
 
-	// printf("SURFACE CONFIGURE\n");
+	 printf("SURFACE CONFIGURE\n");
 
 #endif
 
+	 //TODO: we should move this as an internal event
 	xdg_surface_ack_configure(surface, serial);
 }
 
@@ -975,6 +1058,7 @@ void _ainline InternalDrawClose(u32* pixels, u32 width, u32 height) {
 	}
 }
 
+//TODO: we have to draw the title string
 void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 				u32 height, WCreateFlags flags) {
 	auto pixels = decor->backbuffer.pixels;
@@ -984,6 +1068,7 @@ void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 		u32* pixel = pixels + i;
 		*pixel = _encode_argb(255, 36, 36, 36);
 	}
+
 
 	u32 count = 3;
 
@@ -1056,6 +1141,74 @@ void WAckResizeEventWayland(WWindowEvent* event) {
 #endif
 }
 
+b32 InternalCreateDefaultCursors(){
+
+
+	//TODO: move this to proper load and unload functions
+	LibHandle lib = LLoadLibrary("libwayland-cursor.so");
+
+	if(!lib){
+		return false;
+	}
+
+	auto wl_cursor_theme_load_fptr = 
+		(wl_cursor_theme* (*)(const s8*,s32,wl_shm*))LGetLibFunction(
+				lib,"wl_cursor_theme_load");
+
+	auto wl_cursor_theme_get_cursor_fptr = 
+		(wl_cursor* (*)(wl_cursor_theme*,const s8*))LGetLibFunction(
+				lib,"wl_cursor_theme_get_cursor");
+
+
+	auto wl_cursor_image_get_buffer_fptr = 
+		(wl_buffer* (*)(wl_cursor_image*))LGetLibFunction(
+				lib,"wl_cursor_image_get_buffer");
+
+	auto wl_cursor_theme_destroy_fptr = 
+		(void (*)(wl_cursor_theme*))LGetLibFunction(
+				lib,"wl_cursor_theme_destroy");
+
+	auto theme = wl_cursor_theme_load_fptr(0,16,wayland_shm);
+
+	auto cursor = wl_cursor_theme_get_cursor_fptr(theme,"left_ptr");
+	internal_cursors.buffers[0] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	internal_cursors.hotspots[0].x = cursor->images[0]->hotspot_x;
+	internal_cursors.hotspots[0].y = cursor->images[0]->hotspot_y;
+
+	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"left_side");
+	internal_cursors.buffers[1] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	internal_cursors.hotspots[1].x = cursor->images[0]->hotspot_x;
+	internal_cursors.hotspots[1].y = cursor->images[0]->hotspot_y;
+
+	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"right_side");
+	internal_cursors.buffers[2] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	internal_cursors.hotspots[2].x = cursor->images[0]->hotspot_x;
+	internal_cursors.hotspots[2].y = cursor->images[0]->hotspot_y;
+
+	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"bottom_side");
+	internal_cursors.buffers[3] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	internal_cursors.hotspots[3].x = cursor->images[0]->hotspot_x;
+	internal_cursors.hotspots[3].y = cursor->images[0]->hotspot_y;
+
+	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"bottom_right_corner");
+	internal_cursors.buffers[4] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	internal_cursors.hotspots[4].x = cursor->images[0]->hotspot_x;
+	internal_cursors.hotspots[4].y = cursor->images[0]->hotspot_y;
+
+	
+#if 0
+
+	//TODO: check if we need to keep this around
+	wl_cursor_theme_destroy_fptr(theme);
+
+#endif
+
+	internal_cursors.surface = 
+		wl_compositor_create_surface(wayland_compositor);
+
+	return true;
+}
+
 void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
 				   xdg_toplevel* toplevel, WCreateFlags flags) {
 	auto decor = &decorator_array[decorator_count];
@@ -1098,6 +1251,7 @@ b32 InternalWaylandInitOneTime() {
 		return false;
 	}
 
+
 	// get all the functions needed for init
 
 	auto xkb_context_new_fptr = (xkb_context * (*)(xkb_context_flags))
@@ -1115,6 +1269,9 @@ b32 InternalWaylandInitOneTime() {
 	xkb_ctx = xkb_context_new_fptr(XKB_CONTEXT_NO_FLAGS);
 
 	if (!display || !xkb_ctx) {
+
+wayland_shutdown:
+
 		if (display) {
 			auto wl_display_disconnect_fptr =
 			    (void (*)(wl_display*))LGetLibFunction(
@@ -1149,6 +1306,10 @@ b32 InternalWaylandInitOneTime() {
 	wl_display_roundtrip_fptr(display);
 
 	internal_windowconnection.wayland_display = display;
+
+	if(!InternalCreateDefaultCursors()){
+		goto wayland_shutdown;
+	}
 
 	return true;
 }
