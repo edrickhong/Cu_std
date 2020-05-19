@@ -84,6 +84,12 @@ enum InternElementType {
 	INTERN_ELEMENT_CLOSE,
 };
 
+enum InternalWindowStateBit{
+	INTERN_WINSTATE_NORESIZE = 1,
+	INTERN_WINSTATE_MAXIMIZED = 1 << 1,
+
+};
+
 // TODO: rename this. this now represents external data
 // the user doesn't need to handle themselves
 struct InternWaylandDecorator {
@@ -92,7 +98,7 @@ struct InternWaylandDecorator {
 
 	wl_surface* parent_surface;
 
-	b32 is_maximized;
+	u32 state_flag;
 	u32 time;
 
 	WBackBufferContext backbuffer;
@@ -504,7 +510,7 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
 
 					if (diff > 100) {
 						decor->time = time;
-						if (decor->is_maximized) {
+						if (decor->state_flag & INTERN_WINSTATE_MAXIMIZED) {
 							xdg_toplevel_unset_maximized(
 							    decor
 								->parent_toplevel);
@@ -514,8 +520,7 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
 								->parent_toplevel);
 						}
 
-						decor->is_maximized =
-						    !decor->is_maximized;
+						decor->state_flag ^= INTERN_WINSTATE_MAXIMIZED;
 					}
 
 				} break;
@@ -633,12 +638,29 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 	//see xdg-shell.h xdg_toplevel_state
 
 #ifdef DEBUG
-	printf("TOP CONFIGURE WIDTH %d HEIGHT %d\n", width, height);
+	printf("TOP CONFIGURE WIDTH %d HEIGHT %d KB_SURFACE %p\n", width, height,(void*)active_kb_window);
 #endif
+
 
 	// NOTE: We do not post if a specific dim isn't given
 	// We are getting 0,0 when we scale down
 	if ((width + height) && active_kb_window) {
+
+
+		//NOTE: disabling for now. we are gonna 
+		//block all paths to resizing.idk if that will work
+#if 1
+
+		for (u32 i = 0; i < decorator_count; i++) {
+			auto d = &decorator_array[i];
+
+			if (d->parent_surface == active_kb_window && d->state_flag & INTERN_WINSTATE_NORESIZE) {
+				return;
+			}
+		}
+
+#endif
+
 		width = width - (2 * _border_thickness);
 		height = height - (_decor_height + _border_thickness);
 
@@ -663,16 +685,6 @@ get_next_event:
 		event->height = height;
 		event->window = (u64)active_kb_window;
 
-		InternWaylandDecorator* decor = 0;
-
-		for (u32 i = 0; i < decorator_count; i++) {
-			auto d = &decorator_array[i];
-
-			if (d->parent_surface == active_kb_window) {
-				decor = d;
-				break;
-			}
-		}
 
 	}
 }
@@ -896,9 +908,15 @@ void GetWindowSizeWayland(WWindowContext* window, u32* w, u32* h) {
 
 	_kill("", !decor);
 
-	*w = decor->backbuffer.width - (2 * _border_thickness);
+	u32 border_thickness = _border_thickness;
+
+	if(decor->state_flag & INTERN_WINSTATE_NORESIZE){
+		border_thickness = 0;
+
+	}
+	*w = decor->backbuffer.width - (2 * border_thickness);
 	*h = decor->backbuffer.height - 
-		(_decor_height + _border_thickness);
+		(_decor_height + border_thickness);
 }
 
 // MARK: this could actually be useful
@@ -1138,9 +1156,16 @@ void WAckResizeEventWayland(WWindowEvent* event) {
 	// FIXME: the resize issue seems to stem from here
 #if _enable_resize
 
-	u32 width = event->width + (2 * _border_thickness);
+
+	u32 border_thickness = _border_thickness;
+
+	if(decor->state_flag & INTERN_WINSTATE_NORESIZE){
+		border_thickness = 0;
+	}
+
+	u32 width = event->width + (2 * border_thickness);
 	u32 height =
-	    _decor_height + event->height + _border_thickness;
+	    _decor_height + event->height + border_thickness;
 
 	auto old_buffer = decor->backbuffer;
 
@@ -1243,17 +1268,22 @@ void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
 
 	// TODO: this should be scaled by screen height
 
-	u32 width = w + (2 * _border_thickness);
+	u32 border_thickness = _border_thickness;
+
+	if(flags & W_CREATE_NORESIZE){
+		border_thickness = 0;
+		decor->state_flag |= INTERN_WINSTATE_NORESIZE;
+	}
+
+	u32 width = w + (2 * border_thickness);
 	u32 height =
-	    _decor_height + h + _border_thickness;
+	    _decor_height + h + border_thickness;
 
 	decor->backbuffer =
 	    InternalCreateBackBufferWayland(context, width, height);
 
-	decor->is_maximized = false;
-
 	InternalDrawDecor(decor, width, height, flags);
-	wl_subsurface_set_position(decor->subsurface, -_border_thickness,
+	wl_subsurface_set_position(decor->subsurface, -border_thickness,
 				   -_decor_height);
 
 	wl_subsurface_place_below(decor->subsurface, decor->parent_surface);
