@@ -187,6 +187,7 @@ const wl_interface* wl_subsurface_interface_ptr = 0;
 const wl_interface* wl_shm_interface_ptr = 0;
 const wl_interface* wl_output_interface_ptr = 0;
 
+
 WWindowEvent* InternalGetNextEvent() {
 	_kill("too many events\n",
 	      wayland_event_count > _arraycount(wayland_event_array));
@@ -626,7 +627,7 @@ void Wayland_Ping(void* data, xdg_wm_base* wm_base, u32 serial) {
 }
 
 void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
-			  s32 height, wl_array* states) {
+		s32 height, wl_array* states) {
 
 	//TODO: actually use the states
 	//see xdg-shell.h xdg_toplevel_state
@@ -640,8 +641,24 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 	if ((width + height) && active_kb_window) {
 		width = width - (2 * _border_thickness);
 		height = height - (_decor_height + _border_thickness);
-		auto event = InternalGetNextEvent();
-		event->type = W_EVENT_RESIZE;
+
+
+		WWindowEvent* event = 0;
+
+		if(wayland_event_count){
+			event = &wayland_event_array[wayland_event_count];
+			if(event->type != W_EVENT_RESIZE ||
+					event->window != (u64)active_kb_window){
+				goto get_next_event;
+			}
+		}
+		else{
+get_next_event:
+			event = InternalGetNextEvent();
+			event->type = W_EVENT_RESIZE;
+		}
+
+
 		event->width = width;
 		event->height = height;
 		event->window = (u64)active_kb_window;
@@ -1344,6 +1361,8 @@ b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 	xdg_toplevel_add_listener(toplevel, &toplevel_listener, 0);
 
 	xdg_toplevel_set_title(toplevel, title);
+
+	xdg_toplevel_set_min_size(toplevel,width,height);
 
 	// NOTE: we need to add an extra commit here
 
