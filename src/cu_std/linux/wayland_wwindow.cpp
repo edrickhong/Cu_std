@@ -14,26 +14,25 @@ NORESIZE -- set the max and min size to the same thing
 
 default cursor names --
 static const char *cursor_names[] = {
-	"bottom_left_corner",
-	"bottom_right_corner",
-	"bottom_side",
-	"grabbing",
-	"left_ptr",
-	"left_side",
-	"right_side",
-	"top_left_corner",
-	"top_right_corner",
-	"top_side",
-	"xterm",
-	"hand1",
+"bottom_left_corner",
+"bottom_right_corner",
+"bottom_side",
+"grabbing",
+"left_ptr",
+"left_side",
+"right_side",
+"top_left_corner",
+"top_right_corner",
+"top_side",
+"xterm",
+"hand1",
 };
 
 */
 
-#include "wayland-cursor.h"
-
 #include "mmath.h"
 #include "ssys.h"
+#include "wayland-cursor.h"
 #include "xkbcommon/xkbcommon.h"
 
 #define _enable_resize 1
@@ -49,8 +48,7 @@ _global xkb_context* xkb_ctx = 0;
 _global xkb_keymap* xkb_kbmap = 0;
 _global xkb_state* xkb_kbstate = 0;
 
-
-enum InternalCursorType{
+enum InternalCursorType {
 	INTERNAL_CURSORTYPE_PTR = 0,
 	INTERNAL_CURSORTYPE_LEFT = 1,
 	INTERNAL_CURSORTYPE_RIGHT = 2,
@@ -59,11 +57,11 @@ enum InternalCursorType{
 	INTERNAL_CURSORTYPE_NONE = -1,
 };
 
-struct InternalCursors{
+struct InternalCursors {
 	wl_surface* surface;
 	wl_buffer* buffers[5] = {};
 
-	struct{
+	struct {
 		u32 x;
 		u32 y;
 	} hotspots[5];
@@ -71,7 +69,6 @@ struct InternalCursors{
 
 _global InternalCursors internal_cursors = {};
 _global InternalCursorType cur_cursortype = INTERNAL_CURSORTYPE_NONE;
-
 
 _global WWindowEvent wayland_event_array[32] = {};
 _global u32 wayland_event_count = 0;
@@ -84,7 +81,7 @@ enum InternElementType {
 	INTERN_ELEMENT_CLOSE,
 };
 
-enum InternalWindowStateBit{
+enum InternalWindowStateBit {
 	INTERN_WINSTATE_NORESIZE = 1,
 	INTERN_WINSTATE_MAXIMIZED = 1 << 1,
 
@@ -192,7 +189,6 @@ const wl_interface* wl_touch_interface_ptr = 0;
 const wl_interface* wl_subsurface_interface_ptr = 0;
 const wl_interface* wl_shm_interface_ptr = 0;
 const wl_interface* wl_output_interface_ptr = 0;
-
 
 WWindowEvent* InternalGetNextEvent() {
 	_kill("too many events\n",
@@ -403,27 +399,26 @@ void WaylandPointerEnter(void* data, wl_pointer* pointer, u32 serial,
 
 	InternalCursorType type = INTERNAL_CURSORTYPE_PTR;
 
-	if(active_ms_window != active_kb_window && 
-			active_mouse_pos.y >= _decor_height){
-
+	if (active_ms_window != active_kb_window &&
+	    active_mouse_pos.y >= _decor_height) {
 		InternWaylandDecorator* decor = 0;
 
 		for (u32 i = 0; i < decorator_count; i++) {
 			auto d = &decorator_array[i];
 
-			if(active_ms_window == d->decor_surface){
+			if (active_ms_window == d->decor_surface) {
 				decor = d;
 				break;
 			}
 		}
 
-		_kill("",!decor);
+		_kill("", !decor);
 
 		auto t_width = decor->backbuffer.width - _border_thickness;
 		auto t_height = decor->backbuffer.height - _border_thickness;
 
 		if (active_mouse_pos.y > t_height &&
-				active_mouse_pos.x > t_width) {
+		    active_mouse_pos.x > t_width) {
 			type = INTERNAL_CURSORTYPE_BOTTOMRIGHT;
 		}
 
@@ -433,26 +428,22 @@ void WaylandPointerEnter(void* data, wl_pointer* pointer, u32 serial,
 
 		else if (active_mouse_pos.x < _border_thickness) {
 			type = INTERNAL_CURSORTYPE_LEFT;
-		} 
+		}
 
 		else if (active_mouse_pos.x > t_width) {
 			type = INTERNAL_CURSORTYPE_RIGHT;
 		}
-
 	}
 
-	if(type != cur_cursortype){
-
+	if (type != cur_cursortype) {
 		wl_surface_attach(internal_cursors.surface,
-				internal_cursors.buffers[type],
-				0,0);
+				  internal_cursors.buffers[type], 0, 0);
 		wl_surface_commit(internal_cursors.surface);
 
 		auto hotspot = internal_cursors.hotspots[type];
 
-		wl_pointer_set_cursor(pointer,serial,
-				internal_cursors.surface,
-				hotspot.x,hotspot.y);
+		wl_pointer_set_cursor(pointer, serial, internal_cursors.surface,
+				      hotspot.x, hotspot.y);
 	}
 }
 
@@ -474,12 +465,10 @@ void WaylandPointerMotion(void* data, wl_pointer* pointer, u32 time,
 		event->mouse_event.y = wl_fixed_to_int(sy);
 		event->window = (u64)active_ms_window;
 	}
-
 }
 
 void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
 				  u32 state, u32 time) {
-
 	for (u32 i = 0; i < _arraycount(decor->elements); i++) {
 		auto el = &decor->elements[i];
 
@@ -510,7 +499,8 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
 
 					if (diff > 100) {
 						decor->time = time;
-						if (decor->state_flag & INTERN_WINSTATE_MAXIMIZED) {
+						if (decor->state_flag &
+						    INTERN_WINSTATE_MAXIMIZED) {
 							xdg_toplevel_unset_maximized(
 							    decor
 								->parent_toplevel);
@@ -520,7 +510,8 @@ void InternalHandleDecoratorInput(InternWaylandDecorator* decor, u32 serial,
 								->parent_toplevel);
 						}
 
-						decor->state_flag ^= INTERN_WINSTATE_MAXIMIZED;
+						decor->state_flag ^=
+						    INTERN_WINSTATE_MAXIMIZED;
 					}
 
 				} break;
@@ -576,16 +567,16 @@ void WaylandPointerButton(void* data, wl_pointer* pointer, u32 serial, u32 time,
 
 	// This is to handle window decorators
 
-	if(active_ms_window != active_kb_window){
+	if (active_ms_window != active_kb_window) {
 		for (u32 i = 0; i < decorator_count; i++) {
 			auto d = &decorator_array[i];
 
 			if (active_ms_window == d->decor_surface) {
-				InternalHandleDecoratorInput(d, serial, state, time);
+				InternalHandleDecoratorInput(d, serial, state,
+							     time);
 				return;
 			}
 		}
-
 	}
 
 	// NOTE: the serial needs to be stored to perform drag operations
@@ -632,60 +623,76 @@ void Wayland_Ping(void* data, xdg_wm_base* wm_base, u32 serial) {
 }
 
 void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
-		s32 height, wl_array* states) {
-
-	//TODO: actually use the states
-	//see xdg-shell.h xdg_toplevel_state
+			  s32 height, wl_array* states) {
+	// see xdg-shell.h xdg_toplevel_state
 
 #ifdef DEBUG
-	printf("TOP CONFIGURE WIDTH %d HEIGHT %d KB_SURFACE %p\n", width, height,(void*)active_kb_window);
+	printf("TOP CONFIGURE WIDTH %d HEIGHT %d KB_SURFACE %p\n", width,
+	       height, (void*)active_kb_window);
 #endif
 
+	xdg_toplevel_state* cur_state = 0;
 
-	// NOTE: We do not post if a specific dim isn't given
-	// We are getting 0,0 when we scale down
-	if ((width + height) && active_kb_window) {
+	for (cur_state = (xdg_toplevel_state*)states->data;
+	     (s8*)cur_state < (s8*)(states->data) + states->size; cur_state++) {
+		switch (*cur_state) {
+			case XDG_TOPLEVEL_STATE_ACTIVATED: {
+				auto event = InternalGetNextEvent();
+				event->type = W_EVENT_EXPOSE;
+				event->window = (u64)active_kb_window;
+			} break;
+			case XDG_TOPLEVEL_STATE_MAXIMIZED:
+			case XDG_TOPLEVEL_STATE_RESIZING: {
+				// NOTE: We do not post if a specific dim isn't
+				// given We are getting 0,0 when we scale down
+				if ((width + height) && active_kb_window) {
+					// NOTE: disabling for now. we are gonna
+					// block all paths to resizing.idk if
+					// that will work
+#if 0
 
+					for (u32 i = 0; i < decorator_count;
+					     i++) {
+						auto d = &decorator_array[i];
 
-		//NOTE: disabling for now. we are gonna 
-		//block all paths to resizing.idk if that will work
-#if 1
-
-		for (u32 i = 0; i < decorator_count; i++) {
-			auto d = &decorator_array[i];
-
-			if (d->parent_surface == active_kb_window && d->state_flag & INTERN_WINSTATE_NORESIZE) {
-				return;
-			}
-		}
+						if (d->parent_surface ==
+							active_kb_window &&
+						    d->state_flag &
+							INTERN_WINSTATE_NORESIZE) {
+							return;
+						}
+					}
 
 #endif
 
-		width = width - (2 * _border_thickness);
-		height = height - (_decor_height + _border_thickness);
+					width = width - (2 * _border_thickness);
+					height = height - (_decor_height +
+							   _border_thickness);
 
+					WWindowEvent* event = 0;
 
-		WWindowEvent* event = 0;
+					if (wayland_event_count) {
+						event =
+						    &wayland_event_array
+							[wayland_event_count];
+						if (event->type !=
+							W_EVENT_RESIZE ||
+						    event->window !=
+							(u64)active_kb_window) {
+							goto get_next_event;
+						}
+					} else {
+					get_next_event:
+						event = InternalGetNextEvent();
+						event->type = W_EVENT_RESIZE;
+					}
 
-		if(wayland_event_count){
-			event = &wayland_event_array[wayland_event_count];
-			if(event->type != W_EVENT_RESIZE ||
-					event->window != (u64)active_kb_window){
-				goto get_next_event;
-			}
+					event->width = width;
+					event->height = height;
+					event->window = (u64)active_kb_window;
+				}
+			} break;
 		}
-		else{
-get_next_event:
-			event = InternalGetNextEvent();
-			event->type = W_EVENT_RESIZE;
-		}
-
-
-		event->width = width;
-		event->height = height;
-		event->window = (u64)active_kb_window;
-
-
 	}
 }
 
@@ -700,11 +707,11 @@ void Wayland_SurfaceConfigure(void* data, xdg_surface* surface, u32 serial) {
 
 #ifdef DEBUG
 
-	 printf("SURFACE CONFIGURE\n");
+	printf("SURFACE CONFIGURE\n");
 
 #endif
 
-	 //TODO: we should move this as an internal event
+	// TODO: we should move this as an internal event
 	xdg_surface_ack_configure(surface, serial);
 }
 
@@ -910,13 +917,11 @@ void GetWindowSizeWayland(WWindowContext* window, u32* w, u32* h) {
 
 	u32 border_thickness = _border_thickness;
 
-	if(decor->state_flag & INTERN_WINSTATE_NORESIZE){
+	if (decor->state_flag & INTERN_WINSTATE_NORESIZE) {
 		border_thickness = 0;
-
 	}
 	*w = decor->backbuffer.width - (2 * border_thickness);
-	*h = decor->backbuffer.height - 
-		(_decor_height + border_thickness);
+	*h = decor->backbuffer.height - (_decor_height + border_thickness);
 }
 
 // MARK: this could actually be useful
@@ -943,7 +948,6 @@ FileHandle InternalCreateTempAnonymouseFile() {
 }
 
 void WDestroyBackBufferWayland(WBackBufferContext* buffer) {
-
 	wl_buffer_destroy(buffer->data->buffer);
 
 	munmap(buffer->pixels, 4 * buffer->width * buffer->height);
@@ -955,14 +959,13 @@ void WDestroyBackBufferWayland(WBackBufferContext* buffer) {
 
 WBackBufferContext InternalCreateBackBufferWayland(
     WWindowContext* windowcontext, u32 override_w, u32 override_h) {
-
 	u32 width = 0;
 	u32 height = 0;
 
-	//FIXME: technically, we can only have one
+	// FIXME: technically, we can only have one
 
 	if (windowcontext) {
-		GetWindowSizeWayland(windowcontext,&width,&height);
+		GetWindowSizeWayland(windowcontext, &width, &height);
 	}
 
 	if (override_w) {
@@ -973,7 +976,7 @@ WBackBufferContext InternalCreateBackBufferWayland(
 		height = override_h;
 	}
 
-	_kill("",!(width + height));
+	_kill("", !(width + height));
 
 	auto shm = wayland_shm;
 	auto size = width * height * 4;
@@ -1093,7 +1096,7 @@ void _ainline InternalDrawClose(u32* pixels, u32 width, u32 height) {
 	}
 }
 
-//TODO: we have to draw the title string
+// TODO: we have to draw the title string
 void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 				u32 height, WCreateFlags flags) {
 	auto pixels = decor->backbuffer.pixels;
@@ -1103,7 +1106,6 @@ void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 		u32* pixel = pixels + i;
 		*pixel = _encode_argb(255, 36, 36, 36);
 	}
-
 
 	u32 count = 3;
 
@@ -1150,28 +1152,21 @@ void WAckResizeEventWayland(WWindowEvent* event) {
 		}
 	}
 
-
-
-
 	// FIXME: the resize issue seems to stem from here
 #if _enable_resize
 
-
 	u32 border_thickness = _border_thickness;
 
-	if(decor->state_flag & INTERN_WINSTATE_NORESIZE){
+	if (decor->state_flag & INTERN_WINSTATE_NORESIZE) {
 		border_thickness = 0;
 	}
 
 	u32 width = event->width + (2 * border_thickness);
-	u32 height =
-	    _decor_height + event->height + border_thickness;
+	u32 height = _decor_height + event->height + border_thickness;
 
 	auto old_buffer = decor->backbuffer;
 
-	decor->backbuffer =
-	    InternalCreateBackBufferWayland(0, width, height);
-
+	decor->backbuffer = InternalCreateBackBufferWayland(0, width, height);
 
 	InternalDrawDecor(decor, width, height, (WCreateFlags)0);
 
@@ -1183,61 +1178,62 @@ void WAckResizeEventWayland(WWindowEvent* event) {
 #endif
 }
 
-b32 InternalCreateDefaultCursors(){
-
-
-	//TODO: move this to proper load and unload functions
+b32 InternalCreateDefaultCursors() {
+	// TODO: move this to proper load and unload functions
 	LibHandle lib = LLoadLibrary("libwayland-cursor.so");
 
-	if(!lib){
+	if (!lib) {
 		return false;
 	}
 
-	auto wl_cursor_theme_load_fptr = 
-		(wl_cursor_theme* (*)(const s8*,s32,wl_shm*))LGetLibFunction(
-				lib,"wl_cursor_theme_load");
+	auto wl_cursor_theme_load_fptr =
+	    (wl_cursor_theme * (*)(const s8*, s32, wl_shm*))
+		LGetLibFunction(lib, "wl_cursor_theme_load");
 
-	auto wl_cursor_theme_get_cursor_fptr = 
-		(wl_cursor* (*)(wl_cursor_theme*,const s8*))LGetLibFunction(
-				lib,"wl_cursor_theme_get_cursor");
+	auto wl_cursor_theme_get_cursor_fptr =
+	    (wl_cursor * (*)(wl_cursor_theme*, const s8*))
+		LGetLibFunction(lib, "wl_cursor_theme_get_cursor");
 
+	auto wl_cursor_image_get_buffer_fptr =
+	    (wl_buffer * (*)(wl_cursor_image*))
+		LGetLibFunction(lib, "wl_cursor_image_get_buffer");
 
-	auto wl_cursor_image_get_buffer_fptr = 
-		(wl_buffer* (*)(wl_cursor_image*))LGetLibFunction(
-				lib,"wl_cursor_image_get_buffer");
+	auto wl_cursor_theme_destroy_fptr =
+	    (void (*)(wl_cursor_theme*))LGetLibFunction(
+		lib, "wl_cursor_theme_destroy");
 
-	auto wl_cursor_theme_destroy_fptr = 
-		(void (*)(wl_cursor_theme*))LGetLibFunction(
-				lib,"wl_cursor_theme_destroy");
+	auto theme = wl_cursor_theme_load_fptr(0, 16, wayland_shm);
 
-	auto theme = wl_cursor_theme_load_fptr(0,16,wayland_shm);
-
-	auto cursor = wl_cursor_theme_get_cursor_fptr(theme,"left_ptr");
-	internal_cursors.buffers[0] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	auto cursor = wl_cursor_theme_get_cursor_fptr(theme, "left_ptr");
+	internal_cursors.buffers[0] =
+	    wl_cursor_image_get_buffer_fptr(cursor->images[0]);
 	internal_cursors.hotspots[0].x = cursor->images[0]->hotspot_x;
 	internal_cursors.hotspots[0].y = cursor->images[0]->hotspot_y;
 
-	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"left_side");
-	internal_cursors.buffers[1] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	cursor = wl_cursor_theme_get_cursor_fptr(theme, "left_side");
+	internal_cursors.buffers[1] =
+	    wl_cursor_image_get_buffer_fptr(cursor->images[0]);
 	internal_cursors.hotspots[1].x = cursor->images[0]->hotspot_x;
 	internal_cursors.hotspots[1].y = cursor->images[0]->hotspot_y;
 
-	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"right_side");
-	internal_cursors.buffers[2] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	cursor = wl_cursor_theme_get_cursor_fptr(theme, "right_side");
+	internal_cursors.buffers[2] =
+	    wl_cursor_image_get_buffer_fptr(cursor->images[0]);
 	internal_cursors.hotspots[2].x = cursor->images[0]->hotspot_x;
 	internal_cursors.hotspots[2].y = cursor->images[0]->hotspot_y;
 
-	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"bottom_side");
-	internal_cursors.buffers[3] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	cursor = wl_cursor_theme_get_cursor_fptr(theme, "bottom_side");
+	internal_cursors.buffers[3] =
+	    wl_cursor_image_get_buffer_fptr(cursor->images[0]);
 	internal_cursors.hotspots[3].x = cursor->images[0]->hotspot_x;
 	internal_cursors.hotspots[3].y = cursor->images[0]->hotspot_y;
 
-	 cursor = wl_cursor_theme_get_cursor_fptr(theme,"bottom_right_corner");
-	internal_cursors.buffers[4] = wl_cursor_image_get_buffer_fptr(cursor->images[0]);
+	cursor = wl_cursor_theme_get_cursor_fptr(theme, "bottom_right_corner");
+	internal_cursors.buffers[4] =
+	    wl_cursor_image_get_buffer_fptr(cursor->images[0]);
 	internal_cursors.hotspots[4].x = cursor->images[0]->hotspot_x;
 	internal_cursors.hotspots[4].y = cursor->images[0]->hotspot_y;
 
-	
 #if 0
 
 	//TODO: check if we need to keep this around
@@ -1245,8 +1241,8 @@ b32 InternalCreateDefaultCursors(){
 
 #endif
 
-	internal_cursors.surface = 
-		wl_compositor_create_surface(wayland_compositor);
+	internal_cursors.surface =
+	    wl_compositor_create_surface(wayland_compositor);
 
 	return true;
 }
@@ -1255,7 +1251,6 @@ void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
 				   xdg_toplevel* toplevel, WCreateFlags flags) {
 	auto decor = &decorator_array[decorator_count];
 	decorator_count++;
-
 
 	decor->decor_surface = wl_compositor_create_surface(wayland_compositor);
 
@@ -1270,14 +1265,13 @@ void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
 
 	u32 border_thickness = _border_thickness;
 
-	if(flags & W_CREATE_NORESIZE){
+	if (flags & W_CREATE_NORESIZE) {
 		border_thickness = 0;
 		decor->state_flag |= INTERN_WINSTATE_NORESIZE;
 	}
 
 	u32 width = w + (2 * border_thickness);
-	u32 height =
-	    _decor_height + h + border_thickness;
+	u32 height = _decor_height + h + border_thickness;
 
 	decor->backbuffer =
 	    InternalCreateBackBufferWayland(context, width, height);
@@ -1298,7 +1292,6 @@ b32 InternalWaylandInitOneTime() {
 		return false;
 	}
 
-
 	// get all the functions needed for init
 
 	auto xkb_context_new_fptr = (xkb_context * (*)(xkb_context_flags))
@@ -1316,8 +1309,7 @@ b32 InternalWaylandInitOneTime() {
 	xkb_ctx = xkb_context_new_fptr(XKB_CONTEXT_NO_FLAGS);
 
 	if (!display || !xkb_ctx) {
-
-wayland_shutdown:
+	wayland_shutdown:
 
 		if (display) {
 			auto wl_display_disconnect_fptr =
@@ -1354,7 +1346,7 @@ wayland_shutdown:
 
 	internal_windowconnection.wayland_display = display;
 
-	if(!InternalCreateDefaultCursors()){
+	if (!InternalCreateDefaultCursors()) {
 		goto wayland_shutdown;
 	}
 
@@ -1392,7 +1384,7 @@ b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 
 	xdg_toplevel_set_title(toplevel, title);
 
-	xdg_toplevel_set_min_size(toplevel,width,height);
+	xdg_toplevel_set_min_size(toplevel, width, height);
 
 	// NOTE: we need to add an extra commit here
 
