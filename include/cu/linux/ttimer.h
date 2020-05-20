@@ -16,9 +16,17 @@ void _ainline GetTime(TimeSpec* timespec){
     clock_gettime(CLOCK_MONOTONIC,timespec);
 }
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 f32 GetTimeDifferenceMS(TimeSpec,TimeSpec);
 
-TimeSpec MsToTimespec(f32 time){
+#ifdef __cplusplus
+}
+#endif
+
+TimeSpec _ainline MsToTimespec(f32 time){
     f32 sec = (f32)((u32)(time/1000.0f));
     f32 nsec = (time * 1000000.0f) - (sec * 1000000000.0f);
 

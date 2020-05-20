@@ -1,7 +1,7 @@
 
 #include "ttimer.h"
 
-f32 GetTimeDifferenceMS(TimeSpec start,TimeSpec end){
+extern "C" f32 GetTimeDifferenceMS(TimeSpec start,TimeSpec end){
   
   TimeSpec temp;
 
