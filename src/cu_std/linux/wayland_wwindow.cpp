@@ -2,6 +2,7 @@
 
 #include "fcntl.h"
 #include "ssys.h"
+#include "ttimer.h"
 #include "unistd.h"
 
 /*
@@ -622,6 +623,37 @@ void Wayland_Ping(void* data, xdg_wm_base* wm_base, u32 serial) {
 	xdg_wm_base_pong(wm_base, serial);
 }
 
+void PrintTopLevelState(xdg_toplevel_state state){
+
+	switch(state){
+		case XDG_TOPLEVEL_STATE_MAXIMIZED:{
+							  printf("MAXMIMIZED\n");
+						  }break;
+		case XDG_TOPLEVEL_STATE_FULLSCREEN:{
+							   printf("FULLSCREEN\n");
+						   }break;
+		case XDG_TOPLEVEL_STATE_RESIZING:{
+							 printf("RESIZING\n");
+						 }break;
+		case XDG_TOPLEVEL_STATE_ACTIVATED:{
+							  printf("ACTIVATED\n");
+						  }break;
+		case XDG_TOPLEVEL_STATE_TILED_LEFT:{
+							   printf("LEFT\n");
+						   }break;
+		case XDG_TOPLEVEL_STATE_TILED_RIGHT:{
+							    printf("RIGHT\n");
+						    }break;
+		case XDG_TOPLEVEL_STATE_TILED_TOP:{
+							  printf("TOP\n");
+						  }break;
+		case XDG_TOPLEVEL_STATE_TILED_BOTTOM:{
+							     printf("BOTTOM\n");
+						     }break;
+	}
+
+}
+
 void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 			  s32 height, wl_array* states) {
 	// see xdg-shell.h xdg_toplevel_state
@@ -635,21 +667,30 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 
 	for (cur_state = (xdg_toplevel_state*)states->data;
 	     (s8*)cur_state < (s8*)(states->data) + states->size; cur_state++) {
+
+		PrintTopLevelState(*cur_state);
+
 		switch (*cur_state) {
+			case XDG_TOPLEVEL_STATE_FULLSCREEN: {
+			} break;
+
+							    //NOTE: tiled resizes are being treated as activate events
+#if 0
 			case XDG_TOPLEVEL_STATE_ACTIVATED: {
 				auto event = InternalGetNextEvent();
 				event->type = W_EVENT_EXPOSE;
 				event->window = (u64)active_kb_window;
 			} break;
-			case XDG_TOPLEVEL_STATE_MAXIMIZED:
-			case XDG_TOPLEVEL_STATE_RESIZING: {
+#endif
+
+			default: {
 				// NOTE: We do not post if a specific dim isn't
 				// given We are getting 0,0 when we scale down
 				if ((width + height) && active_kb_window) {
 					// NOTE: disabling for now. we are gonna
 					// block all paths to resizing.idk if
 					// that will work
-#if 0
+#if 1
 
 					for (u32 i = 0; i < decorator_count;
 					     i++) {
