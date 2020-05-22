@@ -4,7 +4,6 @@
 
 #define _ms2s(ms)  ((f32)ms/1000.0f)
 
-#if 1
 
 struct VectorTransform{
     Vec4 translation;
@@ -228,4 +227,3 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
                                    IdentityMat4(),result,&result_count);
 }
 
-#endif

@@ -8,10 +8,8 @@
 /*
 TODO:
 Implement:
-We need to at least optimize the decor drawing
 move all the global variables to one file
 
-NORESIZE -- set the max and min size to the same thing
 
 default cursor names --
 static const char *cursor_names[] = {

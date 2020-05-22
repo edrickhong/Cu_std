@@ -1,13 +1,5 @@
 #include "thread_mode.h"
 
-#include "linux_global.cpp"
-
-#ifdef DEBUG
-// cos thread tracking in the vulkan layers will not work withh raw threads
-//#include "tthread.cpp"
-#else
-#endif
-
 // thread
 #if _use_pthread
 #include "pthread_tthread.cpp"

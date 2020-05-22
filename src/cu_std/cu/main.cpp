@@ -8,7 +8,6 @@
 #include "mode.h"
 #include "ttype.h"
 
-#include "cu_global.cpp"
 
 #include "audio_util.cpp"
 
