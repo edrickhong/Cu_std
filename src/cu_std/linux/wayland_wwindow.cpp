@@ -681,14 +681,11 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 			case XDG_TOPLEVEL_STATE_FULLSCREEN: {
 							    } break;
 
-							    //NOTE: tiled resizes are being treated as activate events
-#if 0
 			case XDG_TOPLEVEL_STATE_ACTIVATED: {
 								   auto event = InternalGetNextEvent();
 								   event->type = W_EVENT_EXPOSE;
 								   event->window = (u64)active_kb_window;
 							   } break;
-#endif
 
 			default: {
 					 // NOTE: We do not post if a specific dim isn't
@@ -812,7 +809,7 @@ void Wayland_Display_Handle_Global(void* data, struct wl_registry* registry,
 
 	if (PHashString(interface) == PHashString("xdg_wm_base")) {
 		wayland_base = (xdg_wm_base*)wl_registry_bind(
-				registry, id, &xdg_wm_base_interface, 1);
+				registry, id, &xdg_wm_base_interface, 2);
 		xdg_wm_base_add_listener(wayland_base, &wm_base_listener, data);
 	}
 
