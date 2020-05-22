@@ -8,8 +8,7 @@
 /*
 TODO:
 Implement:
-move all the global variables to one file
-
+Add ways to handle the different backends
 
 default cursor names --
 static const char *cursor_names[] = {

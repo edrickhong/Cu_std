@@ -144,7 +144,7 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return result;
 }
 
-void* WGetConnection(){
+void* WGetWindowConnection(){
 
 	void* connection = 0;
 
@@ -159,7 +159,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     
     WWindowContext context = {};
 
-    HMODULE connection = WGetConnection();
+    HMODULE connection = WGetWindowConnection();
     
     
     WNDCLASSEX wndclass = {};
@@ -203,13 +203,25 @@ u32 WWaitForWindowEvent(WWindowEvent* event){
     }
     
     if(ret){
-        event_count --;
-        *event = event_array[event_count];
+        *event = event_array[event_count - 1];
     }
     
     return ret;
 }
 
+void WAckResizeEvent(WWindowEvent* event){
+	event->ack_resize = 1;
+}
+void WIgnoreResizeEvent(WWindowEvent* event){
+	event->ack_resize = 2;
+}
+
+void WRetireEvent(WWindowEvent* event){
+#ifdef DEBUG
+	_kill("Resize events must be explicitly handled WIgnoreResizeEvent WAckResizeEvent\n",!event->ack_resize && event->type == W_EVENT_RESIZE);
+#endif
+        event_count --;
+}
 
 void WSetIcon(WWindowContext windowcontext,void* icondata,u32 width,u32 height){}
 
