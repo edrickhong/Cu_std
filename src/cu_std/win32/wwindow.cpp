@@ -27,18 +27,18 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         
         case WM_DESTROY:
         {
-            PostEvent({W_EVENT_CLOSE,(u64)hwnd});
+            PostEvent({W_EVENT_CLOSE,{},(u64)hwnd});
             PostQuitMessage(0);
         } break;
         
         case WM_CLOSE:
         {
-            PostEvent({W_EVENT_CLOSE,(u64)hwnd});
+            PostEvent({W_EVENT_CLOSE,{},(u64)hwnd});
             PostQuitMessage(0);
         } break;
         
         case WM_ACTIVATEAPP:{
-            PostEvent({(WEventType)uMsg,(u64)hwnd});
+            PostEvent({(WEventType)uMsg,{},(u64)hwnd});
         }break;
         
         case WM_SYSKEYDOWN:
@@ -173,7 +173,7 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     
     WWindowContext context = {};
 
-    HMODULE connection = WGetWindowConnection();
+    HMODULE connection = (HMODULE)WGetWindowConnection();
     
     
     WNDCLASSEX wndclass = {};
@@ -288,7 +288,7 @@ WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
         {
             sizeof(BITMAPINFOHEADER),
             (s32)width,
-            (s32)-height,
+            -((s32)height),
             1,
             32,
             BI_RGB
@@ -329,7 +329,7 @@ void WPresentBackBuffer(WWindowContext* windowcontext, WBackBufferContext* buffe
 void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled){
 
 	if(count){
-		count = 1;
+		*count = 1;
 	}
 
 	if(array){

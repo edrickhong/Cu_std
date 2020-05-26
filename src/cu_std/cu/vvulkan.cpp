@@ -2286,7 +2286,8 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     _instproc(vkcreate_xlib_wayland_win32surfacekhr,global_instance,vkCreateWin32SurfaceKHR);
     
     VkSurfaceKHR surface =
-        CreateSurface(global_instance,(HMODULE)window->handle, (HWND)window->window);
+        CreateSurface(global_instance,(HMODULE)WGetWindowConnection(), 
+			(HWND)window->window);
     
 #else
     
