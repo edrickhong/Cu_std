@@ -634,7 +634,11 @@ void PrintTopLevelState(xdg_toplevel_state state){
 						 }break;
 		case XDG_TOPLEVEL_STATE_ACTIVATED:{
 							  printf("ACTIVATED\n");
+
 						  }break;
+
+#if 0
+
 		case XDG_TOPLEVEL_STATE_TILED_LEFT:{
 							   printf("LEFT\n");
 						   }break;
@@ -647,6 +651,8 @@ void PrintTopLevelState(xdg_toplevel_state state){
 		case XDG_TOPLEVEL_STATE_TILED_BOTTOM:{
 							     printf("BOTTOM\n");
 						     }break;
+
+#endif
 	}
 
 }
@@ -665,7 +671,6 @@ void Wayland_TopConfigure(void* data, xdg_toplevel* toplevel, s32 width,
 	for (cur_state = (xdg_toplevel_state*)states->data;
 			(s8*)cur_state < (s8*)(states->data) + states->size; cur_state++) {
 
-		PrintTopLevelState(*cur_state);
 
 		switch (*cur_state) {
 			case XDG_TOPLEVEL_STATE_FULLSCREEN: {
