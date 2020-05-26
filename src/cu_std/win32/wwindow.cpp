@@ -237,9 +237,9 @@ void WRetireEvent(WWindowEvent* event){
         event_count --;
 }
 
-void WSetIcon(WWindowContext windowcontext,void* icondata,u32 width,u32 height){}
+void WSetIcon(WWindowContext* windowcontext,void* icondata,u32 width,u32 height){}
 
-void WSetTitle(WWindowContext windowcontext,const s8* title_string){}
+void WSetTitle(WWindowContext* windowcontext,const s8* title_string){}
 
 
 s8 WKeyCodeToASCII(u32 keycode){
