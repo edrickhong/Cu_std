@@ -144,6 +144,20 @@ LRESULT CALLBACK WindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return result;
 }
 
+
+void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
+    
+    RECT rect = {};
+    GetWindowRect((HWND)window->window,&rect);
+    
+    *w = rect.right - rect.left;
+    *h = rect.bottom - rect.top;
+}
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 void* WGetWindowConnection(){
 
 	void* connection = 0;
@@ -244,20 +258,7 @@ s8 WKeyCodeToASCII(u32 keycode){
     return ascii_char[0];
 }
 
-WWindowContext WCreateVulkanWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 width,
-                                   u32 height){
-    
-    return WCreateWindow(title,flags,x,y,width,height);
-}
 
-void _ainline InternalGetWindowSize(WWindowContext* window,u32* w,u32* h){
-    
-    RECT rect = {};
-    GetWindowRect((HWND)window->window,&rect);
-    
-    *w = rect.right - rect.left;
-    *h = rect.bottom - rect.top;
-}
 
 struct InternalBackBufferData{
     HDC devicecontext;
@@ -323,3 +324,22 @@ void WPresentBackBuffer(WWindowContext* windowcontext, WBackBufferContext* buffe
     _kill("failed to present backbuffer\n",!res);
     
 }
+
+
+void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled){
+
+	if(count){
+		count = 1;
+	}
+
+	if(array){
+		array[0] = WPLATFORM_WIN32;
+	}
+}
+
+void WCreateWindowConnection(WPlatform platform){}
+void WDestroyWindowConnection(){}
+
+#ifdef __cplusplus
+}
+#endif

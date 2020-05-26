@@ -55,9 +55,6 @@ typedef enum WCreateFlags {
 	W_CREATE_NONE = 0,
 	W_CREATE_NORESIZE = 1,
 
-	W_CREATE_BACKEND_WIN32 = 0,
-	W_CREATE_BACKEND_WAYLAND = (s32)_WAYLAND_WINDOW,
-	W_CREATE_BACKEND_XLIB = (s32)_X11_WINDOW,
 } WCreateFlags;
 
 typedef enum WEventType {
@@ -146,15 +143,21 @@ typedef enum MouseButton {
 	MOUSEBUTTON_SCROLLDOWN = 6,
 } MouseButton;
 
+typedef enum WPlatform{
+	WPLATFORM_NONE,
+	WPLATFORM_WIN32,
+	WPLATFORM_X11,
+	WPLATFORM_WAYLAND,
+} WPlatform;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//TODO: add these
-//WCreateConnection
-//WDestroyConnection
-//WGetBackends -- add an option to pass a vk connection to specifiy
-//vulkan compatible backends only
+
+void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled);
+void WCreateWindowConnection(WPlatform platform);
+void WDestroyWindowConnection();
 
 void* WGetWindowConnection();
 
@@ -164,11 +167,8 @@ void WAckResizeEvent(WWindowEvent* event);
 void WIgnoreResizeEvent(WWindowEvent* event);
 
 // TODO: we should make selecting the backend a separate thing
-WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
-			     u32 width, u32 height);
-
-WWindowContext WCreateVulkanWindow(const s8* title, WCreateFlags flags, u32 x,
-				   u32 y, u32 width, u32 height);
+WWindowContext WCreateWindow(const s8* title, 
+		WCreateFlags flags, u32 x, u32 y,u32 width, u32 height);
 
 WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext);
 

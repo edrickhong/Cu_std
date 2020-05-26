@@ -17,14 +17,6 @@ _global void* wfptr_x11_xputimage = 0;
 _global void* wfptr_x11_xcopyarea = 0;
 
 b32 InternalLoadLibraryX11() {
-	if (wwindowlib_handle) {
-		if (loaded_lib_type != _X11_WINDOW) {
-			return false;
-		}
-
-		return true;
-	}
-
 	const s8* x11_paths[] = {
 	    "libX11.so.6.3.0",
 	    "libX11.so.6",
@@ -43,16 +35,13 @@ b32 InternalLoadLibraryX11() {
 		return false;
 	}
 
-	loaded_lib_type = _X11_WINDOW;
-
 	wfptr_x11_xflush = LGetLibFunction(wwindowlib_handle, "XFlush");
 
 	wfptr_x11_xpending = LGetLibFunction(wwindowlib_handle, "XPending");
 
 	wfptr_x11_xnextevent = LGetLibFunction(wwindowlib_handle, "XNextEvent");
 
-	wfptr_x11_xpeekevent = LGetLibFunction(wwindowlib_handle,
-			"XPeekEvent");
+	wfptr_x11_xpeekevent = LGetLibFunction(wwindowlib_handle, "XPeekEvent");
 
 	wfptr_x11_xsetwmnormalhints =
 	    LGetLibFunction(wwindowlib_handle, "XSetWMNormalHints");
@@ -117,11 +106,9 @@ b32 InternalLoadLibraryX11() {
 
 s8 WKeyCodeToASCIIX11(u32 keycode) { return wtext_buffer[keycode]; }
 
-void WAckResizeEventX11(WWindowEvent* event){
+void WAckResizeEventX11(WWindowEvent* event) {}
 
-}
-
-void WRetireEventX11(WWindowEvent* event){
+void WRetireEventX11(WWindowEvent* event) {
 	auto display = internal_windowconnection.x11_display;
 
 	XEvent xevent = {};
@@ -137,7 +124,7 @@ u32 WWaitForWindowEventX11(WWindowEvent* event) {
 
 	if (queue_count) {
 		XEvent xevent = {};
-		XPeekEvent(display,&xevent);
+		XPeekEvent(display, &xevent);
 
 		event->window = (u64)xevent.xany.window;
 
@@ -295,24 +282,21 @@ void WGetWindowSizeX11(WWindowContext* window, u32* w, u32* h) {
 	*h = attribs.height;
 }
 
-void WDestroyBackBufferX11(WBackBufferContext* buffer){
-
+void WDestroyBackBufferX11(WBackBufferContext* buffer) {
 	auto display = internal_windowconnection.x11_display;
 
-	auto XFreePixmap_fptr =
-	    (s32 (*)(Display*,Pixmap))LGetLibFunction(
-		wwindowlib_handle, "XFreePixmap");
+	auto XFreePixmap_fptr = (s32(*)(Display*, Pixmap))LGetLibFunction(
+	    wwindowlib_handle, "XFreePixmap");
 	auto XFreeGC_fptr =
-	    (s32 (*)(Display*,GC))LGetLibFunction(wwindowlib_handle, 
-			    "XFreeGC");
+	    (s32(*)(Display*, GC))LGetLibFunction(wwindowlib_handle, "XFreeGC");
 
-	s32 res = XFreePixmap_fptr(display,buffer->data->pixmap);
+	s32 res = XFreePixmap_fptr(display, buffer->data->pixmap);
 
-	_kill("",res == BadPixmap);
-	
-	res = XFreeGC_fptr(display,buffer->data->gc);
+	_kill("", res == BadPixmap);
 
-	_kill("",res == BadGC);
+	res = XFreeGC_fptr(display, buffer->data->gc);
+
+	_kill("", res == BadGC);
 
 	unalloc(buffer->data);
 }
@@ -335,7 +319,6 @@ WBackBufferContext WCreateBackBufferX11(WWindowContext* context) {
 	// XInitImage //raw pixels
 	// XCreatePixmap // pixmap to associate pixels to
 	// XCreateGC //backbuffer of the window
-
 
 	auto XCreatePixmap_fptr =
 	    (Pixmap(*)(Display*, Drawable, u32, u32, u32))LGetLibFunction(
@@ -404,8 +387,7 @@ WBackBufferContext WCreateBackBufferX11(WWindowContext* context) {
 	return buffer;
 }
 
-void WPresentBackBufferX11(WWindowContext* window,
-				  WBackBufferContext* buffer) {
+void WPresentBackBufferX11(WWindowContext* window, WBackBufferContext* buffer) {
 	// MARK: continue from here
 
 	// for drawing
@@ -485,6 +467,19 @@ _intern XVisualInfo* GetVisualInfoArray(Display* dpy, s32* _restrict count) {
 	return ret;
 }
 
+void InternalUnloadLibraryX11() {
+	LUnloadLibrary(wwindowlib_handle);
+	wwindowlib_handle = 0;
+	loaded_platform = WPLATFORM_NONE;
+}
+
+void InternalX11DeinitOneTime() {
+	auto disconnect_fptr =
+	    (u32(*)(void*))LGetLibFunction(wwindowlib_handle, "XCloseDisplay");
+
+	disconnect_fptr((void*)internal_windowconnection.x11_display);
+}
+
 b32 InternalX11InitOneTime() {
 	if (!InternalLoadLibraryX11()) {
 		return false;
@@ -497,9 +492,7 @@ b32 InternalX11InitOneTime() {
 	auto display = internal_windowconnection.x11_display;
 
 	if (!display) {
-		LUnloadLibrary(wwindowlib_handle);
-		wwindowlib_handle = 0;
-		loaded_lib_type = 0;
+		InternalUnloadLibraryX11();
 		return false;
 	}
 
@@ -509,12 +502,6 @@ b32 InternalX11InitOneTime() {
 b32 InternalCreateX11Window(WWindowContext* context, const s8* title,
 			    WCreateFlags flags, u32 x, u32 y, u32 width,
 			    u32 height) {
-	if (!internal_windowconnection.x11_display) {
-		if (!InternalX11InitOneTime()) {
-			return false;
-		}
-	}
-
 	impl_wkeycodetoascii = WKeyCodeToASCIIX11;
 	impl_wwaitforevent = WWaitForWindowEventX11;
 	impl_wsettitle = WSetTitleX11;

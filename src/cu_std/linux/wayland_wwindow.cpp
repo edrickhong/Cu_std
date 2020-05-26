@@ -118,6 +118,8 @@ struct InternWaylandDecorator {
 	};
 };
 
+_global wl_registry* wayland_registry = 0;
+
 _global wl_compositor* wayland_compositor = 0;
 _global wl_subcompositor* wayland_subcompositor = 0;
 _global xdg_wm_base* wayland_base = 0;
@@ -216,13 +218,6 @@ u32 InternalTopEvent(WWindowEvent* event) {
 }
 
 b32 InternalLoadLibraryWayland() {
-	if (wwindowlib_handle) {
-		if (loaded_lib_type != _WAYLAND_WINDOW) {
-			return false;
-		}
-
-		return true;
-	}
 
 	const s8* wayland_paths[] = {
 		"libwayland-client.so.0.3.0",
@@ -255,15 +250,13 @@ b32 InternalLoadLibraryWayland() {
 		return false;
 	}
 
-	loaded_lib_type = _WAYLAND_WINDOW;
-
 	return true;
 }
 
 void InternalUnloadLibraryWayland() {
 	LUnloadLibrary(wwindowlib_handle);
 	wwindowlib_handle = 0;
-	loaded_lib_type = 0;
+	loaded_platform = WPLATFORM_NONE;
 
 	LUnloadLibrary(xkb_lib);
 	xkb_lib = 0;
@@ -1322,29 +1315,12 @@ void InternalCreateWindowDecorator(WWindowContext* context, u32 w, u32 h,
 	wl_surface_commit(decor->decor_surface);
 }
 
-b32 InternalWaylandInitOneTime() {
-	if (!InternalLoadLibraryWayland()) {
-		return false;
+void InternalWaylandDeinitOneTime(){
+	auto display = internal_windowconnection.wayland_display;
+
+	if(wayland_registry){
+		wl_registry_destroy(wayland_registry);
 	}
-
-	// get all the functions needed for init
-
-	auto xkb_context_new_fptr = (xkb_context * (*)(xkb_context_flags))
-		LGetLibFunction(xkb_lib, "xkb_context_new");
-
-	auto wl_display_connect_fptr = (wl_display * (*)(const s8*))
-		LGetLibFunction(wwindowlib_handle, "wl_display_connect");
-
-	auto wl_display_dispatch_fptr = (s32(*)(wl_display*))LGetLibFunction(
-			wwindowlib_handle, "wl_display_dispatch");
-	auto wl_display_roundtrip_fptr = (s32(*)(wl_display*))LGetLibFunction(
-			wwindowlib_handle, "wl_display_roundtrip");
-
-	auto display = wl_display_connect_fptr(0);
-	xkb_ctx = xkb_context_new_fptr(XKB_CONTEXT_NO_FLAGS);
-
-	if (!display || !xkb_ctx) {
-wayland_shutdown:
 
 		if (display) {
 			auto wl_display_disconnect_fptr =
@@ -1370,6 +1346,34 @@ wayland_shutdown:
 			wl_cursor_theme_destroy_fptr(internal_cursors.theme);
 		}
 
+}
+
+b32 InternalWaylandInitOneTime() {
+	if (!InternalLoadLibraryWayland()) {
+		return false;
+	}
+
+	// get all the functions needed for init
+
+	auto xkb_context_new_fptr = (xkb_context * (*)(xkb_context_flags))
+		LGetLibFunction(xkb_lib, "xkb_context_new");
+
+	auto wl_display_connect_fptr = (wl_display * (*)(const s8*))
+		LGetLibFunction(wwindowlib_handle, "wl_display_connect");
+
+	auto wl_display_dispatch_fptr = (s32(*)(wl_display*))LGetLibFunction(
+			wwindowlib_handle, "wl_display_dispatch");
+	auto wl_display_roundtrip_fptr = (s32(*)(wl_display*))LGetLibFunction(
+			wwindowlib_handle, "wl_display_roundtrip");
+
+	auto display = wl_display_connect_fptr(0);
+	internal_windowconnection.wayland_display = display;
+	xkb_ctx = xkb_context_new_fptr(XKB_CONTEXT_NO_FLAGS);
+
+	if (!display || !xkb_ctx) {
+wayland_shutdown:
+
+		InternalWaylandDeinitOneTime();
 		InternalUnloadLibraryWayland();
 
 		return false;
@@ -1379,14 +1383,14 @@ wayland_shutdown:
 	InternalLoadXkbSymbols();
 
 	// wayland stuff
-	wl_registry* registry = wl_display_get_registry(display);
+	wayland_registry = wl_display_get_registry(display);
 
-	wl_registry_add_listener(registry, &registry_listener, 0);
+	wl_registry_add_listener(wayland_registry, &registry_listener, 
+			0);
 
 	wl_display_dispatch_fptr(display);
 	wl_display_roundtrip_fptr(display);
 
-	internal_windowconnection.wayland_display = display;
 
 	if (!InternalCreateDefaultCursors()) {
 		goto wayland_shutdown;
@@ -1398,11 +1402,6 @@ wayland_shutdown:
 b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 		WCreateFlags flags, u32 x, u32 y, u32 width,
 		u32 height) {
-	if (!internal_windowconnection.wayland_display) {
-		if (!InternalWaylandInitOneTime()) {
-			return false;
-		}
-	}
 
 	auto wl_display_roundtrip_fptr = (s32(*)(wl_display*))LGetLibFunction(
 			wwindowlib_handle, "wl_display_roundtrip");

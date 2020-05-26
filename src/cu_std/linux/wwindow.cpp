@@ -8,12 +8,10 @@
 // able to just step through and find out how it figures out the default file
 // manager
 
-union InternalConnection{
+union InternalConnection {
 	Display* x11_display;
 	wl_display* wayland_display;
 };
-
-
 
 struct InternalWindowData {
 	u32 type;
@@ -46,11 +44,10 @@ struct InternalBackBufferData {
 	};
 };
 
-
 _global InternalConnection internal_windowconnection = {};
 
 _global LibHandle wwindowlib_handle = 0;
-_global u32 loaded_lib_type = 0;
+_global WPlatform loaded_platform = WPLATFORM_NONE;
 _global s8 wtext_buffer[256] = {};
 
 // function implementations
@@ -68,8 +65,39 @@ _global void (*impl_wackresizeevent)(WWindowEvent*) = 0;
 #include "wayland_wwindow.cpp"
 #include "x11_wwindow.cpp"
 
+void WCreateWindowConnection(WPlatform platform) {
+	_kill("An exising connection exsists\n", wwindowlib_handle);
 
-void* WGetWindowConnection(){
+	loaded_platform = platform;
+
+	if (platform == WPLATFORM_WAYLAND) {
+		InternalWaylandInitOneTime();
+	}
+
+	if (platform == WPLATFORM_X11) {
+		InternalX11InitOneTime();
+	}
+}
+
+void WDestroyWindowConnection() {
+
+	if (loaded_platform == WPLATFORM_WAYLAND) {
+	//TODO: need to handle all loose ends from the other libs
+	//Not sure we got all of them
+	InternalWaylandDeinitOneTime();
+	InternalUnloadLibraryWayland();
+	}
+
+	if (loaded_platform == WPLATFORM_X11) {
+	InternalX11DeinitOneTime();	
+	InternalUnloadLibraryX11();
+	}
+
+
+	internal_windowconnection = {};
+}
+
+void* WGetWindowConnection() {
 	return (void*)internal_windowconnection.x11_display;
 }
 
@@ -85,8 +113,6 @@ void WSetTitle(WWindowContext* context, const s8* title) {
 	impl_wsettitle(context, title);
 }
 
-#define W_CREATE_NO_CHECK (1 << 29)
-
 #include "pparse.h"
 #include "vvulkan.h"
 
@@ -94,8 +120,11 @@ void WSetTitle(WWindowContext* context, const s8* title) {
 extern "C" {
 #endif
 
-WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
-			     u32 width, u32 height) {
+WWindowContext WCreateWindow(const s8* title, 
+		WCreateFlags flags, u32 x, u32 y, u32 width, u32 height) {
+	_kill("A connection has not been created yet\n",
+			!internal_windowconnection.x11_display);
+
 	WWindowContext context = {};
 	context.data = (InternalWindowData*)alloc(sizeof(InternalWindowData));
 
@@ -103,12 +132,12 @@ WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
 
 	b32 res = 0;
 
-	if (!(flags & W_CREATE_BACKEND_XLIB)) {
+	if(loaded_platform == WPLATFORM_WAYLAND){
 		res = InternalCreateWaylandWindow(&context, title, flags, x, y,
 						  width, height);
 	}
 
-	if (!res && !(flags & W_CREATE_BACKEND_WAYLAND)) {
+	if(loaded_platform == WPLATFORM_X11){
 		res = InternalCreateX11Window(&context, title, flags, x, y,
 					      width, height);
 	}
@@ -116,87 +145,121 @@ WWindowContext WCreateWindow(const s8* title, WCreateFlags flags, u32 x, u32 y,
 	_kill(
 	    "Create window failed: either failed to load window lib,failed to "
 	    "connect to window manager or failed to get a hw enabled window\n",
-	    !res && !(W_CREATE_NO_CHECK & flags));
+	    !res);
 
 	return context;
 }
 
-WWindowContext WCreateVulkanWindow(const s8* title, WCreateFlags flags, u32 x,
-				   u32 y, u32 width, u32 height) {
-	WWindowContext context = {};
+void WGetPlatforms(WPlatform* array, u32* count, b32 vk_enabled) {
+	auto test_lib = [](const s8* library, const s8* connect,
+			   const s8* disconnect) -> b32 {
+		auto lib = LLoadLibrary(library);
 
-	VkExtensionProperties extension_array[32] = {};
-	u32 count = 0;
+		if (!lib) {
+			return false;
+		}
 
-	_kill("VInitVulkan must be called before calling this function\n",
-	      vkEnumerateInstanceExtensionProperties == 0);
+		auto connect_fptr =
+		    (void* (*)(void*))LGetLibFunction(lib, connect);
+		auto disconnect_fptr =
+		    (u32(*)(void*))LGetLibFunction(lib, disconnect);
 
-	vkEnumerateInstanceExtensionProperties(0, &count, 0);
+		auto c = connect_fptr(0);
 
-	_kill("too many\n", count > _arraycount(extension_array));
+		if (c) {
+			disconnect_fptr(c);
+			LUnloadLibrary(lib);
+			return true;
+		}
 
-	vkEnumerateInstanceExtensionProperties(0, &count, &extension_array[0]);
+		LUnloadLibrary(lib);
+		return false;
+	};
 
-	b32 wayland_enabled = false;
+	auto test_vk = [](const s8* extension) -> b32 {
+		VkExtensionProperties extension_array[32] = {};
+		u32 count = 0;
 
-	for (u32 i = 0; i < count; i++) {
-		if (PHashString(extension_array[i].extensionName) ==
-		    PHashString("VK_KHR_wayland_surface")) {
-			wayland_enabled = true;
-			break;
+		_kill(
+		    "VInitVulkan must be called before calling this function\n",
+		    vkEnumerateInstanceExtensionProperties == 0);
+
+		vkEnumerateInstanceExtensionProperties(0, &count, 0);
+
+		_kill("too many\n", count > _arraycount(extension_array));
+
+		vkEnumerateInstanceExtensionProperties(0, &count,
+						       &extension_array[0]);
+
+		for (u32 i = 0; i < count; i++) {
+			if (PHashString(extension_array[i].extensionName) ==
+			    PHashString(extension)) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	WPlatform ar[2] = {};
+	u32 c = 0;
+
+	// test for wayland
+	if (test_lib("libwayland-client.so", "wl_display_connect",
+		     "wl_display_disconnect")) {
+		ar[c] = WPLATFORM_WAYLAND;
+		c++;
+
+		if (vk_enabled && !test_vk("VK_KHR_wayland_surface")) {
+			c--;
 		}
 	}
 
-	context =
-	    WCreateWindow(title,
-			  (WCreateFlags)(flags | W_CREATE_BACKEND_WAYLAND |
-					 W_CREATE_NO_CHECK),
-			  x, y, width, height);
+	// test for x11
+	if (test_lib("libX11.so", "XOpenDisplay", "XCloseDisplay")) {
+		ar[c] = WPLATFORM_X11;
+		c++;
 
-	if (!internal_windowconnection.wayland_display) {
-		context =
-		    WCreateWindow(title,
-				  (WCreateFlags)(flags | W_CREATE_BACKEND_XLIB |
-						 W_CREATE_NO_CHECK),
-				  x, y, width, height);
+		if (vk_enabled && !test_vk("VK_KHR_xlib_surface")) {
+			c--;
+		}
 	}
 
-	_kill(
-	    "Create window failed: either failed to load window lib,failed to "
-	    "connect to window manager or failed to get a hw enabled window\n",
-	    !internal_windowconnection.wayland_display);
+	if (count) {
+		*count = c;
+	}
 
-	return context;
+	if (array) {
+		memcpy(array, ar, c * sizeof(WPlatform));
+	}
 }
 
 WBackBufferContext WCreateBackBuffer(WWindowContext* windowcontext) {
 	return impl_wcreatebackbuffer(windowcontext);
 }
 
-void WDestroyBackBuffer(WBackBufferContext* buffer){
+void WDestroyBackBuffer(WBackBufferContext* buffer) {
 	impl_wdestroybackbuffer(buffer);
 }
 
 void WPresentBackBuffer(WWindowContext* windowcontext,
 			WBackBufferContext* buffer) {
-
 	impl_wpresentbackbuffer(windowcontext, buffer);
 }
 
-
-void WAckResizeEvent(WWindowEvent* event){
+void WAckResizeEvent(WWindowEvent* event) {
 	event->ack_resize = 1;
 	impl_wackresizeevent(event);
 }
 
-void WIgnoreResizeEvent(WWindowEvent* event){
-	event->ack_resize = 2;
-}
+void WIgnoreResizeEvent(WWindowEvent* event) { event->ack_resize = 2; }
 
-void WRetireEvent(WWindowEvent* event){
-
+void WRetireEvent(WWindowEvent* event) {
 #ifdef DEBUG
-	_kill("Resize events must be explicitly handled WIgnoreResizeEvent WAckResizeEvent\n",!event->ack_resize && event->type == W_EVENT_RESIZE);
+	_kill(
+	    "Resize events must be explicitly handled WIgnoreResizeEvent "
+	    "WAckResizeEvent\n",
+	    !event->ack_resize && event->type == W_EVENT_RESIZE);
 #endif
 
 	impl_wretireevent(event);
