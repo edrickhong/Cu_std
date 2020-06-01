@@ -39,22 +39,22 @@
 #define _degrees(radians) (radians * (180.0f / _pi))
 
 // direct element access -- just make these into numbers by themselves
-#define _ac4(x, y) (x + (y * 4))
-#define _ac3(x, y) (x + (y * 3))
-#define _ac2(x, y) (x + (y * 2))
+#define _ac4(mat,x, y) mat.container[(x + (y * 4))]
+#define _ac3(mat,x, y) mat.container[(x + (y * 3))]
+#define _ac2(mat,x, y) mat.container[(x + (y * 2))]
 
 // access element as if it were row major
 #if MATRIX_ROW_MAJOR
 
-#define _rc4(x, y) _ac4(x, y)
-#define _rc3(x, y) _ac3(x, y)
-#define _rc2(x, y) _ac2(x, y)
+#define _rc4(mat,x, y) _ac4(mat,x, y)
+#define _rc3(mat,x, y) _ac3(mat,x, y)
+#define _rc2(mat,x, y) _ac2(mat,x, y)
 
 #else
 
-#define _rc4(y, x) [x + (y * 4)]
-#define _rc3(y, x) [x + (y * 3)]
-#define _rc2(y, x) [x + (y * 2)]
+#define _rc4(mat,x, y) _ac4(mat,y, x)
+#define _rc3(mat,x, y) _ac3(mat,y, x)
+#define _rc2(mat,x, y) _ac2(mat,y, x)
 
 #endif
 
@@ -286,11 +286,11 @@ Quat _ainline AQuatIdentity() {
 Mat2 _ainline Mat3ToMat2(Mat3 mat) {
 	Mat2 m;
 
-	m.container[0] = mat.container[_ac3(0, 0)];
-	m.container[1] = mat.container[_ac3(1, 0)];
+	m.container[0] = _ac3(mat,0, 0);
+	m.container[1] = _ac3(mat,1, 0);
 
-	m.container[2] = mat.container[_ac3(0, 1)];
-	m.container[3] = mat.container[_ac3(1, 1)];
+	m.container[2] = _ac3(mat,0, 1);
+	m.container[3] = _ac3(mat,1, 1);
 
 	return m;
 }
@@ -298,11 +298,11 @@ Mat2 _ainline Mat3ToMat2(Mat3 mat) {
 Mat2 _ainline Mat4ToMat2(Mat4 mat) {
 	Mat2 m;
 
-	m.container[0] = mat.container[_ac4(0, 0)];
-	m.container[1] = mat.container[_ac4(1, 0)];
+	m.container[0] = _ac4(mat,0, 0);
+	m.container[1] = _ac4(mat,1, 0);
 
-	m.container[2] = mat.container[_ac4(0, 1)];
-	m.container[3] = mat.container[_ac4(1, 1)];
+	m.container[2] = _ac4(mat,0, 1);
+	m.container[3] = _ac4(mat,1, 1);
 
 	return m;
 }
@@ -310,11 +310,11 @@ Mat2 _ainline Mat4ToMat2(Mat4 mat) {
 Mat3 _ainline Mat2ToMat3(Mat2 mat) {
 	Mat3 m = IdentityMat3();
 
-	m.container[_ac3(0, 0)] = mat.container[0];
-	m.container[_ac3(1, 0)] = mat.container[1];
+	_ac3(m,0, 0) = mat.container[0];
+	_ac3(m,1, 0) = mat.container[1];
 
-	m.container[_ac3(0, 1)] = mat.container[2];
-	m.container[_ac3(1, 1)] = mat.container[3];
+	_ac3(m,0, 1) = mat.container[2];
+	_ac3(m,1, 1) = mat.container[3];
 
 	return m;
 }
@@ -322,17 +322,17 @@ Mat3 _ainline Mat2ToMat3(Mat2 mat) {
 Mat3 _ainline Mat4ToMat3(Mat4 mat) {
 	Mat3 m;
 
-	m.container[0] = mat.container[_ac4(0, 0)];
-	m.container[1] = mat.container[_ac4(1, 0)];
-	m.container[2] = mat.container[_ac4(2, 0)];
+	m.container[0] = _ac4(mat,0, 0);
+	m.container[1] = _ac4(mat,1, 0);
+	m.container[2] = _ac4(mat,2, 0);
 
-	m.container[3] = mat.container[_ac4(0, 1)];
-	m.container[4] = mat.container[_ac4(1, 1)];
-	m.container[5] = mat.container[_ac4(2, 1)];
+	m.container[3] = _ac4(mat,0, 1);
+	m.container[4] = _ac4(mat,1, 1);
+	m.container[5] = _ac4(mat,2, 1);
 
-	m.container[6] = mat.container[_ac4(0, 2)];
-	m.container[7] = mat.container[_ac4(1, 2)];
-	m.container[8] = mat.container[_ac4(2, 2)];
+	m.container[6] = _ac4(mat,0, 2);
+	m.container[7] = _ac4(mat,1, 2);
+	m.container[8] = _ac4(mat,2, 2);
 
 	return m;
 }
@@ -340,10 +340,10 @@ Mat3 _ainline Mat4ToMat3(Mat4 mat) {
 Mat4 _ainline Mat2ToMat4(Mat2 mat) {
 	Mat4 m = IdentityMat4();
 
-	m.container[_ac4(0, 0)] = mat.container[0];
-	m.container[_ac4(1, 0)] = mat.container[1];
-	m.container[_ac4(0, 1)] = mat.container[2];
-	m.container[_ac4(1, 1)] = mat.container[3];
+	_ac4(m,0, 0) = mat.container[0];
+	_ac4(m,1, 0) = mat.container[1];
+	_ac4(m,0, 1) = mat.container[2];
+	_ac4(m,1, 1) = mat.container[3];
 
 	return m;
 }
@@ -351,17 +351,17 @@ Mat4 _ainline Mat2ToMat4(Mat2 mat) {
 Mat4 _ainline Mat3ToMat4(Mat3 mat) {
 	Mat4 m = IdentityMat4();
 
-	m.container[_ac4(0, 0)] = mat.container[0];
-	m.container[_ac4(1, 0)] = mat.container[1];
-	m.container[_ac4(2, 0)] = mat.container[2];
+	_ac4(m,0, 0) = mat.container[0];
+	_ac4(m,1, 0) = mat.container[1];
+	_ac4(m,2, 0) = mat.container[2];
 
-	m.container[_ac4(0, 1)] = mat.container[3];
-	m.container[_ac4(1, 1)] = mat.container[4];
-	m.container[_ac4(2, 1)] = mat.container[5];
+	_ac4(m,0, 1) = mat.container[3];
+	_ac4(m,1, 1) = mat.container[4];
+	_ac4(m,2, 1) = mat.container[5];
 
-	m.container[_ac4(0, 2)] = mat.container[6];
-	m.container[_ac4(1, 2)] = mat.container[7];
-	m.container[_ac4(2, 2)] = mat.container[8];
+	_ac4(m,0, 2) = mat.container[6];
+	_ac4(m,1, 2) = mat.container[7];
+	_ac4(m,2, 2) = mat.container[8];
 
 	return m;
 }
@@ -429,8 +429,8 @@ Quat Mat4ToQuat(Mat4 matrix);
 Mat4 DualQToMat4(DualQuat d);
 
 Vec3 _ainline Mat4ToTranslationVec(Mat4 matrix) {
-	Vec3 ret = {matrix.container[_rc4(3, 0)], matrix.container[_rc4(3, 1)],
-		    matrix.container[_rc4(3, 2)]};
+	Vec3 ret = {_rc4(matrix,3, 0), _rc4(matrix,3, 1),
+		    _rc4(matrix,3, 2)};
 
 	return ret;
 }
@@ -549,6 +549,9 @@ DualQuat MulConstRDualQ(DualQuat lhs, f32 rhs);
 Mat4 SchurMat4(Mat4 a, Mat4 b);
 Mat4 TransposeMat4(Mat4 matrix);
 Mat4 InverseMat4(Mat4 matrix);	// there is a way to compute this faster
+// a transform is a mat4 w the last row 0 0 0 1
+Mat4 InverseTransform(Mat4 matrix);
+Mat4 OuterMat4(Vec4 a, Vec4 b);
 
 Mat3 SchurMat3(Mat3 a, Mat3 b);
 Mat3 TransposeMat3(Mat3 matrix);
@@ -567,6 +570,8 @@ f32 MagnitudeVec3(Vec3 vec);
 f32 DotVec3(Vec3 vec1, Vec3 vec2);
 Vec3 NormalizeVec3(Vec3 vec);
 Vec3 CrossVec3(Vec3 vec1, Vec3 vec2);
+Vec3 VecTripleVec3(Vec3 a,Vec3 b,Vec3 c);//Vec triple product
+f32 ScalTripleVec3(Vec3 a,Vec3 b,Vec3 c);
 f32 CompVec3(Vec3 a, Vec3 b);
 
 Vec3 _ainline InterpolateVec3(Vec3 a, Vec3 b, f32 step) {
@@ -581,6 +586,7 @@ Vec3 _ainline SchurVec3(Vec3 a, Vec3 b) {
 }
 
 Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
+Vec3 RejectVec3(Vec3 a, Vec3 b);
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane);
 Vec3 GetVecRotation(Vec3 lookat);
 Vec3 QuatRotateVec3(Vec3 v, Quat q);
@@ -662,9 +668,9 @@ Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale);
 Mat4 _ainline PositionMat4(Vec3 position) {
 	Mat4 matrix = IdentityMat4();
 
-	matrix.container[_rc4(3, 0)] = position.x;
-	matrix.container[_rc4(3, 1)] = position.y;
-	matrix.container[_rc4(3, 2)] = position.z;
+	_rc4(matrix,3, 0) = position.x;
+	_rc4(matrix,3, 1) = position.y;
+	_rc4(matrix,3, 2) = position.z;
 
 	return matrix;
 }
@@ -676,30 +682,30 @@ Mat3 _ainline RotationMat3(Vec3 rotation) {
 
 	Mat3 rotationx_matrix3 = IdentityMat3();
 
-	rotationx_matrix3.container[_rc3(1, 1)] = cosv;
-	rotationx_matrix3.container[_rc3(2, 1)] = -sinv;
-	rotationx_matrix3.container[_rc3(1, 2)] = sinv;
-	rotationx_matrix3.container[_rc3(2, 2)] = cosv;
+	_rc3(rotationx_matrix3,1, 1) = cosv;
+	_rc3(rotationx_matrix3,2, 1) = -sinv;
+	_rc3(rotationx_matrix3,1, 2) = sinv;
+	_rc3(rotationx_matrix3,2, 2) = cosv;
 
 	cosv = cosf(rotation.y);
 	sinv = sinf(rotation.y);
 
 	Mat3 rotationy_matrix3 = IdentityMat3();
 
-	rotationy_matrix3.container[_rc3(0, 0)] = cosv;
-	rotationy_matrix3.container[_rc3(2, 0)] = sinv;
-	rotationy_matrix3.container[_rc3(0, 2)] = -sinv;
-	rotationy_matrix3.container[_rc3(2, 2)] = cosv;
+	_rc3(rotationy_matrix3,0, 0) = cosv;
+	_rc3(rotationy_matrix3,2, 0) = sinv;
+	_rc3(rotationy_matrix3,0, 2) = -sinv;
+	_rc3(rotationy_matrix3,2, 2) = cosv;
 
 	cosv = cosf(rotation.z);
 	sinv = sinf(rotation.z);
 
 	Mat3 rotationz_matrix3 = IdentityMat3();
 
-	rotationz_matrix3.container[_rc3(0, 0)] = cosv;
-	rotationz_matrix3.container[_rc3(1, 0)] = -sinv;
-	rotationz_matrix3.container[_rc3(0, 1)] = sinv;
-	rotationz_matrix3.container[_rc3(1, 1)] = cosv;
+	_rc3(rotationz_matrix3,0, 0) = cosv;
+	_rc3(rotationz_matrix3,1, 0) = -sinv;
+	_rc3(rotationz_matrix3,0, 1) = sinv;
+	_rc3(rotationz_matrix3,1, 1) = cosv;
 
 	return MulMat3(MulMat3(rotationz_matrix3, rotationy_matrix3), rotationx_matrix3);
 }
@@ -709,6 +715,18 @@ Mat4 _ainline ScaleMat4(Vec3 scale) {
 
 	return matrix;
 }
+
+//NOTE: Given vectors a and b, this function constructs a matrix A 
+//from a such that A * b computes CrossVec3(a,b)
+Mat3 ConstructCrossMat3(Vec3 vec);
+
+//NOTE: Given vectors a and b, this function constructs a matrix B 
+//from b such that B * a computes ProjectOntoVec3(a,b)
+Mat3 ConstructProjectOntoMat3(Vec3 vec);
+
+//NOTE: Given vectors a and b, this function constructs a matrix B 
+//from b such that B * a computes RejectVec3(a,b);
+Mat3 ConstructRejectMat3(Vec3 vec);
 
 Quat ConstructQuat(Vec3 vector, f32 angle);
 

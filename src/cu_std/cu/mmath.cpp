@@ -66,6 +66,7 @@ void InternalCmpMat(f32* f1, f32* f2) {
 #endif
 #endif
 
+
 void _ainline GetMinorMat(f32* in__matrix, u32 n, u32 k_x, u32 k_y,
 			  f32* out__matrix) {
 	u32 index = 0;
@@ -92,20 +93,20 @@ Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 
 	Mat4 matrix = IdentityMat4();
 
-	matrix.container[_rc4(0, 0)] = side.x;
-	matrix.container[_rc4(1, 0)] = side.y;
-	matrix.container[_rc4(2, 0)] = side.z;
-	matrix.container[_rc4(3, 0)] = a;
+	_rc4(matrix,0, 0) = side.x;
+	_rc4(matrix,1, 0) = side.y;
+	_rc4(matrix,2, 0) = side.z;
+	_rc4(matrix,3, 0) = a;
 
-	matrix.container[_rc4(0, 1)] = up.x;
-	matrix.container[_rc4(1, 1)] = up.y;
-	matrix.container[_rc4(2, 1)] = up.z;
-	matrix.container[_rc4(3, 1)] = b;
+	_rc4(matrix,0, 1) = up.x;
+	_rc4(matrix,1, 1) = up.y;
+	_rc4(matrix,2, 1) = up.z;
+	_rc4(matrix,3, 1) = b;
 
-	matrix.container[_rc4(0, 2)] = -forward.x;
-	matrix.container[_rc4(1, 2)] = -forward.y;
-	matrix.container[_rc4(2, 2)] = -forward.z;
-	matrix.container[_rc4(3, 2)] = c;
+	_rc4(matrix,0, 2) = -forward.x;
+	_rc4(matrix,1, 2) = -forward.y;
+	_rc4(matrix,2, 2) = -forward.z;
+	_rc4(matrix,3, 2) = c;
 
 #ifdef DEBUG
 
@@ -251,94 +252,94 @@ Mat4 QuatToMat4(Quat quaternion) {
 
 	Mat4 matrix = {};
 
-	matrix.container[_rc4(0, 0)] = a;
-	matrix.container[_rc4(1, 0)] = b;
-	matrix.container[_rc4(2, 0)] = c;
+	_rc4(matrix,0, 0) = a;
+	_rc4(matrix,1, 0) = b;
+	_rc4(matrix,2, 0) = c;
 
-	matrix.container[_rc4(0, 1)] = d;
-	matrix.container[_rc4(1, 1)] = e;
-	matrix.container[_rc4(2, 1)] = f;
+	_rc4(matrix,0, 1) = d;
+	_rc4(matrix,1, 1) = e;
+	_rc4(matrix,2, 1) = f;
 
-	matrix.container[_rc4(0, 2)] = g;
-	matrix.container[_rc4(1, 2)] = h;
-	matrix.container[_rc4(2, 2)] = i;
+	_rc4(matrix,0, 2) = g;
+	_rc4(matrix,1, 2) = h;
+	_rc4(matrix,2, 2) = i;
 
-	matrix.container[_rc4(3, 3)] = 1.0f;
+	_rc4(matrix,3, 3) = 1.0f;
 
 	return matrix;
 }
 Quat Mat4ToQuat(Mat4 matrix) {
 	Quat q;
 
-	f32 trs = matrix.container[_rc4(0, 0)] + matrix.container[_rc4(1, 1)] +
-		  matrix.container[_rc4(2, 2)];
+	f32 trs = _rc4(matrix,0, 0) + _rc4(matrix,1, 1) +
+		  _rc4(matrix,2, 2);
 
 	if (trs > 0.0f) {
 		f32 s = sqrtf(trs + 1.0f) * 2.0f;
 		q.w = 0.25f * s;
-		q.x = (matrix.container[_rc4(1, 2)] -
-		       matrix.container[_rc4(2, 1)]) /
+		q.x = (_rc4(matrix,1, 2) -
+		       _rc4(matrix,2, 1)) /
 		      s;
-		q.y = (matrix.container[_rc4(2, 0)] -
-		       matrix.container[_rc4(0, 2)]) /
+		q.y = (_rc4(matrix,2, 0) -
+		       _rc4(matrix,0, 2)) /
 		      s;
-		q.z = (matrix.container[_rc4(0, 1)] -
-		       matrix.container[_rc4(1, 0)]) /
+		q.z = (_rc4(matrix,0, 1) -
+		       _rc4(matrix,1, 0)) /
 		      s;
 	}
 
-	else if ((matrix.container[_rc4(0, 0)] >
-		  matrix.container[_rc4(1, 1)]) &&
-		 (matrix.container[_rc4(0, 0)] >
-		  matrix.container[_rc4(2, 2)])) {
-		f32 s = sqrtf(1.0f + matrix.container[_rc4(0, 0)] -
-			      matrix.container[_rc4(1, 1)] -
-			      matrix.container[_rc4(2, 2)]) *
+	else if ((_rc4(matrix,0, 0) >
+		  _rc4(matrix,1, 1)) &&
+		 (_rc4(matrix,0, 0) >
+		  _rc4(matrix,2, 2))) {
+		f32 s = sqrtf(1.0f + _rc4(matrix,0, 0) -
+			      _rc4(matrix,1, 1) -
+			      _rc4(matrix,2, 2)) *
 			2.0f;
-		q.w = (matrix.container[_rc4(1, 2)] -
-		       matrix.container[_rc4(2, 1)]) /
+		q.w = (_rc4(matrix,1, 2) -
+		       _rc4(matrix,2, 1)) /
 		      s;
 		q.x = 0.25f * s;
-		q.y = (matrix.container[_rc4(1, 0)] +
-		       matrix.container[_rc4(1, 0)]) /
+		q.y = (_rc4(matrix,1, 0) +
+		       _rc4(matrix,1, 0)) /
 		      s;
-		q.z = (matrix.container[_rc4(2, 0)] +
-		       matrix.container[_rc4(0, 2)]) /
+		q.z = (_rc4(matrix,2, 0) +
+		       _rc4(matrix,0, 2)) /
 		      s;
 	}
 
-	else if (matrix.container[_rc4(1, 1)] > matrix.container[_rc4(2, 2)]) {
-		f32 s = sqrtf(1.0f + matrix.container[_rc4(1, 1)] -
-			      matrix.container[_rc4(0, 0)] -
-			      matrix.container[_rc4(2, 2)]) *
+	else if (_rc4(matrix,1, 1) > _rc4(matrix,2, 2)) {
+		f32 s = sqrtf(1.0f + _rc4(matrix,1, 1) -
+			      _rc4(matrix,0, 0) -
+			      _rc4(matrix,2, 2)) *
 			2.0f;
 
-		q.w = (matrix.container[_rc4(2, 0)] -
-		       matrix.container[_rc4(0, 2)]) /
+		q.w = (_rc4(matrix,2, 0) -
+		       _rc4(matrix,0, 2)) /
 		      s;
-		q.x = (matrix.container[_rc4(1, 0)] +
-		       matrix.container[_rc4(1, 0)]) /
+		q.x = (_rc4(matrix,1, 0) +
+		       _rc4(matrix,1, 0)) /
 		      s;
 		q.y = 0.25f * s;
-		q.z = (matrix.container[_rc4(2, 1)] +
-		       matrix.container[_rc4(1, 2)]) /
+		q.z = (_rc4(matrix,2, 1) +
+		       _rc4(matrix,1, 2)) /
 		      s;
 	}
 
 	else {
-		f32 s = sqrtf(1.0f + matrix.container[_rc4(2, 2)] -
-			      matrix.container[_rc4(0, 0)] -
-			      matrix.container[_rc4(1, 1)]) *
+		f32 s = sqrtf(1.0f + _rc4(matrix,2, 2) -
+			      _rc4(matrix,0, 0) -
+			      _rc4(matrix,1, 1)) *
 			2.0f;
 
-		q.w = (matrix.container[_rc4(0, 1)] -
-		       matrix.container[_rc4(1, 0)]) /
+		q.w = (_rc4(matrix,0, 1) -
+		       _rc4(matrix,1, 0)) /
 		      s;
-		q.x = (matrix.container[_rc4(2, 0)] +
-		       matrix.container[_rc4(0, 2)]) /
+		q.x = (_rc4(matrix,2, 0) +
+		       _rc4(matrix,0, 2)) /
 		      s;
-		q.y = (matrix.container[_rc4(2, 1)] +
-		       matrix.container[_rc4(1, 2)]) /
+		q.y = (_rc4(matrix,2, 1) +
+		       _rc4(matrix,1, 2)) /
 		      s;
 		q.z = 0.25f * s;
 	}
@@ -353,10 +354,10 @@ Mat4 DualQToMat4(DualQuat d) {
 	Quat t = d.q2 * 2.0f;
 	t = t * ConjugateQuat(d.q1);
 
-	matrix.container[_rc4(3, 0)] = t.x;
-	matrix.container[_rc4(3, 1)] = t.y;
-	matrix.container[_rc4(3, 2)] = t.z;
-	matrix.container[_rc4(3, 3)] = 1.0f;
+	_rc4(matrix,3, 0) = t.x;
+	_rc4(matrix,3, 1) = t.y;
+	_rc4(matrix,3, 2) = t.z;
+	_rc4(matrix,3, 3) = 1.0f;
 
 	return matrix;
 }
@@ -422,16 +423,16 @@ Vec4 ClipSpaceToWorldSpaceVec4(Vec4 pos, Mat4 viewproj) {
 Mat4 AddMat4(Mat4 lhs, Mat4 rhs) {
 	Mat4 matrix;
 
-	_mm_store_ps(&matrix.container[_ac4(0, 0)],
+	_mm_store_ps(&_ac4(matrix,0, 0),
 		     _mm_add_ps(lhs.simd[0], rhs.simd[0]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 1)],
+	_mm_store_ps(&_ac4(matrix,0, 1),
 		     _mm_add_ps(lhs.simd[1], rhs.simd[1]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 2)],
+	_mm_store_ps(&_ac4(matrix,0, 2),
 		     _mm_add_ps(lhs.simd[2], rhs.simd[2]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 3)],
+	_mm_store_ps(&_ac4(matrix,0, 3),
 		     _mm_add_ps(lhs.simd[3], rhs.simd[3]));
 
 	return matrix;
@@ -440,16 +441,16 @@ Mat4 AddMat4(Mat4 lhs, Mat4 rhs) {
 Mat4 SubMat4(Mat4 lhs, Mat4 rhs) {
 	Mat4 matrix;
 
-	_mm_store_ps(&matrix.container[_ac4(0, 0)],
+	_mm_store_ps(&_ac4(matrix,0, 0),
 		     _mm_sub_ps(lhs.simd[0], rhs.simd[0]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 1)],
+	_mm_store_ps(&_ac4(matrix,0, 1),
 		     _mm_sub_ps(lhs.simd[1], rhs.simd[1]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 2)],
+	_mm_store_ps(&_ac4(matrix,0, 2),
 		     _mm_sub_ps(lhs.simd[2], rhs.simd[2]));
 
-	_mm_store_ps(&matrix.container[_ac4(0, 3)],
+	_mm_store_ps(&_ac4(matrix,0, 3),
 		     _mm_sub_ps(lhs.simd[3], rhs.simd[3]));
 
 	return matrix;
@@ -490,10 +491,10 @@ Mat4 MulMat4(Mat4 lhs, Mat4 rhs) {
 		f32* _restrict r3 = (f32*)&res3;
 		f32* _restrict r4 = (f32*)&res4;
 
-		matrix.container[_ac4(0, i)] = r1[0] + r1[1] + r1[2] + r1[3];
-		matrix.container[_ac4(1, i)] = r2[0] + r2[1] + r2[2] + r2[3];
-		matrix.container[_ac4(2, i)] = r3[0] + r3[1] + r3[2] + r3[3];
-		matrix.container[_ac4(3, i)] = r4[0] + r4[1] + r4[2] + r4[3];
+		_ac4(matrix,0, i) = r1[0] + r1[1] + r1[2] + r1[3];
+		_ac4(matrix,1, i) = r2[0] + r2[1] + r2[2] + r2[3];
+		_ac4(matrix,2, i) = r3[0] + r3[1] + r3[2] + r3[3];
+		_ac4(matrix,3, i) = r4[0] + r4[1] + r4[2] + r4[3];
 	}
 
 	// FIXME: test isn't running when not row major
@@ -525,19 +526,19 @@ Mat4 MulConstLMat4(f32 lhs, Mat4 rhs) {
 
 	__m128 res = _mm_mul_ps(rhs.simd[0], k);
 
-	_mm_store_ps(&matrix.container[_ac4(0, 0)], res);
+	_mm_store_ps(&_ac4(matrix,0, 0), res);
 
 	res = _mm_mul_ps(rhs.simd[1], k);
 
-	_mm_store_ps(&matrix.container[_ac4(0, 1)], res);
+	_mm_store_ps(&_ac4(matrix,0, 1), res);
 
 	res = _mm_mul_ps(rhs.simd[2], k);
 
-	_mm_store_ps(&matrix.container[_ac4(0, 2)], res);
+	_mm_store_ps(&_ac4(matrix,0, 2), res);
 
 	res = _mm_mul_ps(rhs.simd[3], k);
 
-	_mm_store_ps(&matrix.container[_ac4(0, 3)], res);
+	_mm_store_ps(&_ac4(matrix,0, 3), res);
 
 	return matrix;
 }
@@ -612,25 +613,25 @@ Mat3 MulMat3(Mat3 lhs, Mat3 rhs) {
 
 	// NOTE: god I hope the compiler reorders this
 
-	matrix.container[_rc3(0, 0)] =
+	_rc3(matrix,0, 0) =
 	    ((f32*)&h)[0] + ((f32*)&h)[1] + ((f32*)&h)[2];
-	matrix.container[_rc3(1, 0)] =
+	_rc3(matrix,1, 0) =
 	    ((f32*)&i)[0] + ((f32*)&i)[1] + ((f32*)&i)[2];
-	matrix.container[_rc3(2, 0)] =
+	_rc3(matrix,2, 0) =
 	    ((f32*)&j)[0] + ((f32*)&j)[1] + ((f32*)&j)[2];
 
-	matrix.container[_rc3(0, 1)] =
+	_rc3(matrix,0, 1) =
 	    ((f32*)&j)[3] + ((f32*)&k)[0] + ((f32*)&k)[1];
-	matrix.container[_rc3(1, 1)] =
+	_rc3(matrix,1, 1) =
 	    ((f32*)&h)[3] + ((f32*)&l)[0] + ((f32*)&l)[1];
-	matrix.container[_rc3(2, 1)] =
+	_rc3(matrix,2, 1) =
 	    ((f32*)&i)[3] + ((f32*)&m)[0] + ((f32*)&m)[1];
 
-	matrix.container[_rc3(0, 2)] =
+	_rc3(matrix,0, 2) =
 	    ((f32*)&m)[2] + ((f32*)&m)[3] + ((f32*)&o)[0];
-	matrix.container[_rc3(1, 2)] =
+	_rc3(matrix,1, 2) =
 	    ((f32*)&k)[2] + ((f32*)&k)[3] + ((f32*)&o)[1];
-	matrix.container[_rc3(2, 2)] =
+	_rc3(matrix,2, 2) =
 	    ((f32*)&l)[2] + ((f32*)&l)[3] + ((f32*)&o)[2];
 
 	return matrix;
@@ -902,23 +903,24 @@ Mat4 TransposeMat4(Mat4 matrix) {
 	row2 = _mm_shuffle_ps(tmp1, row3, 0x88);
 	row3 = _mm_shuffle_ps(row3, tmp1, 0xDD);
 
-	_mm_storeu_ps(&store__matrix.container[_ac4(0, 0)], row0);
+	_mm_storeu_ps(&_ac4(store__matrix,0, 0), row0);
 
 	// this is swapped
 	row1 = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&store__matrix.container[_ac4(0, 1)], row1);
+	_mm_storeu_ps(&_ac4(store__matrix,0, 1), row1);
 
-	_mm_storeu_ps(&store__matrix.container[_ac4(0, 2)], row2);
+	_mm_storeu_ps(&_ac4(store__matrix,0, 2), row2);
 
 	// this is swapped
 
 	row3 = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&store__matrix.container[_ac4(0, 3)], row3);
+	_mm_storeu_ps(&_ac4(store__matrix,0, 3), row3);
 
 	return store__matrix;
 }
 
 Mat4 InverseMat4(Mat4 matrix) {
+#if 0
 	/*
 	  Computes the inverse matrix using the adjugate formula
 	  inverse A = 1/(det(A)) x adj(A)
@@ -967,6 +969,64 @@ Mat4 InverseMat4(Mat4 matrix) {
 	adj__matrix = (1.0f / det) * TransposeMat4(adj__matrix);
 
 	return adj__matrix;
+
+#else
+
+
+	f32 x = _ac4(matrix,0,3);
+	f32 y = _ac4(matrix,1,3);
+	f32 z = _ac4(matrix,2,3);
+	f32 w = _ac4(matrix,3,3);
+
+	Vec3 a = {_ac4(matrix,0,0),_ac4(matrix,0,1),_ac4(matrix,0,2)};
+	Vec3 b = {_ac4(matrix,1,0),_ac4(matrix,1,1),_ac4(matrix,1,2)};
+	Vec3 c = {_ac4(matrix,2,0),_ac4(matrix,2,1),_ac4(matrix,2,2)};
+	Vec3 d = {_ac4(matrix,3,0),_ac4(matrix,3,1),_ac4(matrix,3,2)};
+
+	auto s = CrossVec3(a,b);
+	auto t = CrossVec3(c,d);
+	auto u = (y * a) - (x * b);
+	auto v = (w * c) - (z * d);
+
+	f32 det = (DotVec3(s,v)) + (DotVec3(t,u));
+
+	auto r0 = CrossVec3(b,v) + (y * t);
+	auto r1 = CrossVec3(v,a) - (x * t);
+	auto r2 = CrossVec3(d,u) + (w * s);
+	auto r3 = CrossVec3(u,c) - (z * s);
+
+	Mat4 mat = {
+		r0.x,r0.y,r0.z,-DotVec3(b,t),
+		r1.x,r1.y,r1.z,DotVec3(a,t),
+		r2.x,r2.y,r2.z,-DotVec3(d,s),
+		r3.x,r3.y,r3.z,DotVec3(c,s),
+	};
+
+	return (1.0f / det) * mat;
+#endif
+}
+
+
+Mat4 InverseTransform(Mat4 matrix){
+	return Mat3ToMat4(InverseMat3(Mat4ToMat3(matrix)));
+}
+
+Mat4 OuterMat4(Vec4 a_1, Vec4 b_1){
+	Mat4 a = {}; 
+	Mat4 b = {}; 
+
+
+	a.simd[0] = _mm_set1_ps(a_1.x);
+	a.simd[1] = _mm_set1_ps(a_1.y);
+	a.simd[2] = _mm_set1_ps(a_1.z);
+	a.simd[3] = _mm_set1_ps(a_1.w);
+
+	b.simd[0] = b_1.simd;
+	b.simd[1] = b_1.simd;
+	b.simd[2] = b_1.simd;
+	b.simd[3] = b_1.simd;
+
+	return SchurMat4(a,b);
 }
 
 Mat3 SchurMat3(Mat3 a, Mat3 b) {
@@ -993,11 +1053,12 @@ Mat3 TransposeMat3(Mat3 matrix) {
 }
 
 Mat3 InverseMat3(Mat3 matrix) {
+#if 0
 	// see Inverse(Mat4)
 
-	f32 first_row[] = {matrix.container[_ac3(0, 0)],
-			   matrix.container[_ac3(1, 0)],
-			   matrix.container[_ac3(2, 0)]
+	f32 first_row[] = {_ac3(matrix,0, 0),
+			   _ac3(matrix,1, 0),
+			   _ac3(matrix,2, 0)
 
 	};
 
@@ -1010,12 +1071,12 @@ Mat3 InverseMat3(Mat3 matrix) {
 			GetMinorMat((f32*)&matrix[0], 3, x, y,
 				    (f32*)&minormatrix);
 
-			f32 a = minormatrix.container[_rc2(0, 0)];
-			f32 b = minormatrix.container[_rc2(1, 0)];
-			f32 c = minormatrix.container[_rc2(0, 1)];
-			f32 d = minormatrix.container[_rc2(1, 1)];
+			f32 a = _rc2(minormatrix,0, 0);
+			f32 b = _rc2(minormatrix,1, 0);
+			f32 c = _rc2(minormatrix,0, 1);
+			f32 d = _rc2(minormatrix,1, 1);
 
-			adj__matrix.container[_ac3(x, y)] = ((a * d) - (b * c));
+			_ac3(adj__matrix,x, y) = ((a * d) - (b * c));
 		}
 	}
 
@@ -1028,12 +1089,58 @@ Mat3 InverseMat3(Mat3 matrix) {
 	f32 det = 0;
 
 	for (u32 i = 0; i < 3; i++) {
-		det += first_row[i] * adj__matrix.container[_ac3(i, 0)];
+		det += first_row[i] * _ac3(adj__matrix,i, 0);
 	}
 
 	adj__matrix = (1.0f / det) * TransposeMat3(adj__matrix);
 
 	return adj__matrix;
+#else
+	Vec3 a = {_ac3(matrix,0,0),_ac3(matrix,0,1),_ac3(matrix,0,2)};
+	Vec3 b = {_ac3(matrix,1,0),_ac3(matrix,1,1),_ac3(matrix,1,2)};
+	Vec3 c = {_ac3(matrix,2,0),_ac3(matrix,2,1),_ac3(matrix,2,2)};
+
+	f32 det = ScalTripleVec3(a,b,c);
+
+	auto r0 = CrossVec3(b,c);
+	auto r1 = CrossVec3(c,a);
+	auto r2 = CrossVec3(a,b);
+
+	Mat3 mat = {
+		r0.x,r0.y,r0.z,
+		r1.x,r1.y,r1.z,
+		r2.x,r2.y,r2.z,
+	};
+
+	return (1.0f / det) * mat;
+#endif
+}
+
+
+Mat3 OuterMat3(Vec3 a_1, Vec3 b_1){
+	Mat3 a = {}; 
+	Mat3 b = {}; 
+
+
+	a.simd[0] = _mm_set1_ps(a_1.x);
+	a.simd[1] = _mm_set1_ps(a_1.y);
+
+	a[3] = a_1.y;
+	a[6] = a_1.z;
+	a[7] = a_1.z;
+	a[8] = a_1.z;
+
+
+	__m128 k = {b_1.x,b_1.y,b_1.z,0};
+
+	b.simd[0] = _mm_shuffle_ps(k,k, _MM_SHUFFLE(3,2,1,3));
+	b.simd[1] = _mm_shuffle_ps(k,k, _MM_SHUFFLE(2,1,3,2));
+	b.k = b_1.z;
+
+	//TESTING
+	_breakpoint();
+
+	return SchurMat3(a,b);
 }
 
 Mat2 TransposeMat2(Mat2 matrix) {
@@ -1044,17 +1151,17 @@ Mat2 TransposeMat2(Mat2 matrix) {
 }
 
 Mat2 InverseMat2(Mat2 matrix) {
-	f32 a = matrix.container[_rc2(0, 0)];
-	f32 b = matrix.container[_rc2(1, 0)];
-	f32 c = matrix.container[_rc2(0, 1)];
-	f32 d = matrix.container[_rc2(1, 1)];
+	f32 a = _rc2(matrix,0, 0);
+	f32 b = _rc2(matrix,1, 0);
+	f32 c = _rc2(matrix,0, 1);
+	f32 d = _rc2(matrix,1, 1);
 
 	f32 k = 1.0f / ((a * d) - (b * c));
 
-	matrix.container[_rc2(0, 0)] = d;
-	matrix.container[_rc2(1, 0)] = b;
-	matrix.container[_rc2(0, 1)] = c;
-	matrix.container[_rc2(1, 1)] = a;
+	_rc2(matrix,0, 0) = d;
+	_rc2(matrix,1, 0) = b;
+	_rc2(matrix,0, 1) = c;
+	_rc2(matrix,1, 1) = a;
 
 	return matrix * k;
 }
@@ -1134,6 +1241,21 @@ Vec3 CrossVec3(Vec3 a, Vec3 b) {
 
 	return vec;
 }
+Vec3 VecTripleVec3(Vec3 a,Vec3 b,Vec3 c){
+	return (b * DotVec3(a,c)) - (c * DotVec3(a,b));
+}
+
+
+f32 ScalTripleVec3(Vec3 a,Vec3 b,Vec3 c){
+	//NOTE: a b c = c a b = b c a
+	//c b a = b a c = a c b = - (a b c)
+	//Think about it of a triangle in clockwise points a b c
+	//When winding clockwise, it is the same
+	//When winding counter clockwise, it is the negative of the
+	//normal value
+	return DotVec3(CrossVec3(a,b),c);
+}
+
 
 f32 CompVec3(Vec3 a, Vec3 b) { return DotVec3(a, NormalizeVec3(b)); }
 
@@ -1145,6 +1267,10 @@ Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane) {
 	auto w = ProjectOntoVec3(vec, plane.norm);
 	auto dir = plane.norm * plane.d;
 	return (vec - w) + dir;
+}
+
+Vec3 RejectVec3(Vec3 a, Vec3 b){
+	return a - ProjectOntoVec3(a,b);
 }
 
 Vec3 GetVecRotation(Vec3 lookat) {
@@ -1886,11 +2012,11 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 
 	Mat4 matrix = {};
 
-	matrix.container[_rc4(0, 0)] = a;
-	matrix.container[_rc4(1, 1)] = b;
-	matrix.container[_rc4(2, 2)] = c;
-	matrix.container[_rc4(3, 2)] = d;
-	matrix.container[_rc4(2, 3)] = -1.0f;
+	_rc4(matrix,0, 0) = a;
+	_rc4(matrix,1, 1) = b;
+	_rc4(matrix,2, 2) = c;
+	_rc4(matrix,3, 2) = d;
+	_rc4(matrix,2, 3) = -1.0f;
 
 #ifdef DEBUG
 
@@ -1944,6 +2070,38 @@ Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale) {
 	    WorldMat4M(position__matrix4, rotation__matrix4, scale__matrix4);
 
 	return matrix;
+}
+
+
+Mat3 ConstructCrossMat3(Vec3 vec){
+		Mat3 mat = {
+			0,-vec.z,vec.y,
+			vec.z,0,-vec.x,
+			-vec.y,vec.x,0,
+
+		};
+
+		return mat;
+}
+
+
+Mat3 ConstructProjectOntoMat3(Vec3 vec){
+	f32 m = MagnitudeVec3(vec);
+	f32 k = 1.0f / (m * m);
+	return k * OuterMat3(vec,vec);
+}
+
+Mat3 ConstructRejectMat3(Vec3 v){
+	f32 m = MagnitudeVec3(v);
+	f32 k = 1.0f / (m * m);
+
+	Mat3 mat = {
+		(v.y * v.y) + (v.z * v.z), - (v.x * v.y), - (v.x * v.z),
+		-(v.x * v.y), (v.x * v.x) + (v.z * v.z), -(v.y * v.z),
+		-(v.x * v.z), -(v.y * v.z), (v.x * v.x) + (v.y * v.y),
+	};
+
+	return mat * k;
 }
 
 Quat ConstructQuat(Vec3 vector, f32 angle) {
