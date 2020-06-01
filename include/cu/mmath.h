@@ -199,8 +199,8 @@ typedef struct Line3 {
 } Line3;
 
 typedef struct Plane {
-	Point3 pos;
 	Vec3 norm;
+	f32 d;
 } Plane;
 
 typedef struct Line2 {
@@ -639,6 +639,18 @@ f32 _ainline Interpolate(f32 a, f32 b, f32 step) { return (a + (step * (b - a)))
 f32 AngleQuadrant(f32 x, f32 y);
 
 // MARK: constructors
+
+Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
+	Plane plane = {norm,d};
+	return plane;
+}
+
+Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
+	Vec3 n = NormalizeVec3(norm);
+	f32 d = DotVec3(pos,n);
+
+	return ConstructPlaneD(n,d);
+}
 
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir);
 Mat4 ProjectionMat4(f32 fov, f32 aspectration, f32 nearz, f32 farz);

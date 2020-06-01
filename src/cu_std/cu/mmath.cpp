@@ -1143,7 +1143,8 @@ Vec3 ProjectOntoVec3(Vec3 a, Vec3 b) {
 
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane) {
 	auto w = ProjectOntoVec3(vec, plane.norm);
-	return vec - w;
+	auto dir = plane.norm * plane.d;
+	return (vec - w) + dir;
 }
 
 Vec3 GetVecRotation(Vec3 lookat) {
@@ -1445,8 +1446,10 @@ b32 IntersectOutLine3Plane(Line3 a, Plane b, Point3* out_point) {
 
 	auto n = NormalizeVec3(b.norm);
 	auto dir = NormalizeVec3(a.dir);
+	auto plane_pos = b.d * b.norm;
 
-	auto t = (DotVec3((b.pos - a.pos), n)) / (DotVec3(dir, n));
+	auto t = (DotVec3((plane_pos - a.pos), n)) / (DotVec3(dir, n));
+
 
 	*out_point = a.pos + (t * dir);
 
@@ -1463,7 +1466,9 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b) {
 
 	m32 fi;
 
-	auto dir = NormalizeVec3(a.pos - b.pos);
+	auto plane_pos = b.d * b.norm;
+	auto dir = NormalizeVec3(a.pos - plane_pos);
+
 
 	fi.f = DotVec3(dir, NormalizeVec3(b.norm));  // check if on the plane
 
@@ -1615,15 +1620,18 @@ b32 IntersectRay3Plane(Ray3 a, Plane b) {
 	auto n = NormalizeVec3(b.norm);
 	auto dir = NormalizeVec3(a.dir);
 
-	auto t = (DotVec3((b.pos - a.pos), n)) / (DotVec3(dir, n));
+	auto plane_pos = b.d * b.norm;
+
+	auto t = (DotVec3((plane_pos - a.pos), n)) / (DotVec3(dir, n));
 	return t > _f32_error_offset;
 }
 
 b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
 	auto n = NormalizeVec3(b.norm);
 	auto dir = NormalizeVec3(a.dir);
+	auto plane_pos = b.d * b.norm;
 
-	auto t = (DotVec3((b.pos - a.pos), n)) / (DotVec3(dir, n));
+	auto t = (DotVec3((plane_pos - a.pos), n)) / (DotVec3(dir, n));
 
 	if (t >= _f32_error_offset) {
 		*out_point = a.pos + (t * dir);
@@ -1638,7 +1646,9 @@ b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 
 	m32 fi = {};
 
-	auto dir = NormalizeVec3(b.pos - a.pos);
+	auto plane_pos = b.d * b.norm;
+
+	auto dir = NormalizeVec3(plane_pos - a.pos);
 
 	fi.f = DotVec3(dir, NormalizeVec3(b.norm));  // check if on the plane
 
