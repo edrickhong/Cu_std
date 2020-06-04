@@ -24,7 +24,9 @@ struct InternalWindowData {
 		};
 
 		struct {
+#ifndef NO_WAYLAND_EXTENSIONS
 			xdg_surface* wayland_xdg_surface;
+#endif
 		};
 	};
 };
@@ -62,7 +64,11 @@ _global void (*impl_wdestroybackbuffer)(WBackBufferContext*) = 0;
 _global void (*impl_wretireevent)(WWindowEvent*) = 0;
 _global void (*impl_wackresizeevent)(WWindowEvent*) = 0;
 
+
+#ifndef NO_WAYLAND_EXTENSIONS
 #include "wayland_wwindow.cpp"
+#endif
+
 #include "x11_wwindow.cpp"
 
 void WCreateWindowConnection(WPlatform platform) {
@@ -71,7 +77,9 @@ void WCreateWindowConnection(WPlatform platform) {
 	loaded_platform = platform;
 
 	if (platform == WPLATFORM_WAYLAND) {
+#ifndef NO_WAYLAND_EXTENSIONS
 		InternalWaylandInitOneTime();
+#endif
 	}
 
 	if (platform == WPLATFORM_X11) {
@@ -84,8 +92,10 @@ void WDestroyWindowConnection() {
 	if (loaded_platform == WPLATFORM_WAYLAND) {
 	//TODO: need to handle all loose ends from the other libs
 	//Not sure we got all of them
+#ifndef NO_WAYLAND_EXTENSIONS
 	InternalWaylandDeinitOneTime();
 	InternalUnloadLibraryWayland();
+#endif
 	}
 
 	if (loaded_platform == WPLATFORM_X11) {
@@ -133,8 +143,10 @@ WWindowContext WCreateWindow(const s8* title,
 	b32 res = 0;
 
 	if(loaded_platform == WPLATFORM_WAYLAND){
+#ifndef NO_WAYLAND_EXTENSIONS
 		res = InternalCreateWaylandWindow(&context, title, flags, x, y,
 						  width, height);
+#endif
 	}
 
 	if(loaded_platform == WPLATFORM_X11){

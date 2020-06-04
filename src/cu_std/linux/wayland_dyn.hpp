@@ -123,8 +123,10 @@ extern "C" const wl_interface* wl_output_interface_ptr;
 #define WAYLAND_CLIENT_CORE_H
 #define WAYLAND_CLIENT_H
 #include "wayland-client-protocol.h"
-#include "generated/xdg-shell.h"
 
+#ifndef NO_WAYLAND_EXTENSIONS
 extern "C" {
+#include "generated/xdg-shell.h"
 #include "generated/xdg-shell.c"
 }
+#endif
