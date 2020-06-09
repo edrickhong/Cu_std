@@ -23,8 +23,17 @@
 
 #ifdef DEBUG
 
+#ifdef __GNUC__
 
-#ifdef __clang__
+//This is just for gcc
+#pragma GCC diagnostic warning "-Wignored-attributes"
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+
+#endif
+
+#ifdef __clang__  
+
+
 
 #pragma GCC diagnostic warning "-Wnull-dereference"
 #pragma GCC diagnostic error "-Wnull-dereference"

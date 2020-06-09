@@ -24,7 +24,7 @@ void WriteBMP(void* data,u32 w,u32 h,const s8* outputfile){
         u32 sigcolors;
     } _packed;
     
-    u32 tsize = sizeof(BMPFileHeader) + sizeof(BMPImageHeader) * w * h * 4;
+    u32 tsize = sizeof(BMPFileHeader) + sizeof(BMPImageHeader) + (w * h * 4);
     auto ptr = (s8*)alloc(tsize);
     
     auto header = (BMPFileHeader*)ptr;
@@ -46,7 +46,7 @@ void WriteBMP(void* data,u32 w,u32 h,const s8* outputfile){
     imageheader->plane = 1;
     imageheader->bpp = 32;
     imageheader->comp_type = 0;
-    imageheader->image_size = 0;
+    imageheader->image_size = 0; //MARK: maybe we need this???
     imageheader->pixelspermeter_x = 0;
     imageheader->pixelspermeter_y = 0;
     imageheader->colormap_entries = 0;
