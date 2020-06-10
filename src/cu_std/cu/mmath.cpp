@@ -2,19 +2,17 @@
 TODO:
 move glm compare to tests
 make quaternions xyzw
-have automatic conversions between f32* to our types for better integration with
-external code bases
-
 Remove extraneous Normalizes
 Add a test suite
-
-Go through each of the is_inline. We need to fabsf them too
+Replace sqaured magnitudes to the specific squared function
 */
 
 // MARK: Internal
 #ifdef DEBUG
 
-#if (_test__matrices)
+
+//TODO: remove glm testing. we will use it in the tests instead
+#if (_test_matrices)
 
 #ifdef VERBOSE
 #pragma message("MATRIX TESTING ENABLED")
@@ -24,6 +22,7 @@ Go through each of the is_inline. We need to fabsf them too
 #define GLM_FORCE_RIGHT_HANDED 1
 #include "glm/glm.hpp"
 #include "glm/gtx/transform.hpp"
+
 
 void InternalCmpMat(f32* f1, f32* f2) {
 #if MATRIX_ROW_MAJOR
@@ -67,14 +66,40 @@ void InternalCmpMat(f32* f1, f32* f2) {
 #endif
 
 
-void _ainline GetMinorMat(f32* in__matrix, u32 n, u32 k_x, u32 k_y,
-			  f32* out__matrix) {
+
+//MARK: This is internal for now
+Vec3 operator*(Mat3 lhs,Vec3 rhs){
+
+	auto a = lhs.simd[0];
+	auto b = lhs.simd[1];
+	auto c = lhs.k;
+
+	auto k = Vec3ToVec4(rhs).simd;
+
+	auto d = _mm_shuffle_ps(k, k, _MM_SHUFFLE(0, 2, 1, 0));
+	auto e = _mm_shuffle_ps(k, k, _MM_SHUFFLE(1, 0, 2, 1));
+
+	auto f = _mm_mul_ps(a, d);
+	auto g = _mm_mul_ps(b, e);
+	auto h = c * rhs.z;
+
+	// MARK: technically we can shuffle here and do an sse add.
+	// idk what the wins are 
+	auto x = ((f32*)&f)[0] + ((f32*)&f)[1] + ((f32*)&f)[2];
+	auto y = ((f32*)&f)[3] + ((f32*)&g)[0] + ((f32*)&g)[1];
+	auto z = ((f32*)&g)[2] + ((f32*)&g)[3] + h;
+
+	return {x, y, z};
+}
+
+void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
+			  f32* out_matrix) {
 	u32 index = 0;
 
 	for (u32 y = 0; y < n; y++) {
 		for (u32 x = 0; x < n; x++) {
 			if (y != k_y && x != k_x) {
-				out__matrix[index] = in__matrix[(y * n) + x];
+				out_matrix[index] = in_matrix[(y * n) + x];
 				index++;
 			}
 		}
@@ -110,17 +135,17 @@ Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 
 #ifdef DEBUG
 
-#if _test__matrices
+#if _test_matrices
 
-	auto t__mat =
+	auto t_mat =
 	    glm::lookAt(glm::vec3(position.x, position.y, position.z),
 			glm::vec3(lookpoint.x, lookpoint.y, lookpoint.z),
 			glm::vec3(updir.x, updir.y, updir.z));
 
-	auto ref__matrix = matrix;
+	auto ref_matrix = matrix;
 
-	auto f1 = (f32*)&ref__matrix;
-	auto f2 = (f32*)&t__mat;
+	auto f1 = (f32*)&ref_matrix;
+	auto f2 = (f32*)&t_mat;
 
 	InternalCmpMat(f1, f2);
 
@@ -136,14 +161,14 @@ Vec4 InternalCompDiv(Vec4 a, Vec4 b) {
 	return a;
 }
 
-f32 inline GenericGetDeterminant(f32* in__matrix, u32 n) {
+f32 inline GenericGetDeterminant(f32* in_matrix, u32 n) {
 	_kill("we do not support this case\n", n > 4);
 
 	if (n == 2) {
-		f32 a = in__matrix[0];
-		f32 b = in__matrix[1];
-		f32 c = in__matrix[2];
-		f32 d = in__matrix[3];
+		f32 a = in_matrix[0];
+		f32 b = in_matrix[1];
+		f32 c = in_matrix[2];
+		f32 d = in_matrix[3];
 
 		return (a * d) - (b * c);
 	}
@@ -151,17 +176,17 @@ f32 inline GenericGetDeterminant(f32* in__matrix, u32 n) {
 	f32 res = 0;
 
 	for (u32 i = 0; i < n; i++) {
-		auto entry = in__matrix[i];
+		auto entry = in_matrix[i];
 
 		if (i & 1) {
 			entry *= -1.0f;
 		}
 
-		f32 minor__mat[16] = {};
+		f32 minor_mat[16] = {};
 
-		GetMinorMat(in__matrix, n, i, 0, &minor__mat[0]);
+		GetMinorMat(in_matrix, n, i, 0, &minor_mat[0]);
 
-		auto det = GenericGetDeterminant(&minor__mat[0], n - 1);
+		auto det = GenericGetDeterminant(&minor_mat[0], n - 1);
 
 		res += det * entry;
 	}
@@ -510,9 +535,9 @@ Mat4 MulMat4(Mat4 lhs, Mat4 rhs) {
 
 		auto res = l * r;
 
-		auto ref__matrix = matrix;
+		auto ref_matrix = matrix;
 
-		InternalCmpMat((f32*)&ref__matrix, (f32*)&res);
+		InternalCmpMat((f32*)&ref_matrix, (f32*)&res);
 	}
 
 #endif
@@ -881,7 +906,7 @@ Mat4 SchurMat4(Mat4 a, Mat4 b) {
 }
 
 Mat4 TransposeMat4(Mat4 matrix) {
-	Mat4 store__matrix;
+	Mat4 store_matrix;
 
 	__m128 tmp1 = {}, row0 = {}, row1 = {}, row2 = {}, row3 = {};
 
@@ -903,20 +928,20 @@ Mat4 TransposeMat4(Mat4 matrix) {
 	row2 = _mm_shuffle_ps(tmp1, row3, 0x88);
 	row3 = _mm_shuffle_ps(row3, tmp1, 0xDD);
 
-	_mm_storeu_ps(&_ac4(store__matrix,0, 0), row0);
+	_mm_storeu_ps(&_ac4(store_matrix,0, 0), row0);
 
 	// this is swapped
 	row1 = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&_ac4(store__matrix,0, 1), row1);
+	_mm_storeu_ps(&_ac4(store_matrix,0, 1), row1);
 
-	_mm_storeu_ps(&_ac4(store__matrix,0, 2), row2);
+	_mm_storeu_ps(&_ac4(store_matrix,0, 2), row2);
 
 	// this is swapped
 
 	row3 = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&_ac4(store__matrix,0, 3), row3);
+	_mm_storeu_ps(&_ac4(store_matrix,0, 3), row3);
 
-	return store__matrix;
+	return store_matrix;
 }
 
 Mat4 InverseMat4(Mat4 matrix) {
@@ -927,9 +952,9 @@ Mat4 InverseMat4(Mat4 matrix) {
 
 	  where det is the determinant of the matrix and adj the adjoint matrix
 	  of A. where 1 <= i <= n and 1 <= j <= n of an n by n matrix and (i,j)
-	  corresponds to a value of matrix A adjoint__matrix of elements =
+	  corresponds to a value of matrix A adjoint_matrix of elements =
 	  -(-1)^(i * j) * det(MinorMat(matrix,i,j)) adj(A) =
-	  Transpose(adjoint__matrix)
+	  Transpose(adjoint_matrix)
 	*/
 
 	// we'll use these to get the det. Calling generic det will compute the
@@ -940,7 +965,7 @@ Mat4 InverseMat4(Mat4 matrix) {
 
 	// get the adjoint matrix, create matrices of cofactors
 
-	Mat4 adj__matrix = {};
+	Mat4 adj_matrix = {};
 
 	for (u32 y = 0; y < 4; y++) {
 		for (u32 x = 0; x < 4; x++) {
@@ -949,26 +974,26 @@ Mat4 InverseMat4(Mat4 matrix) {
 			GetMinorMat((f32*)&matrix.container[0], 4, x, y,
 				    (f32*)&minormatrix);
 
-			adj__matrix.container[_ac4(x, y)] =
+			adj_matrix.container[_ac4(x, y)] =
 			    GenericGetDeterminant((f32*)&minormatrix, 3);
 		}
 	}
 
-	Mat4 checkerboard__matrix = {
+	Mat4 checkerboard_matrix = {
 	    1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, 1,
 	};
 
-	adj__matrix = SchurMat4(adj__matrix, checkerboard__matrix);
+	adj_matrix = SchurMat4(adj_matrix, checkerboard_matrix);
 
 	f32 det = 0;
 
 	for (u32 i = 0; i < 4; i++) {
-		det += first_row[i] * adj__matrix.container[_ac4(i, 0)];
+		det += first_row[i] * adj_matrix.container[_ac4(i, 0)];
 	}
 
-	adj__matrix = (1.0f / det) * TransposeMat4(adj__matrix);
+	adj_matrix = (1.0f / det) * TransposeMat4(adj_matrix);
 
-	return adj__matrix;
+	return adj_matrix;
 
 #else
 
@@ -1008,25 +1033,39 @@ Mat4 InverseMat4(Mat4 matrix) {
 
 
 Mat4 InverseTransform(Mat4 matrix){
-	return Mat3ToMat4(InverseMat3(Mat4ToMat3(matrix)));
+
+	auto m = InverseMat3(Mat4ToMat3(matrix));
+	auto r = Mat3ToMat4(m); 
+
+	Vec3 t = {_ac4(matrix,3,0),_ac4(matrix,3,1),_ac4(matrix,3,2)};
+
+	m = m * -1.0f;
+	t = m * t;
+
+	_ac4(r,3,0) = t.x;
+	_ac4(r,3,1) = t.y;
+	_ac4(r,3,2) = t.z;
+
+	return r;
 }
 
-Mat4 OuterMat4(Vec4 a_1, Vec4 b_1){
-	Mat4 a = {}; 
-	Mat4 b = {}; 
+Mat4 OuterMat4(Vec4 a_1, Vec4 b){
+
+	Mat4 a = {};
 
 
 	a.simd[0] = _mm_set1_ps(a_1.x);
 	a.simd[1] = _mm_set1_ps(a_1.y);
 	a.simd[2] = _mm_set1_ps(a_1.z);
-	a.simd[3] = _mm_set1_ps(a_1.w);
+	a.simd[3] = _mm_set1_ps(a_1.w);	
 
-	b.simd[0] = b_1.simd;
-	b.simd[1] = b_1.simd;
-	b.simd[2] = b_1.simd;
-	b.simd[3] = b_1.simd;
+	a.simd[0] = _mm_mul_ps(a.simd[0],b.simd);
+	a.simd[1] = _mm_mul_ps(a.simd[1],b.simd);
+	a.simd[2] = _mm_mul_ps(a.simd[2],b.simd);
+	a.simd[3] = _mm_mul_ps(a.simd[3],b.simd);
 
-	return SchurMat4(a,b);
+
+	return a;
 }
 
 Mat3 SchurMat3(Mat3 a, Mat3 b) {
@@ -1062,7 +1101,7 @@ Mat3 InverseMat3(Mat3 matrix) {
 
 	};
 
-	Mat3 adj__matrix = {};
+	Mat3 adj_matrix = {};
 
 	for (u32 y = 0; y < 3; y++) {
 		for (u32 x = 0; x < 3; x++) {
@@ -1076,25 +1115,25 @@ Mat3 InverseMat3(Mat3 matrix) {
 			f32 c = _rc2(minormatrix,0, 1);
 			f32 d = _rc2(minormatrix,1, 1);
 
-			_ac3(adj__matrix,x, y) = ((a * d) - (b * c));
+			_ac3(adj_matrix,x, y) = ((a * d) - (b * c));
 		}
 	}
 
-	Mat3 checkerboard__matrix = {
+	Mat3 checkerboard_matrix = {
 	    1, -1, 1, -1, 1, -1, 1, -1, 1,
 	};
 
-	adj__matrix = SchurMat3(adj__matrix, checkerboard__matrix);
+	adj_matrix = SchurMat3(adj_matrix, checkerboard_matrix);
 
 	f32 det = 0;
 
 	for (u32 i = 0; i < 3; i++) {
-		det += first_row[i] * _ac3(adj__matrix,i, 0);
+		det += first_row[i] * _ac3(adj_matrix,i, 0);
 	}
 
-	adj__matrix = (1.0f / det) * TransposeMat3(adj__matrix);
+	adj_matrix = (1.0f / det) * TransposeMat3(adj_matrix);
 
-	return adj__matrix;
+	return adj_matrix;
 #else
 	Vec3 a = {_ac3(matrix,0,0),_ac3(matrix,0,1),_ac3(matrix,0,2)};
 	Vec3 b = {_ac3(matrix,1,0),_ac3(matrix,1,1),_ac3(matrix,1,2)};
@@ -1117,30 +1156,27 @@ Mat3 InverseMat3(Mat3 matrix) {
 }
 
 
-Mat3 OuterMat3(Vec3 a_1, Vec3 b_1){
+Mat3 OuterMat3(Vec3 a_1, Vec3 b){
 	Mat3 a = {}; 
-	Mat3 b = {}; 
-
 
 	a.simd[0] = _mm_set1_ps(a_1.x);
 	a.simd[1] = _mm_set1_ps(a_1.y);
 
-	a[3] = a_1.y;
-	a[6] = a_1.z;
-	a[7] = a_1.z;
-	a[8] = a_1.z;
+	_ac3(a,0,1) = a_1.y;
+
+	_ac3(a,0,2) = a_1.z;
+	_ac3(a,1,2) = a_1.z;
+	a.k = a_1.z;
+
+	__m128 k = {b.x,b.y,b.z,b.x};
+	auto d = _mm_shuffle_ps(k,k,_MM_SHUFFLE(1,0,2,1));
+
+	a.simd[0] = _mm_mul_ps(a.simd[0],k);
+	a.simd[1] = _mm_mul_ps(a.simd[1],d);
+	a.k *= b.z;
 
 
-	__m128 k = {b_1.x,b_1.y,b_1.z,0};
-
-	b.simd[0] = _mm_shuffle_ps(k,k, _MM_SHUFFLE(3,2,1,3));
-	b.simd[1] = _mm_shuffle_ps(k,k, _MM_SHUFFLE(2,1,3,2));
-	b.k = b_1.z;
-
-	//TESTING
-	_breakpoint();
-
-	return SchurMat3(a,b);
+	return a;
 }
 
 Mat2 TransposeMat2(Mat2 matrix) {
@@ -1159,8 +1195,8 @@ Mat2 InverseMat2(Mat2 matrix) {
 	f32 k = 1.0f / ((a * d) - (b * c));
 
 	_rc2(matrix,0, 0) = d;
-	_rc2(matrix,1, 0) = b;
-	_rc2(matrix,0, 1) = c;
+	_rc2(matrix,1, 0) = -b;
+	_rc2(matrix,0, 1) = -c;
 	_rc2(matrix,1, 1) = a;
 
 	return matrix * k;
@@ -1173,6 +1209,10 @@ f32 MagnitudeVec4(Vec4 vec) {
 	res = sqrtf(res);
 
 	return res;
+}
+
+f32 SquaredVec4(Vec4 vec){
+	return DotVec4(vec, vec);
 }
 
 f32 DotVec4(Vec4 vec1, Vec4 vec2) {
@@ -1196,7 +1236,7 @@ Vec4 SchurVec4(Vec4 a, Vec4 b) {
 	return a;
 }
 
-Vec4 InterpolateVec4(Vec4 a, Vec4 b, f32 step) {
+Vec4 LerpVec4(Vec4 a, Vec4 b, f32 step) {
 	Vec4 v = {_intrin_fmadd_ps(_mm_sub_ps(b.simd, a.simd),
 				   _mm_set1_ps(step), a.simd)};
 	return v;
@@ -1210,6 +1250,10 @@ f32 MagnitudeVec3(Vec3 vec) {
 	res = sqrtf(res);
 
 	return res;
+}
+
+f32 SquaredVec3(Vec3 vec){
+	return DotVec3(vec, vec);
 }
 
 f32 DotVec3(Vec3 vec1, Vec3 vec2) {
@@ -1326,29 +1370,27 @@ Vec3 RotateVec3(Vec3 vec, Vec3 rotation) {
 	  {rotated x,  = {cos0 ,-sin0,  * {x,
 	  rotated y}      sin0,cos0}       y}
 	*/
+#if 0
+	_breakpoint();
+	vec.x = 2;
+	vec.y = 3;
+	vec.z = 4;
+#endif
 
-	auto rot__matrix = RotationMat3(rotation);
+	auto rot_matrix = RotationMat3(rotation);
 
-	auto a = rot__matrix.simd[0];
-	auto b = rot__matrix.simd[1];
-	auto c = rot__matrix.k;
+	return rot_matrix * vec;
+}
 
-	auto k = Vec3ToVec4(vec).simd;
+Vec3 RotateAxisVec3(Vec3 vec, Vec3 axis,f32 angle){
+	axis = NormalizeVec3(axis); //TODO: we should stop doing this
+	f32 s = sinf(angle);
+	f32 c = cosf(angle);
 
-	auto d = _mm_shuffle_ps(k, k, _MM_SHUFFLE(3, 2, 1, 0));
-	auto e = _mm_shuffle_ps(k, k, _MM_SHUFFLE(1, 0, 2, 1));
+	auto ret = (c * vec) + (ProjectOntoVec3(vec,axis) * (1.0f - c))
+		+ (s * CrossVec3(axis,vec));
 
-	auto f = _mm_mul_ps(a, d);
-	auto g = _mm_mul_ps(b, e);
-	auto h = c * vec.z;
-
-	// MARK: technically we can shuffle here and do an sse add.
-	// idk what the wins are for
-	auto x = ((f32*)&f)[0] + ((f32*)&f)[1] + ((f32*)&f)[2];
-	auto y = ((f32*)&f)[3] + ((f32*)&g)[0] + ((f32*)&g)[1];
-	auto z = ((f32*)&g)[2] + ((f32*)&g)[3] + h;
-
-	return {x, y, z};
+	return ret;
 }
 
 f32 Cosf(Vec3 vec1, Vec3 vec2) {
@@ -1360,11 +1402,19 @@ Vec3 ReflectVec3(Vec3 vec, Vec3 normal) {
 	return SubVec3(vec, MulConstRVec3(ProjectOntoVec3(vec, normal), 2.0f));
 }
 
+Vec3 InvolVec3(Vec3 vec, Vec3 normal){
+	return ProjectOntoVec3(vec,normal) - RejectVec3(vec,normal);
+}
+
 f32 MagnitudeVec2(Vec2 a) {
 	a.x = a.x * a.x;
 	a.y = a.y * a.y;
 
 	return sqrtf(a.x + a.y);
+}
+
+f32 SquaredVec2(Vec2 vec){
+	return DotVec2(vec, vec);
 }
 
 f32 DotVec2(Vec2 a, Vec2 b) {
@@ -1381,10 +1431,16 @@ Vec2 SchurVec2(Vec2 a, Vec2 b) {
 }
 
 Vec2 RotateVec2(Vec2 vec, f32 rotation) {
-	vec.x = (vec.x * cosf(rotation)) - (vec.y * sinf(rotation));
-	vec.y = (vec.x * sinf(rotation)) + (vec.y * cosf(rotation));
 
-	return vec;
+	f32 c = cosf(rotation);
+	f32 s = sinf(rotation);
+
+	Vec2 v = {};
+
+	v.x = (vec.x * c) - (vec.y * s);
+	v.y = (vec.x * s) + (vec.y * c);
+
+	return v;
 }
 
 Quat InverseQuat(Quat q) {
@@ -1403,7 +1459,7 @@ Quat InverseQuat(Quat q) {
 Quat NLerpQuat(Quat a, Quat b, f32 step) {
 	b = Neighbourhood(a, b);
 
-	Quat q = InterpolateQuat(a, b, step);
+	Quat q = LerpQuat(a, b, step);
 
 	q = NormalizeQuat(q);
 
@@ -1430,7 +1486,7 @@ Quat ConjugateQuat(Quat quaternion) {
 	return quaternion;
 }
 
-Quat InterpolateQuat(Quat a, Quat b, f32 step) {
+Quat LerpQuat(Quat a, Quat b, f32 step) {
 	Quat q = {_intrin_fmadd_ps(_mm_sub_ps(b.simd, a.simd),
 				   _mm_set1_ps(step), a.simd)};
 	return q;
@@ -2020,14 +2076,14 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 
 #ifdef DEBUG
 
-#if _test__matrices
+#if _test_matrices
 
-	auto ref__matrix = matrix;
+	auto ref_matrix = matrix;
 
-	auto t__mat = glm::perspective(fov, aspectratio, nearz, farz);
+	auto t_mat = glm::perspective(fov, aspectratio, nearz, farz);
 
-	auto f1 = (f32*)&ref__matrix;
-	auto f2 = (f32*)&t__mat;
+	auto f1 = (f32*)&ref_matrix;
+	auto f2 = (f32*)&t_mat;
 
 	InternalCmpMat(f1, f2);
 
@@ -2045,14 +2101,14 @@ Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale) {
 Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale) {
 	Mat4 matrix;
 
-	Mat4 position__matrix4 = PositionMat4(position);
+	Mat4 position_matrix4 = PositionMat4(position);
 
-	Mat4 scale__matrix4 = ScaleMat4(scale);
+	Mat4 scale_matrix4 = Mat3ToMat4(ScaleMat3(scale));
 
-	Mat4 rotation__matrix4 = Mat3ToMat4(RotationMat3(rotation));
+	Mat4 rotation_matrix4 = Mat3ToMat4(RotationMat3(rotation));
 
 	matrix =
-	    WorldMat4M(position__matrix4, rotation__matrix4, scale__matrix4);
+	    WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
 
 	return matrix;
 }
@@ -2060,14 +2116,14 @@ Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale) {
 Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale) {
 	Mat4 matrix;
 
-	Mat4 position__matrix4 = PositionMat4(position);
+	Mat4 position_matrix4 = PositionMat4(position);
 
-	Mat4 scale__matrix4 = ScaleMat4(scale);
+	Mat4 scale_matrix4 = Mat3ToMat4(ScaleMat3(scale));
 
-	Mat4 rotation__matrix4 = QuatToMat4(rotation);
+	Mat4 rotation_matrix4 = QuatToMat4(rotation);
 
 	matrix =
-	    WorldMat4M(position__matrix4, rotation__matrix4, scale__matrix4);
+	    WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
 
 	return matrix;
 }

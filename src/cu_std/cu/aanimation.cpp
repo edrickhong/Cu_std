@@ -20,7 +20,7 @@ VectorTransform _ainline IdentityVectorTransform(){
     return transform;
 }
 
-Vec4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
+Vec4 DebugLerpAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
     
     if(key_count ==1){
         return key_array[0].value;
@@ -48,7 +48,7 @@ Vec4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animat
     printf("cur %f    %f    %f    \n",(f64)current.value.x,(f64)current.value.y,(f64)current.value.z);
     printf("next %f    %f    %f    \n",(f64)next.value.x,(f64)next.value.y,(f64)next.value.z);
     
-    return InterpolateVec4(current.value,next.value,step);
+    return LerpVec4(current.value,next.value,step);
 }
 
 // void PrintAnimationData(AAnimationSet animation){
@@ -82,7 +82,7 @@ Vec4 DebugInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animat
 // }
 
 
-Vec4 _ainline AInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
+Vec4 _ainline ALerpAnimation(AAnimationKey* key_array,u32 key_count,f32 animationtime){
     
     if(key_count ==1){
         return key_array[0].value;
@@ -108,10 +108,10 @@ Vec4 _ainline AInterpolateAnimation(AAnimationKey* key_array,u32 key_count,f32 a
     
     f32 step = (animationtime - current.time)/(next.time - current.time);
     
-    return InterpolateVec4(current.value,next.value,step);
+    return LerpVec4(current.value,next.value,step);
 }
 
-Quat _ainline  AInterpolateAnimationQuat(AAnimationKey* key_array,u32 key_count,
+Quat _ainline  ALerpAnimationQuat(AAnimationKey* key_array,u32 key_count,
                                                      f32 animationtime){
     if(key_count ==1){
         
@@ -164,15 +164,15 @@ void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
         animationdata += animation_index;
         
         transform.translation = 
-            AInterpolateAnimation(animationdata->positionkey_array,
+            ALerpAnimation(animationdata->positionkey_array,
                                   animationdata->positionkey_count,animationtime);
         
         transform.scale =
-            AInterpolateAnimation(animationdata->scalekey_array,
+            ALerpAnimation(animationdata->scalekey_array,
                                   animationdata->scalekey_count,animationtime);
         
         transform.rotation = 
-            AInterpolateAnimationQuat(animationdata->rotationkey_array,
+            ALerpAnimationQuat(animationdata->rotationkey_array,
                                             animationdata->rotationkey_count,animationtime);
     }
     

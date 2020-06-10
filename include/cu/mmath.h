@@ -2,7 +2,7 @@
 
 /*
 
-  NOTE:
+  NOTE: Should we make this change??
   Vec4(x,y,z,1) - point  rotating this changes the point position
   Vec4(x,y,z,0) - vector rotating this will create a new vector(eg rotating a translation)
 */
@@ -14,6 +14,7 @@
 #include "math.h"  //we can replace this too I guess
 #include "ttype.h"
 
+#define _maxf32 3.40282347e+38
 #define _pi 3.1415926535897f
 #define _twopi (_pi * 2.0f)
 #define _fourpi (_pi * 4.0f)
@@ -38,31 +39,13 @@
 #define _radians(degrees) (degrees * (_pi / 180.0f))
 #define _degrees(radians) (radians * (180.0f / _pi))
 
-// direct element access -- just make these into numbers by themselves
-#define _ac4(mat,x, y) mat.container[(x + (y * 4))]
-#define _ac3(mat,x, y) mat.container[(x + (y * 3))]
-#define _ac2(mat,x, y) mat.container[(x + (y * 2))]
-
-// access element as if it were row major
-#if MATRIX_ROW_MAJOR
-
-#define _rc4(mat,x, y) _ac4(mat,x, y)
-#define _rc3(mat,x, y) _ac3(mat,x, y)
-#define _rc2(mat,x, y) _ac2(mat,x, y)
-
-#else
-
-#define _rc4(mat,x, y) _ac4(mat,y, x)
-#define _rc3(mat,x, y) _ac3(mat,y, x)
-#define _rc2(mat,x, y) _ac2(mat,y, x)
-
-#endif
 
 #define _clampf(x, lower, upper) (fminf(upper, fmaxf(x, lower)))
 
 // MARK: structs and unions
 typedef struct Vec2 {
 	f32 x, y;
+	f32 floats[2];
 } Vec2;
 
 typedef union Vec3 {
@@ -280,6 +263,55 @@ Quat _ainline AQuatIdentity() {
 	Quat q = {0.0f, 0.0f, 0.0f, 0.0f};
 	return q;
 }
+
+
+// MARK: UTIL OPS
+
+// direct element access 
+// Directly accesses an element by x y coordinates where (0,0)
+// is the top left corner of the matrix
+// x increases each element to the right
+// y increases each element down
+_ainline f32* Ac4(Mat4* mat,u32 x,u32 y){
+	return &mat->container[(x + (y * 4))];
+}
+
+_ainline f32* Ac3(Mat3* mat,u32 x,u32 y){
+	return &mat->container[(x + (y * 3))];
+}
+
+_ainline f32* Ac2(Mat2* mat,u32 x,u32 y){
+	return &mat->container[(x + (y * 2))];
+}
+
+//NOTE: This forces type correctness
+#define _ac4(mat,x, y) (*Ac4(&mat,x,y))
+#define _ac3(mat,x, y) (*Ac3(&mat,x,y))
+#define _ac2(mat,x, y) (*Ac2(&mat,x,y))
+
+// access element as if it were row major
+#if MATRIX_ROW_MAJOR
+
+#define _rc4(mat,x, y) _ac4(mat,x, y)
+#define _rc3(mat,x, y) _ac3(mat,x, y)
+#define _rc2(mat,x, y) _ac2(mat,x, y)
+
+#else
+
+#define _rc4(mat,x, y) _ac4(mat,y, x)
+#define _rc3(mat,x, y) _ac3(mat,y, x)
+#define _rc2(mat,x, y) _ac2(mat,y, x)
+
+#endif
+
+void PrintMat4(Mat4 matrix);
+void PrintMat3(Mat3 matrix);
+
+void PrintVec4(Vec4 vec);
+void PrintVec3(Vec3 vec);
+void PrintVec2(Vec2 vec);
+
+void PrintQuat(Quat quat);
 
 // MARK: Conversions
 
@@ -545,7 +577,6 @@ DualQuat MulConstLDualQ(f32 lhs, DualQuat rhs);
 DualQuat MulConstRDualQ(DualQuat lhs, f32 rhs);
 
 // MARK: SPECIAL MATH OPS (can only be expressed in functions)
-// TODO: we should also include Rejection functios
 Mat4 SchurMat4(Mat4 a, Mat4 b);
 Mat4 TransposeMat4(Mat4 matrix);
 Mat4 InverseMat4(Mat4 matrix);	// there is a way to compute this faster
@@ -556,17 +587,20 @@ Mat4 OuterMat4(Vec4 a, Vec4 b);
 Mat3 SchurMat3(Mat3 a, Mat3 b);
 Mat3 TransposeMat3(Mat3 matrix);
 Mat3 InverseMat3(Mat3 matrix);
+Mat3 OuterMat3(Vec3 a,Vec3 b);
 
 Mat2 TransposeMat2(Mat2 matrix);
 Mat2 InverseMat2(Mat2 matrix);
 
 f32 MagnitudeVec4(Vec4 vec);
+f32 SquaredVec4(Vec4 vec);
 f32 DotVec4(Vec4 vec1, Vec4 vec2);
 Vec4 NormalizeVec4(Vec4 vec);
 Vec4 SchurVec4(Vec4 a, Vec4 b);
-Vec4 InterpolateVec4(Vec4 a, Vec4 b, f32 step);
+Vec4 LerpVec4(Vec4 a, Vec4 b, f32 step);
 
 f32 MagnitudeVec3(Vec3 vec);
+f32 SquaredVec3(Vec3 vec);
 f32 DotVec3(Vec3 vec1, Vec3 vec2);
 Vec3 NormalizeVec3(Vec3 vec);
 Vec3 CrossVec3(Vec3 vec1, Vec3 vec2);
@@ -574,8 +608,8 @@ Vec3 VecTripleVec3(Vec3 a,Vec3 b,Vec3 c);//Vec triple product
 f32 ScalTripleVec3(Vec3 a,Vec3 b,Vec3 c);
 f32 CompVec3(Vec3 a, Vec3 b);
 
-Vec3 _ainline InterpolateVec3(Vec3 a, Vec3 b, f32 step) {
-	return Vec4ToVec3(InterpolateVec4(Vec3ToVec4(a), Vec3ToVec4(b), step));
+Vec3 _ainline LerpVec3(Vec3 a, Vec3 b, f32 step) {
+	return Vec4ToVec3(LerpVec4(Vec3ToVec4(a), Vec3ToVec4(b), step));
 }
 
 Vec3 _ainline SchurVec3(Vec3 a, Vec3 b) {
@@ -588,26 +622,36 @@ Vec3 _ainline SchurVec3(Vec3 a, Vec3 b) {
 Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
 Vec3 RejectVec3(Vec3 a, Vec3 b);
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane);
+//Gets the euler angles from a look dir.
 Vec3 GetVecRotation(Vec3 lookat);
 Vec3 QuatRotateVec3(Vec3 v, Quat q);
 Vec3 RotateVec3(Vec3 vec, Vec3 rotation);
+Vec3 RotateAxisVec3(Vec3 vec, Vec3 axis, f32 angle);
 f32 Cosf(Vec3 vec1, Vec3 vec2);
 Vec3 ReflectVec3(Vec3 vec, Vec3 normal);
+Vec3 InvolVec3(Vec3 vec, Vec3 normal);
 
 f32 MagnitudeVec2(Vec2 vec);
+f32 SquaredVec2(Vec2 vec);
 f32 DotVec2(Vec2 a, Vec2 b);
 Vec2 NormalizeVec2(Vec2 a);
 Vec2 SchurVec2(Vec2 a, Vec2 b);
 Vec2 RotateVec2(Vec2 vec, f32 rotation);
 
 f32 _ainline MagnitudeQuat(Quat a) { return MagnitudeVec4(QuatToVec4(a)); }
+
+f32 _ainline SquaredQuat(Quat a){
+	return SquaredVec4(QuatToVec4(a));
+}
+
+
 f32 _ainline DotQuat(Quat a, Quat b) { return DotVec4(QuatToVec4(a), QuatToVec4(b)); }
 Quat _ainline NormalizeQuat(Quat a) { return Vec4ToQuat(NormalizeVec4(QuatToVec4(a))); }
 Quat InverseQuat(Quat q);
 Quat NLerpQuat(Quat a, Quat b, f32 step);
 Quat SLerpQuat(Quat a, Quat b, f32 step);
 Quat ConjugateQuat(Quat quaternion);
-Quat InterpolateQuat(Quat a, Quat b, f32 step);
+Quat LerpQuat(Quat a, Quat b, f32 step);
 
 DualQuat NormalizeDualQ(DualQuat d);
 
@@ -641,7 +685,7 @@ b32 TypedIntersectRay2(Ray2 a, Ray2 b);
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 
-f32 _ainline Interpolate(f32 a, f32 b, f32 step) { return (a + (step * (b - a))); }
+f32 _ainline Lerp(f32 a, f32 b, f32 step) { return (a + (step * (b - a))); }
 f32 AngleQuadrant(f32 x, f32 y);
 
 // MARK: constructors
@@ -675,7 +719,6 @@ Mat4 _ainline PositionMat4(Vec3 position) {
 	return matrix;
 }
 
-// TODO: not tested
 Mat3 _ainline RotationMat3(Vec3 rotation) {
 	f32 cosv = cosf(rotation.x);
 	f32 sinv = sinf(rotation.x);
@@ -710,10 +753,130 @@ Mat3 _ainline RotationMat3(Vec3 rotation) {
 	return MulMat3(MulMat3(rotationz_matrix3, rotationy_matrix3), rotationx_matrix3);
 }
 
-Mat4 _ainline ScaleMat4(Vec3 scale) {
-	Mat4 matrix = {{scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1}};
+Mat3 _ainline RotationAxisMatrix(Vec3 axis, f32 angle){
+	//TODO: test against glm::rotate(mat4, f32, vec3)
+	//https://glm.g-truc.net/0.9.3/api/a00147.html
+	//Remember that glm needs to be transposed
+	f32 c = cosf(angle);
+	f32 s = sinf(angle);
+	f32 k = 1 - c;
 
-	return matrix;
+	axis = NormalizeVec3(axis);
+
+	f32 x = axis.x;
+	f32 y = axis.y;
+	f32 z = axis.z;
+
+	Mat3 ret = {
+		c + (k * x * x), (k * x * y) - (s * z), (k * x * z) + (s * y),
+		(k * x * y) + (s * z), c + (k * y * y), (k * y * z) - (s * x),
+		(k * x * z) - (s * y), (k * y * z) + (s * x), c + (k * z * z),
+	};
+
+	return ret;
+}
+
+
+Mat3 _ainline ScaleMat3(Vec3 scale) {
+	return {
+		scale.x, 0, 0, 
+		0, scale.y, 0, 
+		0, 0, scale.z, 
+	};
+}
+
+Mat3 _ainline ScaleDir(Vec3 dir,f32 scale){
+	dir = NormalizeVec3(dir);
+
+	f32 s = scale;
+	f32 k = s - 1;
+
+	f32 x = dir.x;
+	f32 y = dir.y;
+	f32 z = dir.z;
+
+	return {
+		(k * x * x) + 1, (k * x * y), (k * x * z),
+		(k * x * y), (k * y * y) + 1, (k * y * z),
+		(k * x * z), (k * y * z), (k * z * z) + 1,
+	};
+}
+
+Mat3 _ainline SkewMat3(Vec3 angle){
+
+
+	f32 t = tanf(angle.x);
+
+	Mat3 skew_x = {
+		1,t,0,
+		0,1,0,
+		0,0,1,
+	};
+
+	t = tanf(angle.y);
+
+	Mat3 skew_y = {
+		1,0,0,
+		t,1,0,
+		0,0,1,
+	};
+
+	t = tanf(angle.z);
+
+	Mat3 skew_z = {
+		1,0,0,
+		0,1,0,
+		t,0,1,
+	};
+
+	return MulMat3(skew_z,MulMat3(skew_y,skew_x));
+}
+
+Mat3 _ainline SkewDirMat3(Vec3 dir,Vec3 normal,f32 angle){
+
+	auto a = NormalizeVec3(dir);
+	auto b = NormalizeVec3(normal);
+
+	f32 t = tanf(angle);
+	f32 k = t + 1;
+
+	return {
+		(a.x * b.x * t) + 1,(a.x * b.y * t),(a.x * b.z * t),
+		(a.y * b.x * t),(a.y * b.y * t) + 1,(a.y * b.z * t),
+		(a.z * b.x * t),(a.z * b.y * t),(a.z * b.z * t) + 1,
+	};
+}
+
+Mat3 _ainline ReflectMat3(Vec3 normal){
+
+	normal = NormalizeVec3(normal);
+
+	f32 x = normal.x;
+	f32 y = normal.y;
+	f32 z = normal.z;
+
+	Mat3 ret = {
+		1 - (2 * x * x), (-2 * x * y), (-2 * x * z),
+		(-2 * x * y), 1 - (2 * y * y), (-2 * y * z),
+		(-2 * x * z), (2 * y * z), 1 - (2 * z * z),
+	};
+
+	return ret;
+}
+
+Mat3 _ainline InvolMat3(Vec3 normal){
+
+	normal = NormalizeVec3(normal);
+
+	f32 x = normal.x;
+	f32 y = normal.y;
+	f32 z = normal.z;
+
+	return {
+		(2 * x * x) - 1,(2 * x * y),(2 * x * z),
+		(2 * x * y),(2 * y * y) - 1,(2 * y * z),
+		(2 * x * z),(2 * y * z),(2 * z * z) - 1,
+	};
 }
 
 //NOTE: Given vectors a and b, this function constructs a matrix A 
@@ -749,15 +912,6 @@ Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere);
 
 void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle);
 
-// MARK: UTIL OPS
-void PrintMat4(Mat4 matrix);
-void PrintMat3(Mat3 matrix);
-
-void PrintVec4(Vec4 vec);
-void PrintVec3(Vec3 vec);
-void PrintVec2(Vec2 vec);
-
-void PrintQuat(Quat quat);
 
 #ifdef __cplusplus
 }
