@@ -106,18 +106,19 @@ typedef struct Vec4SOA {
 
 } Vec4SOA;
 
+
 _align(16) typedef union Quat {
 	__m128 simd;
 
 	struct {
-		f32 w, x, y, z;
+		f32 x, y, z, w;
 	};
 
 } Quat;
 
-typedef struct DualQuat {
+typedef struct DualQ {
 	Quat q1, q2;
-} DualQuat;
+} DualQ;
 
 typedef Vec4 Color4;
 typedef Vec3 Color3;
@@ -256,7 +257,7 @@ Mat2 _ainline IdentityMat2() {
 }
 
 Quat _ainline MQuatIdentity() {
-	Quat q = {1.0f, 0.0f, 0.0f, 0.0f};
+	Quat q = {0.0f, 0.0f, 0.0f, 1.0f};
 	return q;
 }
 Quat _ainline AQuatIdentity() {
@@ -458,7 +459,7 @@ Line2 _ainline Ray2ToLine2(Ray2 ray){
 
 Mat4 QuatToMat4(Quat quaternion);
 Quat Mat4ToQuat(Mat4 matrix);
-Mat4 DualQToMat4(DualQuat d);
+Mat4 DualQToMat4(DualQ d);
 
 Vec3 _ainline Mat4ToTranslationVec(Mat4 matrix) {
 	Vec3 ret = {_rc4(matrix,3, 0), _rc4(matrix,3, 1),
@@ -468,12 +469,13 @@ Vec3 _ainline Mat4ToTranslationVec(Mat4 matrix) {
 }
 
 Vec4 _ainline QuatToVec4(Quat q) {
+
 	Vec4 v;
 
-	v.x = q.w;
-	v.y = q.x;
-	v.z = q.y;
-	v.w = q.z;
+	v.x = q.x;
+	v.y = q.y;
+	v.z = q.z;
+	v.w = q.w;
 
 	return v;
 }
@@ -481,10 +483,10 @@ Vec4 _ainline QuatToVec4(Quat q) {
 Quat _ainline Vec4ToQuat(Vec4 v) {
 	Quat q;
 
-	q.w = v.x;
-	q.x = v.y;
-	q.y = v.z;
-	q.z = v.w;
+	q.x = v.x;
+	q.y = v.y;
+	q.z = v.z;
+	q.w = v.w;
 
 	return q;
 }
@@ -570,11 +572,11 @@ Quat _ainline DivConstRQuat(Quat lhs, f32 rhs) {
 
 Quat MulQuat(Quat lhs, Quat rhs);
 
-DualQuat AddDualQ(DualQuat lhs, DualQuat rhs);
-DualQuat SubDualQ(DualQuat lhs, DualQuat rhs);
-DualQuat MulDualQ(DualQuat lhs, DualQuat rhs);
-DualQuat MulConstLDualQ(f32 lhs, DualQuat rhs);
-DualQuat MulConstRDualQ(DualQuat lhs, f32 rhs);
+DualQ AddDualQ(DualQ lhs, DualQ rhs);
+DualQ SubDualQ(DualQ lhs, DualQ rhs);
+DualQ MulDualQ(DualQ lhs, DualQ rhs);
+DualQ MulConstLDualQ(f32 lhs, DualQ rhs);
+DualQ MulConstRDualQ(DualQ lhs, f32 rhs);
 
 // MARK: SPECIAL MATH OPS (can only be expressed in functions)
 Mat4 SchurMat4(Mat4 a, Mat4 b);
@@ -651,9 +653,11 @@ Quat InverseQuat(Quat q);
 Quat NLerpQuat(Quat a, Quat b, f32 step);
 Quat SLerpQuat(Quat a, Quat b, f32 step);
 Quat ConjugateQuat(Quat quaternion);
-Quat LerpQuat(Quat a, Quat b, f32 step);
+Quat _ainline LerpQuat(Quat a, Quat b, f32 step){
+	return Vec4ToQuat(LerpVec4(QuatToVec4(a),QuatToVec4(b),step));
+}
 
-DualQuat NormalizeDualQ(DualQuat d);
+DualQ NormalizeDualQ(DualQ d);
 
 b32 IntersectLine3(Line3 a, Line3 b);
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point);
@@ -893,8 +897,8 @@ Mat3 ConstructRejectMat3(Vec3 vec);
 
 Quat ConstructQuat(Vec3 vector, f32 angle);
 
-DualQuat ConstructDualQ(Quat rotation, Vec3 translation);
-DualQuat ConstructDualQM(Mat4 transform);
+DualQ ConstructDualQ(Quat rotation, Vec3 translation);
+DualQ ConstructDualQM(Mat4 transform);
 
 Color4 _ainline ConstructColor4(f32 R,f32 G,f32 B,f32 A){
 	Color4 color = {R,G,B,A};
@@ -967,11 +971,11 @@ Quat _ainline operator/(Quat lhs, f32 rhs) { return DivConstRQuat(lhs, rhs); }
 
 Quat operator*(Quat lhs, Quat rhs);
 
-DualQuat operator+(DualQuat lhs, DualQuat rhs);
-DualQuat operator-(DualQuat lhs, DualQuat rhs);
-DualQuat operator*(DualQuat lhs, DualQuat rhs);
-DualQuat operator*(f32 lhs, DualQuat rhs);
-DualQuat operator*(DualQuat lhs, f32 rhs);
+DualQ operator+(DualQ lhs, DualQ rhs);
+DualQ operator-(DualQ lhs, DualQ rhs);
+DualQ operator*(DualQ lhs, DualQ rhs);
+DualQ operator*(f32 lhs, DualQ rhs);
+DualQ operator*(DualQ lhs, f32 rhs);
 
 #endif
 

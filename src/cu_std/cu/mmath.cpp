@@ -246,12 +246,17 @@ _ainline b32 InternalIsParallel(Ray2 a, Ray2 b) {
 // MARK: conversions
 
 extern "C" {
+	
 Mat4 QuatToMat4(Quat quaternion) {
-	Quat squared;
 
-	squared.simd = _mm_mul_ps(quaternion.simd, quaternion.simd);
+	Quat squared = {};
+
+	squared.simd = _mm_mul_ps(quaternion.simd,quaternion.simd);
 
 	f32 a = 1.0f - (2.0f * (squared.y + squared.z));
+
+	//MARK: I feel like these can be simd'd
+
 	f32 b =
 	    ((quaternion.x * quaternion.y) - (quaternion.w * quaternion.z)) *
 	    2.0f;
@@ -372,7 +377,7 @@ Quat Mat4ToQuat(Mat4 matrix) {
 	return NormalizeQuat(q);
 }
 
-Mat4 DualQToMat4(DualQuat d) {
+Mat4 DualQToMat4(DualQ d) {
 	d = NormalizeDualQ(d);
 
 	Mat4 matrix = QuatToMat4(d.q1);
@@ -864,32 +869,32 @@ Quat MulQuat(Quat lhs, Quat rhs) {
 	return quaternion;
 }
 
-DualQuat AddDualQ(DualQuat lhs, DualQuat rhs) {
+DualQ AddDualQ(DualQ lhs, DualQ rhs) {
 	lhs.q1 = lhs.q1 + rhs.q1;
 	lhs.q2 = lhs.q2 + rhs.q2;
 	return lhs;
 }
 
-DualQuat SubDualQ(DualQuat lhs, DualQuat rhs) {
+DualQ SubDualQ(DualQ lhs, DualQ rhs) {
 	lhs.q1 = lhs.q1 - rhs.q1;
 	lhs.q2 = lhs.q2 - rhs.q2;
 	return lhs;
 }
 
-DualQuat MulDualQ(DualQuat lhs, DualQuat rhs) {
-	DualQuat d;
+DualQ MulDualQ(DualQ lhs, DualQ rhs) {
+	DualQ d;
 	d.q1 = lhs.q1 * rhs.q1;
 	d.q2 = (lhs.q2 * rhs.q1) + (lhs.q1 * rhs.q2);
 	return d;
 }
 
-DualQuat MulConstLDualQ(f32 lhs, DualQuat rhs) {
+DualQ MulConstLDualQ(f32 lhs, DualQ rhs) {
 	rhs.q1 = rhs.q1 * lhs;
 	rhs.q2 = rhs.q2 * lhs;
 	return rhs;
 }
 
-DualQuat MulConstRDualQ(DualQuat lhs, f32 rhs) {
+DualQ MulConstRDualQ(DualQ lhs, f32 rhs) {
 	return MulConstLDualQ(rhs, lhs);
 }
 
@@ -1486,14 +1491,8 @@ Quat ConjugateQuat(Quat quaternion) {
 	return quaternion;
 }
 
-Quat LerpQuat(Quat a, Quat b, f32 step) {
-	Quat q = {_intrin_fmadd_ps(_mm_sub_ps(b.simd, a.simd),
-				   _mm_set1_ps(step), a.simd)};
-	return q;
-}
-
-DualQuat NormalizeDualQ(DualQuat d) {
-	f32 magnitude = DotQuat(d.q1, d.q1);
+DualQ NormalizeDualQ(DualQ d) {
+	f32 magnitude = MagnitudeQuat(d.q1);
 
 	_kill("dq normalize error\n", magnitude <= 0.000001f);
 
@@ -2179,28 +2178,28 @@ Quat ConstructQuat(Vec3 vector, f32 angle) {
 	return quaternion;
 }
 
-DualQuat ConstructDualQM(Mat4 transform) {
-	DualQuat d = {};
+DualQ ConstructDualQM(Mat4 transform) {
+	DualQ d = {};
 
 	d.q1 = Mat4ToQuat(transform);
 	Vec3 translation = Mat4ToTranslationVec(transform);
 
 	d.q2 =
-	    Quat{0, translation.x, translation.y, translation.z} * d.q1 * 0.5f;
+	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
 
 	return d;
 }
 
-DualQuat ConstructDualQ(Quat rotation, Vec3 translation) {
+DualQ ConstructDualQ(Quat rotation, Vec3 translation) {
 	/*
 	  real = rotation
 	  dual = 0.5 * translation * rotation
 	*/
 
-	DualQuat d;
+	DualQ d;
 	d.q1 = rotation;
 	d.q2 =
-	    Quat{0, translation.x, translation.y, translation.z} * d.q1 * 0.5f;
+	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
 	return d;
 }
 
@@ -2236,9 +2235,9 @@ void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle) {
 		*angle = 0;
 		return;
 	}
-	vector->x = quaternion.w / scale;
-	vector->y = quaternion.x / scale;
-	vector->z = quaternion.y / scale;
+	vector->x = quaternion.x / scale;
+	vector->y = quaternion.y / scale;
+	vector->z = quaternion.z / scale;
 
 	*angle = anglew;
 }
@@ -2281,8 +2280,8 @@ void PrintVec3(Vec3 vec) {
 void PrintVec2(Vec2 vec) { printf("%f   %f\n", (f64)vec.x, (f64)vec.y); }
 
 void PrintQuat(Quat vec) {
-	printf("%f   %f   %f   %f\n", (f64)vec.w, (f64)vec.x, (f64)vec.y,
-	       (f64)vec.z);
+	printf("%f   %f   %f   %f\n", (f64)vec.x, (f64)vec.y, (f64)vec.z,
+	       (f64)vec.w);
 }
 }
 
@@ -2354,12 +2353,12 @@ Vec2 operator/(Vec2 lhs, f32 rhs) { return DivConstRVec2(lhs, rhs); }
 
 Quat operator*(Quat lhs, Quat rhs) { return MulQuat(lhs, rhs); }
 
-DualQuat operator+(DualQuat lhs, DualQuat rhs) { return AddDualQ(lhs, rhs); }
+DualQ operator+(DualQ lhs, DualQ rhs) { return AddDualQ(lhs, rhs); }
 
-DualQuat operator-(DualQuat lhs, DualQuat rhs) { return SubDualQ(lhs, rhs); }
+DualQ operator-(DualQ lhs, DualQ rhs) { return SubDualQ(lhs, rhs); }
 
-DualQuat operator*(DualQuat lhs, DualQuat rhs) { return MulDualQ(lhs, rhs); }
+DualQ operator*(DualQ lhs, DualQ rhs) { return MulDualQ(lhs, rhs); }
 
-DualQuat operator*(f32 lhs, DualQuat rhs) { return MulConstLDualQ(lhs, rhs); }
+DualQ operator*(f32 lhs, DualQ rhs) { return MulConstLDualQ(lhs, rhs); }
 
-DualQuat operator*(DualQuat lhs, f32 rhs) { return rhs * lhs; }
+DualQ operator*(DualQ lhs, f32 rhs) { return rhs * lhs; }
