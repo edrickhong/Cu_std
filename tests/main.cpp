@@ -12,7 +12,9 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/projection.hpp"
 #include "glm/gtx/rotate_vector.hpp"
-
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
+#include "glm/gtx/dual_quaternion.hpp"
 
 struct HashEntry {
 	u64 hash;
@@ -196,13 +198,6 @@ _global Mat2 mat2[] = {
 	},
 };
 
-
-_global Quat quat[] = {
-	ConstructQuat({87.4912, 2.8514, 57.5126},49.0606),
-	ConstructQuat({91.2534, 39.7049, 48.3562},9.0578),
-	ConstructQuat({82.4747, 65.5843, 1.4699},17.1199),
-};
-
 _global Vec4 vec4[] = {
 	{79.8354, 48.5731, 14.5320, 70.5055,},
 	{66.3241, 33.0981, 64.5561, 89.4826,},
@@ -221,17 +216,35 @@ _global Vec2 vec2[] = {
 	{17.5348, 12.6420,},
 };
 
+_global Quat quat[] = {
+	ConstructQuat({87.4912, 2.8514, 57.5126},49.0606),
+	ConstructQuat({91.2534, 39.7049, 48.3562},9.0578),
+	ConstructQuat({82.4747, 65.5843, 1.4699},17.1199),
+};
+
+_global DualQ dq[] = {
+	ConstructDualQ(quat[0], vec3[0]),
+	ConstructDualQ(quat[1], vec3[1]),
+	ConstructDualQ(quat[2], vec3[2]),
+};
+
 _global Plane planes[] = {
 	{NormalizeVec3(vec3[0]),12.6420},
 	{NormalizeVec3(vec3[1]),11.0857},
 	{NormalizeVec3(vec3[2]),-12.6420},
 };
 
+void MathConstructor(){
+
+	//MQuatIdentity
+	//AQuatIdentity
+}
+
 void SpecialMathOps(){
 
-	// TODO: handle quaternions and dq too. we are skipping them 
-	// until
-	// they are better implemented
+	//NOTE: For quats, we don't test operations that are analogous
+	//to their vec4 counterparts
+
 	// Schur
 	for(u32 i = 0; i < _arraycount(mat4); i++){
 
@@ -325,7 +338,7 @@ void SpecialMathOps(){
 		DiffElement(&mat,&t,_arraycount(mat.container));
 	}
 
-	// Matrix inverses -- It is sus that we don't need to 
+	// Matrix inverses 
 	for(u32 i = 0; i < _arraycount(transforms); i++){
 		auto mat = transforms[i];
 		glm::mat4 t = *((glm::mat4*)&mat);
@@ -535,6 +548,18 @@ void SpecialMathOps(){
 
 		DiffElement(&n,&m,_arraycount(n.floats));
 	}	
+
+
+	for(u32 i = 0; i < _arraycount(dq); i++){
+		auto d = dq[i];
+		auto t = *((glm::fdualquat*)&d);
+
+		auto n = NormalizeDualQ(d);
+		auto m = glm::normalize(t);
+
+		DiffElement(&n,&m,8);
+	}	
+
 	//Schur
 	
 	for(u32 i = 0; i < _arraycount(vec4); i++){
@@ -681,8 +706,7 @@ void SpecialMathOps(){
 
 		DiffElement(&m,&t,_arraycount(m.floats));
 	}
-	//GetVecRotation. no glm equ. Use projs and glm::orientedAngle
-	//QuatRotateVec3 TODO:
+	//TOO: GetVecRotation. no glm equ. Use projs and glm::orientedAngle
 	
 	//RotateVec
 	for(u32 i = 0; i < _arraycount(vec3); i++){
@@ -752,6 +776,18 @@ void SpecialMathOps(){
 		DiffElement(&m,&t,_arraycount(m.floats));
 	}
 
+	//QuatRotateVec3
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q = quat[i];
+		auto v = vec3[i];
+
+		auto t1 = *(glm::fquat*)&q;
+		auto t2 = *(glm::vec3*)&v;
+
+		auto m = QuatRotateVec3(v,q);
+		auto t = glm::rotate(t1,t2);
+	}
+
 	//Cosf
 	
 	for(u32 i = 0; i < _arraycount(vec3); i++){
@@ -798,6 +834,77 @@ void SpecialMathOps(){
 		DiffElement(&m,&t,1);
 	}
 
+	//Quat inverses
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q = quat[i];
+		auto t = *(glm::fquat*)&q;
+
+		q = InverseQuat(q);
+		t = glm::inverse(t);
+
+		DiffElement(&q,&t,4);
+	}
+
+	//NLerp
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q1 = quat[i];
+
+		Quat q2 = {};
+
+		if(i + 1 < _arraycount(quat)){
+			q2 = quat[i + 1];
+		}
+		else{
+			q2 = quat[0];
+		}
+
+
+		auto t1 = *(glm::fquat*)&q1;
+		auto t2 = *(glm::fquat*)&q2;
+
+		//NOTE: glm doesn't do a neighbourhood operation
+		if(glm::dot(t1,t2) < 0.0f){
+			t2 = t2 * -1.0f;
+		}
+
+		auto q = NLerpQuat(q1,q2,0.5f);
+		auto t = glm::fastMix(t1,t2,0.5f);
+
+		DiffElement(&q,&t,4);
+	}
+	//SLerp
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q1 = quat[i];
+
+		Quat q2 = {};
+
+		if(i + 1 < _arraycount(quat)){
+			q2 = quat[i + 1];
+		}
+		else{
+			q2 = quat[0];
+		}
+
+
+		auto t1 = *(glm::fquat*)&q1;
+		auto t2 = *(glm::fquat*)&q2;
+
+		auto q = SLerpQuat(q1,q2,0.5f);
+		auto t = glm::mix(t1,t2,0.5f);
+
+		DiffElement(&q,&t,4);
+	}
+
+	//Conjugate
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q = quat[i];
+		auto t = *(glm::fquat*)&q;
+
+		q = ConjugateQuat(q);
+		t = glm::conjugate(t);
+
+		DiffElement(&q,&t,4);
+	}
 	//Intersection code
 }
 
