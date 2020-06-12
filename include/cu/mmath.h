@@ -5,6 +5,30 @@
   NOTE: Should we make this change??
   Vec4(x,y,z,1) - point  rotating this changes the point position
   Vec4(x,y,z,0) - vector rotating this will create a new vector(eg rotating a translation)
+
+NOTE: Normal vector transforms. Normal vectors are only really affected
+by the 3x3 part of a transform. Given a normal n and a transform matrix
+M, the transformed normal n' can be calculated as so:
+
+(A)gradient normals:
+n' = n * Inverse(M)
+
+(B)cross product normals:
+n' = n * adj(M)
+
+The two are functionally the same, except (B) assumes that det(M) !=0
+[adj(M) = det(M) * Inverse(M)]
+
+Normalized normals are not affected by the det product, unless M 
+contains a reflection, in which case the det would be -1 and (B) would
+be more desirable
+
+IF M is orthogonal, meaning M = Transpose(M), which is a common case,
+then:
+n' = n * Transpose(M)
+   = M * n
+
+Consider using _mm_hadd_ps??
 */
 
 // AVX2 is slow. to get full speed of avx, it has to downclock the cpu
@@ -112,6 +136,11 @@ _align(16) typedef union Quat {
 
 	struct {
 		f32 x, y, z, w;
+	};
+
+	struct{
+		Vec3 v;
+		f32 r;
 	};
 
 } Quat;
@@ -663,6 +692,9 @@ b32 IntersectLine3(Line3 a, Line3 b);
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point);
 b32 TypedIntersectLine3(Line3 a, Line3 b);
 
+f32 DistPointToLine3(Line3 line,Vec3 point);
+f32 DistLineToLine3(Line3 a,Line3 b);
+
 b32 IntersectLine3Plane(Line3 a, Plane b);
 b32 IntersectOutLine3Plane(Line3 a, Plane b, Point3* out_point);
 b32 TypedIntersectLine3Plane(Line3 a, Plane b);
@@ -712,6 +744,8 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectration, f32 nearz, f32 farz);
 Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale);
 Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale);
 Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale);
+
+Mat4 TransformRelativeMat4(Mat4 transform,Vec3 new_origin);
 
 Mat4 _ainline PositionMat4(Vec3 position) {
 	Mat4 matrix = IdentityMat4();
@@ -806,6 +840,24 @@ Mat3 _ainline ScaleDir(Vec3 dir,f32 scale){
 	};
 }
 
+//NOTE:scales in every direction perpendicular to dir, but not in dir
+Mat3 _ainline ScalePerpenDir(Vec3 dir,f32 scale){
+	dir = NormalizeVec3(dir);
+
+	f32 x = dir.x;
+	f32 y = dir.y;
+	f32 z = dir.z;
+
+	f32 s = scale;
+	f32 k = 1.0f - s;
+
+	return {
+		(k * x * x) + s,(k * x * y),(k * x * z),
+		(k * x * y),(k * y * y) + s,(k * y * z),
+		(k * x * z),(k * y * z),(k * z * z) + s,
+	};
+}
+
 Mat3 _ainline SkewMat3(Vec3 angle){
 
 
@@ -896,6 +948,10 @@ Mat3 ConstructProjectOntoMat3(Vec3 vec);
 Mat3 ConstructRejectMat3(Vec3 vec);
 
 Quat ConstructQuat(Vec3 vector, f32 angle);
+
+//NOTE: constructs a quaternion that performs a rotation from 
+//v1 to v2
+Quat ConstructVecQuat(Vec3 v1,Vec3 v2);
 
 DualQ ConstructDualQ(Quat rotation, Vec3 translation);
 DualQ ConstructDualQM(Mat4 transform);

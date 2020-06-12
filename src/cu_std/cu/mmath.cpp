@@ -1,9 +1,7 @@
 /*
 TODO:
 move glm compare to tests
-make quaternions xyzw
 Remove extraneous Normalizes
-Add a test suite
 Replace sqaured magnitudes to the specific squared function
 */
 
@@ -1454,11 +1452,11 @@ Quat InverseQuat(Quat q) {
 	 ConjugateQuat(q)/(Magnitude(q))^2 However, as the quaternions used are
 	 unit quaternions, the Magnitude(q) is always 1. Just insert the
 	 conjugate here.
+
+MARK: Should we handle non unit quaternions??
 	 */
 
-	q.w *= -1.0f;
-
-	return q * -1.0f;
+	return ConjugateQuat(q);
 }
 
 Quat NLerpQuat(Quat a, Quat b, f32 step) {
@@ -1481,14 +1479,11 @@ Quat SLerpQuat(Quat a, Quat b, f32 step) {
 	return (n * sinf(angle)) + (a * cosf(angle));
 }
 
-Quat ConjugateQuat(Quat quaternion) {
-	__m128 k = _mm_set1_ps(-1.0f);
+Quat ConjugateQuat(Quat q) {
 
-	quaternion.simd = _mm_mul_ps(quaternion.simd, k);
+	q.w *= -1.0f;
 
-	quaternion.w *= -1.0f;
-
-	return quaternion;
+	return q * -1.0f;
 }
 
 DualQ NormalizeDualQ(DualQ d) {
@@ -1590,6 +1585,54 @@ b32 TypedIntersectLine3(Line3 a, Line3 b) {
 	}
 
 	return is_intersect;
+}
+
+
+f32 DistPointToLine3(Line3 line,Vec3 point){
+
+	line.dir = NormalizeVec3(line.dir);
+	auto c = CrossVec3(point - line.pos,line.dir);
+
+	return sqrtf(SquaredVec3(c));
+}
+
+f32 DistLineToLine3(Line3 a,Line3 b){
+
+	if(IntersectLine3(a,b)){
+		return 0.0f;
+	}
+
+	a.dir = NormalizeVec3(a.dir);
+	b.dir = NormalizeVec3(b.dir);
+
+	f32 d = DotVec3(a.dir,b.dir);
+
+	f32 v1_sq = SquaredVec3(a.dir);
+	f32 v2_sq = SquaredVec3(b.dir);
+	
+	f32 det = (d * d) - (v1_sq * v2_sq);
+
+	if(det > 0.0f && det < _f32_error_offset){
+		//the lines are parallel
+		auto k = CrossVec3((b.pos - a.pos),a.dir);
+		return sqrtf(SquaredVec3(k));
+	}
+
+	__m128 res = {-1.0f * v2_sq,d,-1.0f * d,v1_sq};
+
+	f32 i = DotVec3((b.pos - a.pos),a.dir);
+	f32 j = DotVec3((b.pos - a.pos),b.dir);
+
+	__m128 k = {i,j,i,j};
+
+	res = _mm_mul_ps(_mm_mul_ps(res,k),_mm_set1_ps(1.0f/d));
+
+	f32 t0 = res[0] + res[1];
+	f32 t1 = res[2] + res[3];
+
+	auto dir = (a.pos + (t0 * a.dir)) - (b.pos + (t1 * b.dir));
+
+	return MagnitudeVec3(dir);
 }
 
 b32 IntersectLine3Plane(Line3 a, Plane b) {
@@ -2128,6 +2171,28 @@ Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale) {
 }
 
 
+Mat4 TransformRelativeMat4(Mat4 transform,Vec3 new_origin){
+	//TODO: we can optimize this by just doing the math
+	auto p = new_origin;	
+	auto q = -1.0f * p;
+
+	Mat4 t0 = {
+		1,0,0,p.x,
+		0,1,0,p.y,
+		0,0,1,p.z,
+		0,0,0,1,
+	};
+
+	Mat4 t1 = {
+		1,0,0,q.x,
+		0,1,0,q.y,
+		0,0,1,q.z,
+		0,0,0,1,
+	};
+
+	return t1 * transform * t0;
+}
+
 Mat3 ConstructCrossMat3(Vec3 vec){
 		Mat3 mat = {
 			0,-vec.z,vec.y,
@@ -2176,6 +2241,21 @@ Quat ConstructQuat(Vec3 vector, f32 angle) {
 	quaternion.z = vector.z;
 
 	return quaternion;
+}
+
+
+Quat ConstructVecQuat(Vec3 v1,Vec3 v2){
+
+	v1 = NormalizeVec3(v1);
+	v2 = NormalizeVec3(v2);
+
+	f32 c = Cosf(v1,v2);
+
+	Quat q = {};
+	q.v = CrossVec3(v1,v2) * (1.0f/(2 * c));
+	q.r = c;
+
+	return q;
 }
 
 DualQ ConstructDualQM(Mat4 transform) {
