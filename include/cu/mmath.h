@@ -211,9 +211,12 @@ typedef struct Line3 {
 	Vec3 dir;
 } Line3;
 
-typedef struct Plane {
-	Vec3 norm;
-	f32 d;
+typedef union Plane {
+	struct{
+		Vec3 norm;
+		f32 d;
+	};
+	Vec4 vec;
 } Plane;
 
 typedef struct Line2 {
@@ -426,6 +429,11 @@ Mat4 _ainline Mat3ToMat4(Mat3 mat) {
 	_ac4(m,2, 2) = mat.container[8];
 
 	return m;
+}
+
+Vec4 _ainline Vec3ToDir4(Vec3 vec){
+	Vec4 ret = {vec.x, vec.y, vec.z, 0.0f};
+	return ret;
 }
 
 Vec4 _ainline Vec3ToVec4(Vec3 vec) {
@@ -650,6 +658,17 @@ Vec3 _ainline SchurVec3(Vec3 a, Vec3 b) {
 	return Vec4ToVec3(SchurVec4(v_a, v_b));
 }
 
+b32 _ainline IsVec3OnPlane(Plane plane,Vec3 point){
+	Vec4 p = Vec3ToVec4(point);
+	f32 d = DotVec4(plane.vec,p);
+	return d < _f32_error_offset && d > (-1.0f * _f32_error_offset);
+}
+
+
+f32 DistPointToPlane(Plane plane, Vec3 point);
+Vec3 ReflectPointPlaneVec3(Plane plane, Vec3 point);
+
+
 Vec3 ProjectOntoVec3(Vec3 a, Vec3 b);
 Vec3 RejectVec3(Vec3 a, Vec3 b);
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane);
@@ -727,15 +746,54 @@ f32 AngleQuadrant(f32 x, f32 y);
 // MARK: constructors
 
 Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
+
+	/*
+	 * The definition of an implicit plane is that given a point p
+	 * and plane = n + d (normal + d)
+	 * Dot(p,n) + d = 0
+	 * when p is on the plane
+	 * Thus, d represents the value needed to move a plane at
+	 * some position back to the point of origin
+	 * aka if plane above the origin, d <0, if below the origin,
+	 * d > 0
+	 *
+	 * Another way to think about it is, using homogenous point p,
+	 * Dot(p,plane) = 0
+	 * */
+
 	Plane plane = {norm,d};
 	return plane;
 }
 
 Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
 	Vec3 n = NormalizeVec3(norm);
-	f32 d = DotVec3(pos,n);
+	f32 d = DotVec3(pos,n) * -1.0f;
 
 	return ConstructPlaneD(n,d);
+}
+
+Vec3 _ainline GetPlanePos(Plane plane){
+	return MulConstRVec3(plane.norm,plane.d * -1.0f);
+}
+
+
+Mat4 _ainline ReflectPointPlaneMat4(Plane plane){
+
+	f32 x = plane.vec.x;
+	f32 y = plane.vec.y;
+	f32 z = plane.vec.z;
+
+	f32 d = plane.d;
+
+	Mat4 mat = {
+		1 - (2 * x * x), -2 * x * y,-2 * x * z,-2 * x * d,
+		-2 * x * y, 1 - (2 * y * y), -2 * y * z,-2 * y * d,
+		-2 * x * z, -2 * y * z, 1 - (2 * z * z), -2 * z * d,
+		0,0,0,1
+
+	};
+
+	return mat;
 }
 
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir);
@@ -816,11 +874,14 @@ Mat3 _ainline RotationAxisMatrix(Vec3 axis, f32 angle){
 
 
 Mat3 _ainline ScaleMat3(Vec3 scale) {
-	return {
+	
+	Mat3 mat = {
 		scale.x, 0, 0, 
 		0, scale.y, 0, 
 		0, 0, scale.z, 
 	};
+
+	return mat;
 }
 
 Mat3 _ainline ScaleDir(Vec3 dir,f32 scale){
@@ -833,11 +894,13 @@ Mat3 _ainline ScaleDir(Vec3 dir,f32 scale){
 	f32 y = dir.y;
 	f32 z = dir.z;
 
-	return {
+	Mat3 mat = {
 		(k * x * x) + 1, (k * x * y), (k * x * z),
 		(k * x * y), (k * y * y) + 1, (k * y * z),
 		(k * x * z), (k * y * z), (k * z * z) + 1,
 	};
+
+	return mat;
 }
 
 //NOTE:scales in every direction perpendicular to dir, but not in dir
@@ -851,11 +914,13 @@ Mat3 _ainline ScalePerpenDir(Vec3 dir,f32 scale){
 	f32 s = scale;
 	f32 k = 1.0f - s;
 
-	return {
+	Mat3 mat = {
 		(k * x * x) + s,(k * x * y),(k * x * z),
 		(k * x * y),(k * y * y) + s,(k * y * z),
 		(k * x * z),(k * y * z),(k * z * z) + s,
 	};
+
+	return mat;
 }
 
 Mat3 _ainline SkewMat3(Vec3 angle){
@@ -890,17 +955,18 @@ Mat3 _ainline SkewMat3(Vec3 angle){
 
 Mat3 _ainline SkewDirMat3(Vec3 dir,Vec3 normal,f32 angle){
 
-	auto a = NormalizeVec3(dir);
-	auto b = NormalizeVec3(normal);
+	Vec3 a = NormalizeVec3(dir);
+	Vec3 b = NormalizeVec3(normal);
 
 	f32 t = tanf(angle);
-	f32 k = t + 1;
 
-	return {
+	Mat3 mat = {
 		(a.x * b.x * t) + 1,(a.x * b.y * t),(a.x * b.z * t),
 		(a.y * b.x * t),(a.y * b.y * t) + 1,(a.y * b.z * t),
 		(a.z * b.x * t),(a.z * b.y * t),(a.z * b.z * t) + 1,
 	};
+
+	return mat;
 }
 
 Mat3 _ainline ReflectMat3(Vec3 normal){
@@ -928,11 +994,13 @@ Mat3 _ainline InvolMat3(Vec3 normal){
 	f32 y = normal.y;
 	f32 z = normal.z;
 
-	return {
+	Mat3 mat = {
 		(2 * x * x) - 1,(2 * x * y),(2 * x * z),
 		(2 * x * y),(2 * y * y) - 1,(2 * y * z),
 		(2 * x * z),(2 * y * z),(2 * z * z) - 1,
 	};
+
+	return mat;
 }
 
 //NOTE: Given vectors a and b, this function constructs a matrix A 
