@@ -202,37 +202,40 @@ typedef struct Poly {
 
 } Poly;
 
+//MARK: Opaque structures. Once constructed, these should never be
+//changed
+
 typedef struct Line3 {
-	const Point3 pos;
-	const Vec3 dir;
+	 Point3 pos;
+	 Vec3 dir;
 } Line3;
 
 typedef union Plane {
 	struct{
-		const Vec3 norm;
-		const f32 d;
+		 Vec3 norm;
+		 f32 d;
 	};
-	const Vec4 vec;
+	 Vec4 vec;
 } Plane;
 
 typedef struct Line2 {
-	const Point2 pos;
-	const Vec2 dir;
+	 Point2 pos;
+	 Vec2 dir;
 } Line2;
 
 typedef struct Ray2 {
-	const Point2 pos;
-	const Vec2 dir;
+	 Point2 pos;
+	 Vec2 dir;
 } Ray2;
 
 typedef struct Ray3 {
-	const Point3 pos;
-	const Vec3 dir;
+	 Point3 pos;
+	 Vec3 dir;
 } Ray3;
 
 typedef struct Sphere {
-	const Vec3 pos;
-	const f32 radius;
+	 Vec3 pos;
+	 f32 radius;
 } Sphere;
 
 typedef enum IntersectType {
@@ -460,7 +463,7 @@ Ray3 _ainline Line3ToRay3(Line3 line){
 }
 
 Line3 _ainline Ray3ToLine3(Ray3 ray){
-	Line3 line = {.pos = line.pos, .dir = line.dir};
+	Line3 line = {.pos = ray.pos, .dir = ray.dir};
 	return line;
 }
 
@@ -470,7 +473,7 @@ Ray2 _ainline Line2ToRay2(Line2 line){
 }
 
 Line2 _ainline Ray2ToLine2(Ray2 ray){
-	Line2 line = {.pos = line.pos, .dir = line.dir};
+	Line2 line = {.pos = ray.pos, .dir = ray.dir};
 	return line;
 }
 
@@ -771,6 +774,11 @@ Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
 Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
 	f32 d = DotVec3(pos,norm) * -1.0f;
 	return ConstructPlaneD(norm,d);
+}
+
+Sphere _ainline ConstructSphere(Vec3 pos,f32 radius){
+	Sphere s = {.pos = pos, .radius = radius};
+	return s;
 }
 
 Vec3 _ainline GetPlanePos(Plane plane){
