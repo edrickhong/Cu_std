@@ -2,10 +2,6 @@
 
 /*
 
-  NOTE: Should we make this change??
-  Vec4(x,y,z,1) - point  rotating this changes the point position
-  Vec4(x,y,z,0) - vector rotating this will create a new vector(eg rotating a translation)
-
 NOTE: Normal vector transforms. Normal vectors are only really affected
 by the 3x3 part of a transform. Given a normal n and a transform matrix
 M, the transformed normal n' can be calculated as so:
@@ -207,36 +203,36 @@ typedef struct Poly {
 } Poly;
 
 typedef struct Line3 {
-	Point3 pos;
-	Vec3 dir;
+	const Point3 pos;
+	const Vec3 dir;
 } Line3;
 
 typedef union Plane {
 	struct{
-		Vec3 norm;
-		f32 d;
+		const Vec3 norm;
+		const f32 d;
 	};
-	Vec4 vec;
+	const Vec4 vec;
 } Plane;
 
 typedef struct Line2 {
-	Point2 pos;
-	Vec2 dir;
+	const Point2 pos;
+	const Vec2 dir;
 } Line2;
 
 typedef struct Ray2 {
-	Point2 pos;
-	Vec2 dir;
+	const Point2 pos;
+	const Vec2 dir;
 } Ray2;
 
 typedef struct Ray3 {
-	Point3 pos;
-	Vec3 dir;
+	const Point3 pos;
+	const Vec3 dir;
 } Ray3;
 
 typedef struct Sphere {
-	Vec3 pos;
-	f32 radius;
+	const Vec3 pos;
+	const f32 radius;
 } Sphere;
 
 typedef enum IntersectType {
@@ -459,38 +455,22 @@ Vec2 _ainline Vec3ToVec2(Vec3 vec) {
 }
 
 Ray3 _ainline Line3ToRay3(Line3 line){
-	Ray3 ray = {0};
-
-	ray.pos = line.pos;
-	ray.dir = line.dir;
-
+	Ray3 ray = {.pos = line.pos, .dir = line.dir};
 	return ray;
 }
 
 Line3 _ainline Ray3ToLine3(Ray3 ray){
-	Line3 line = {0};
-
-	line.pos = ray.pos;
-	line.dir = ray.dir;
-
+	Line3 line = {.pos = line.pos, .dir = line.dir};
 	return line;
 }
 
 Ray2 _ainline Line2ToRay2(Line2 line){
-	Ray2 ray = {0};
-
-	ray.pos = line.pos;
-	ray.dir = line.dir;
-
+	Ray2 ray = {.pos = line.pos, .dir = line.dir};
 	return ray;
 }
 
 Line2 _ainline Ray2ToLine2(Ray2 ray){
-	Line2 line = {0};
-
-	line.pos = ray.pos;
-	line.dir = ray.dir;
-
+	Line2 line = {.pos = line.pos, .dir = line.dir};
 	return line;
 }
 
@@ -737,6 +717,9 @@ b32 IntersectRay2(Ray2 a, Ray2 b);
 b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point);
 b32 TypedIntersectRay2(Ray2 a, Ray2 b);
 
+b32 Intersect3Planes(Plane a,Plane b,Plane c,Vec3* out_point);
+b32 Intersect2Planes(Plane a,Plane b,Line3* out_line);
+
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 void MinkowskiDifference(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count, Point3** ret);
 
@@ -744,6 +727,26 @@ f32 _ainline Lerp(f32 a, f32 b, f32 step) { return (a + (step * (b - a))); }
 f32 AngleQuadrant(f32 x, f32 y);
 
 // MARK: constructors
+
+Line3 _ainline ConstructLine3(Vec3 pos,Vec3 dir){
+	Line3 l = {.pos = pos, .dir = NormalizeVec3(dir)};
+	return l;
+}
+
+
+Line2 _ainline ConstructLine2(Vec2 pos,Vec2 dir){
+	Line2 l = {.pos = pos, .dir = NormalizeVec2(dir)};
+	return l;
+}
+
+Ray3 _ainline ConstructRay3(Vec3 pos,Vec3 dir){
+	return Line3ToRay3(ConstructLine3(pos,dir));
+}
+
+
+Ray2 _ainline ConstructRay2(Vec2 pos,Vec2 dir){
+	return Line2ToRay2(ConstructLine2(pos,dir));
+}
 
 Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
 
@@ -761,15 +764,13 @@ Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
 	 * Dot(p,plane) = 0
 	 * */
 
-	Plane plane = {norm,d};
+	Plane plane = {NormalizeVec3(norm),d};
 	return plane;
 }
 
 Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
-	Vec3 n = NormalizeVec3(norm);
-	f32 d = DotVec3(pos,n) * -1.0f;
-
-	return ConstructPlaneD(n,d);
+	f32 d = DotVec3(pos,norm) * -1.0f;
+	return ConstructPlaneD(norm,d);
 }
 
 Vec3 _ainline GetPlanePos(Plane plane){

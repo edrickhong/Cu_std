@@ -1,8 +1,11 @@
 /*
 TODO:
 move glm compare to tests
-Remove extraneous Normalizes
-Replace sqaured magnitudes to the specific squared function
+Remove extraneous Normalizes:
+Lines,rays and planes are easy to remove extraneous normalized. they
+are pretty opaque objects and don't have operations that directly act
+on them. We would like to do this to our quats and dqs as well, but 
+they are harder to gaurantee to never change
 */
 
 // MARK: Internal
@@ -63,6 +66,12 @@ void InternalCmpMat(f32* f1, f32* f2) {
 #endif
 #endif
 
+//Compares value a to check if it is within the error range that we'd
+//consider this 0
+b32 CmpErrorZero(f32 a){
+	return a < _f32_error_offset && a > (-1.0f * _f32_error_offset);
+}
+
 
 
 //MARK: This is internal for now
@@ -88,15 +97,6 @@ Vec3 operator*(Mat3 lhs,Vec3 rhs){
 	auto z = ((f32*)&g)[2] + ((f32*)&g)[3] + h;
 
 	return {x, y, z};
-}
-
-
-Line3 ToLine3(Ray3 ray){
-	return {ray.pos,ray.dir};
-}
-
-Line2 ToLine2(Ray2 ray){
-	return {ray.pos,ray.dir};
 }
 
 void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
@@ -385,7 +385,7 @@ Quat Mat4ToQuat(Mat4 matrix) {
 }
 
 Mat4 DualQToMat4(DualQ d) {
-	d = NormalizeDualQ(d);
+	d = NormalizeDualQ(d);//MARK: possibly extraneous
 
 	Mat4 matrix = QuatToMat4(d.q1);
 	Quat t = d.q2 * 2.0f;
@@ -1217,7 +1217,7 @@ Mat2 InverseMat2(Mat2 matrix) {
 f32 MagnitudeVec4(Vec4 vec) {
 	// m = sqrtf(x^2 + y^2 + z^2)
 
-	f32 res = DotVec4(vec, vec);
+	f32 res = SquaredVec4(vec);
 	res = sqrtf(res);
 
 	return res;
@@ -1257,7 +1257,7 @@ Vec4 LerpVec4(Vec4 a, Vec4 b, f32 step) {
 f32 MagnitudeVec3(Vec3 vec) {
 	// m = sqrtf(x^2 * y^2 * z^2)
 
-	f32 res = DotVec3(vec, vec);
+	f32 res = SquaredVec3(vec);
 
 	res = sqrtf(res);
 
@@ -1405,9 +1405,8 @@ Vec3 RotateVec3(Vec3 vec, Vec3 rotation) {
 
 	return rot_matrix * vec;
 }
-
 Vec3 RotateAxisVec3(Vec3 vec, Vec3 axis,f32 angle){
-	axis = NormalizeVec3(axis); //TODO: we should stop doing this
+	axis = NormalizeVec3(axis); 
 	f32 s = sinf(angle);
 	f32 c = cosf(angle);
 
@@ -1491,6 +1490,8 @@ Quat NLerpQuat(Quat a, Quat b, f32 step) {
 }
 
 Quat SLerpQuat(Quat a, Quat b, f32 step) {
+	//MARK: if these two are normalized, they would already
+	//be clamped between -1 and 1
 	f32 dot = _clampf(DotQuat(a, b), -1.0f, 1.0f);
 
 	f32 angle = acosf(dot) * step;
@@ -1501,9 +1502,7 @@ Quat SLerpQuat(Quat a, Quat b, f32 step) {
 }
 
 Quat ConjugateQuat(Quat q) {
-
 	q.w *= -1.0f;
-
 	return q * -1.0f;
 }
 
@@ -1591,28 +1590,24 @@ b32 IsPerpendicularLine3Plane(Line3 a,Plane b){
 	auto dir = NormalizeVec3(a.pos - plane_pos);
 
 
-	fi.f = DotVec3(dir, NormalizeVec3(b.norm));  // check if on the plane
+	fi.f = DotVec3(dir,b.norm);
 	return !fi.u;
 
 }
 
 
-f32 DistPointToLine3(Line3 line,Vec3 point){
-
-	line.dir = NormalizeVec3(line.dir);
+f32 DistPointRay3ToLine3(Line3 line,Vec3 point){
 	auto c = CrossVec3(point - line.pos,line.dir);
 
 	return sqrtf(SquaredVec3(c));
 }
 
-f32 DistLineToLine3(Line3 a,Line3 b){
+f32 DistLineRay3ToLine3(Line3 a,Line3 b){
 
 	if(IntersectLine3(a,b)){
 		return 0.0f;
 	}
 
-	a.dir = NormalizeVec3(a.dir);
-	b.dir = NormalizeVec3(b.dir);
 
 	f32 d = DotVec3(a.dir,b.dir);
 
@@ -1714,7 +1709,7 @@ b32 IntersectLine3Plane(Line3 a, Plane b) {
 	m32 fi1;
 
 	// if they are perpendicular, f is 0 and they do not intersect
-	fi1.f = DotVec3(NormalizeVec3(a.dir), NormalizeVec3(b.norm));
+	fi1.f = DotVec3(a.dir,b.norm);
 
 	return fi1.u != 0;
 }
@@ -1790,7 +1785,7 @@ b32 IntersectRay3(Ray3 a, Ray3 b) {
 		return false;
 	}
 
-	f32 t = IntersectLine3t(ToLine3(a),ToLine3(b));
+	f32 t = IntersectLine3t(Ray3ToLine3(a),Ray3ToLine3(b));
 
 	// We need the k term and make sure that that is positive too
 
@@ -1811,7 +1806,7 @@ b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point) {
 	}
 
 
-	f32 t = IntersectLine3t(ToLine3(a),ToLine3(b));
+	f32 t = IntersectLine3t(Ray3ToLine3(a),Ray3ToLine3(b));
 
 	// We need the k term and make sure that that is positive too
 
@@ -1841,21 +1836,21 @@ b32 TypedIntersectRay3(Ray3 a, Ray3 b) {
 
 b32 IntersectRay3Plane(Ray3 a, Plane b) {
 
-	if(!IntersectLine3Plane(ToLine3(a),b)){
+	if(!IntersectLine3Plane(Ray3ToLine3(a),b)){
 		return false;
 	}
 
-	f32 t = IntersectLine3Planet(ToLine3(a),b);
+	f32 t = IntersectLine3Planet(Ray3ToLine3(a),b);
 	return t > _f32_error_offset;
 }
 
 b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
 
-	if(!IntersectLine3Plane(ToLine3(a),b)){
+	if(!IntersectLine3Plane(Ray3ToLine3(a),b)){
 		return false;
 	}
 
-	f32 t = IntersectLine3Planet(ToLine3(a),b);
+	f32 t = IntersectLine3Planet(Ray3ToLine3(a),b);
 
 	if (t >= _f32_error_offset) {
 		*out_point = a.pos + (t * a.dir);
@@ -1868,7 +1863,7 @@ b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
 b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 	auto is_intersect = IntersectRay3Plane(a, b);
 	auto is_perpendicular = 
-		IsPerpendicularLine3Plane(ToLine3(a),b);
+		IsPerpendicularLine3Plane(Ray3ToLine3(a),b);
 
 	if (!is_intersect && is_perpendicular) {
 		return INTERSECT_INFINITE;
@@ -1920,9 +1915,9 @@ b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
 
 	Vec3 ray_to_sphere = SubVec3(sphere.pos, ray.pos);
 
-	f32 a = DotVec3(ray.dir, ray.dir);
+	f32 a = SquaredVec3(ray.dir);
 	f32 b = -2.0f * DotVec3(ray.dir, ray_to_sphere);
-	f32 c = DotVec3(ray_to_sphere, ray_to_sphere) -
+	f32 c = SquaredVec3(ray_to_sphere) -
 		(sphere.radius * sphere.radius);
 	f32 discriminant = (b * b) - (4.0f * a * c);
 
@@ -1951,7 +1946,7 @@ b32 IntersectRay2(Ray2 a, Ray2 b) {
 
 	Point2 p = {};
 
-	if(!IntersectOutLine2(ToLine2(a),ToLine2(b),&p)){
+	if(!IntersectOutLine2(Ray2ToLine2(a),Ray2ToLine2(b),&p)){
 		return false;
 	}
 
@@ -1969,7 +1964,7 @@ b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point) {
 
 	Point2 p = {};
 
-	if(!IntersectOutLine2(ToLine2(a),ToLine2(b),&p)){
+	if(!IntersectOutLine2(Ray2ToLine2(a),Ray2ToLine2(b),&p)){
 		return false;
 	}
 
@@ -1998,6 +1993,46 @@ b32 TypedIntersectRay2(Ray2 a, Ray2 b) {
 	}
 
 	return is_intersect;
+}
+
+
+b32 Intersect3Planes(Plane a,Plane b,Plane c,Vec3* out){
+	f32 k = ScalTripleVec3(a.norm,b.norm,c.norm);
+
+	if(CmpErrorZero(k)){
+		return false;
+	}
+
+	k = 1.0f/k;
+	
+	auto d = CrossVec3(c.norm,b.norm) * a.d;
+	auto e = CrossVec3(a.norm,c.norm) * b.d;
+	auto f = CrossVec3(b.norm,a.norm) * c.d;
+
+	*out = (d + e + f) * k;
+
+	return true;
+}
+
+b32 Intersect2Planes(Plane a,Plane b,Line3* out){
+	auto dir = CrossVec3(a.norm,b.norm);
+	auto dir_sq = SquaredVec3(dir);
+
+	if(CmpErrorZero(dir_sq)){
+		return false;
+	}
+
+	auto c = CrossVec3(dir,b.norm) * a.d;
+	auto d = CrossVec3(a.norm,dir) * a.d;
+
+	auto pos = (c + d)/dir_sq;
+
+	auto l = ConstructLine3(pos,dir);
+
+	(Vec3)out->pos = l.pos;
+	(Vec3)out->dir = l.dir;
+
+	return true;
 }
 
 void MinkowskiAddition(Point3* a, ptrsize a_count, Point3* b, ptrsize b_count,
@@ -2174,14 +2209,12 @@ Mat3 ConstructCrossMat3(Vec3 vec){
 
 
 Mat3 ConstructProjectOntoMat3(Vec3 vec){
-	f32 m = MagnitudeVec3(vec);
-	f32 k = 1.0f / (m * m);
+	f32 k = 1.0f / (SquaredVec3(vec));
 	return k * OuterMat3(vec,vec);
 }
 
 Mat3 ConstructRejectMat3(Vec3 v){
-	f32 m = MagnitudeVec3(v);
-	f32 k = 1.0f / (m * m);
+	f32 k = 1.0f / (SquaredVec3(v));
 
 	Mat3 mat = {
 		(v.y * v.y) + (v.z * v.z), - (v.x * v.y), - (v.x * v.z),
