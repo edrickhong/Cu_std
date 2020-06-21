@@ -15,6 +15,8 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/dual_quaternion.hpp"
+#include "glm/gtx/intersect.hpp"
+#include "glm/gtx/vector_angle.hpp"
 
 struct HashEntry {
 	u64 hash;
@@ -89,9 +91,7 @@ b32 HashTest() {
 	return PrintHashDiagnostics(hash_table, hash_count);
 }
 
-#if 1
 
-#define _margin_of_error 0.00001
 
 void DiffElement(void* a_1, void* b_1, u32 count,const s8* file,
 		const s8* function,u32 line) {
@@ -106,7 +106,9 @@ void DiffElement(void* a_1, void* b_1, u32 count,const s8* file,
 
 	f32 avg = diff / (f32)count;
 
-	if (avg > _margin_of_error) {
+	f32 margin_err = 0.0001;
+
+	if (avg > margin_err) {
 
 		printf("ERROR Exceeded margin of Error %f: %s %s %d\n",
 				(f64)avg,file,function,line);
@@ -119,6 +121,11 @@ void DiffElement(void* a_1, void* b_1, u32 count,const s8* file,
 
 }
 
+Vec3 NewOP(Vec3 a,Vec3 b){
+	return a - RejectVec3(a,b);
+}
+
+#if 1
 #define DiffElement(a,b,c) DiffElement(a,b,c,__FILE__,__FUNCTION__,__LINE__)
 
 #endif
@@ -234,14 +241,512 @@ _global Plane planes[] = {
 	{NormalizeVec3(vec3[2]),-12.6420},
 };
 
+_global Ray3 ray3[] = {
+	ConstructRay3(vec3[0],vec3[1]),
+	ConstructRay3(vec3[1],vec3[2]),
+	ConstructRay3(vec3[2],vec3[0]),
+};
+
+
+_global Line3 line3[] = {
+	ConstructLine3(vec3[0],vec3[1]),
+	ConstructLine3(vec3[1],vec3[2]),
+	ConstructLine3(vec3[2],vec3[0]),
+};
+
 void MathConstructor(){
 
 	//MQuatIdentity
 	//AQuatIdentity
 }
 
+void MathDeconstructor(){}
+
+void MathOps(){
+
+	for(u32 i = 0; i < _arraycount(mat4); i++){
+		auto a = mat4[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(mat4)){
+			b = mat4[i + 1];
+		}
+		else{
+			b = mat4[0];
+		}
+
+		auto t1 = *((glm::mat4*)&a);
+		auto t2 = *((glm::mat4*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			glm::transpose(glm::transpose(t1) + 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) - 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Mul
+		 c = a * b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			glm::transpose(1.5f * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//Div
+
+		 c = a / b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) / 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+
+	for(u32 i = 0; i < _arraycount(mat3); i++){
+		auto a = mat3[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(mat3)){
+			b = mat3[i + 1];
+		}
+		else{
+			b = mat3[0];
+		}
+
+		auto t1 = *((glm::mat3*)&a);
+		auto t2 = *((glm::mat3*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			glm::transpose(glm::transpose(t1) + 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) - 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Mul
+		 c = a * b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			glm::transpose(1.5f * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//Div
+
+		 c = a / b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) / 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	for(u32 i = 0; i < _arraycount(mat2); i++){
+		auto a = mat2[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(mat2)){
+			b = mat2[i + 1];
+		}
+		else{
+			b = mat2[0];
+		}
+
+		auto t1 = *((glm::mat2*)&a);
+		auto t2 = *((glm::mat2*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			glm::transpose(glm::transpose(t1) + 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) - 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Mul
+		 c = a * b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			glm::transpose(1.5f * 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		
+		//Div
+
+		 c = a / b;
+
+		 t = 
+			glm::transpose(glm::transpose(t1) / 
+					glm::transpose(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	for(u32 i = 0; i < _arraycount(vec4); i++){
+		auto a = vec4[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(vec4)){
+			b = vec4[i + 1];
+		}
+		else{
+			b = vec4[0];
+		}
+
+		auto t1 = *((glm::vec4*)&a);
+		auto t2 = *((glm::vec4*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			((t1) + 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			((t1) - 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			(1.5f * 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			((t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		
+		//Div
+
+		 c = a / 1.5f;
+
+		 t = 
+			((t1) / 
+					(1.5f));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto a = vec3[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(vec3)){
+			b = vec3[i + 1];
+		}
+		else{
+			b = vec3[0];
+		}
+
+		auto t1 = *((glm::vec3*)&a);
+		auto t2 = *((glm::vec3*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			((t1) + 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			((t1) - 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			(1.5f * 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			((t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		
+		//Div
+
+		 c = a / 1.5f;
+
+		 t = 
+			((t1) / 
+					(1.5f));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	for(u32 i = 0; i < _arraycount(vec2); i++){
+		auto a = vec2[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(vec2)){
+			b = vec2[i + 1];
+		}
+		else{
+			b = vec2[0];
+		}
+
+		auto t1 = *((glm::vec2*)&a);
+		auto t2 = *((glm::vec2*)&b);
+
+		//Add
+
+		auto c = a + b;
+
+		auto t = 
+			((t1) + 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//Sub
+
+		 c = a - b;
+
+		 t = 
+			((t1) - 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+
+		//MulconstL
+
+		 c = 1.5f * b;
+
+		 t = 
+			(1.5f * 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		//MulconstR
+
+		 c = a * 1.5f;
+
+		 t = 
+			((t1) * 
+					1.5f);
+
+		DiffElement(&c,&t,_arraycount(c.container));
+		
+		//Div
+
+		 c = a / 1.5f;
+
+		 t = 
+			((t1) / 
+					(1.5f));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto a = quat[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(quat)){
+			b = quat[i + 1];
+		}
+		else{
+			b = quat[0];
+		}
+
+		auto t1 = *((glm::fquat*)&a);
+		auto t2 = *((glm::fquat*)&b);
+
+		//Mul
+
+		 auto c = a * b;
+
+		 auto t = 
+			((t1) * 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	for(u32 i = 0; i < _arraycount(dq); i++){
+		auto a = dq[i];
+		auto b = a;
+
+		if(i + 1 < _arraycount(dq)){
+			b = dq[i + 1];
+		}
+		else{
+			b = dq[0];
+		}
+
+		auto t1 = *((glm::fdualquat*)&a);
+		auto t2 = *((glm::fdualquat*)&b);
+
+		//Mul
+
+		 auto c = a * b;
+
+		 auto t = 
+			((t1) * 
+					(t2));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+}
+
+
 void SpecialMathOps(){
 
+	/*
+	
+	MARK: NOT TESTED:
+	Dist functions are not tested
+	Line to Line intersections are not tested
+	Plane to plane intersections are not tested
+	2D intersections are not tested
+	Typed intersections are not tested
+	ReflectPointPlaneVec3
+	ProjectVec3OntoPlane
+	InvolVec3
+	AngleQuadrant
+	GetVecRotation
+
+	Calling IntersectOut* functions implicitly calls the 
+	corresponding Intersect* functions
+	 * */
 	//NOTE: For quats, we don't test operations that are analogous
 	//to their vec4 counterparts
 
@@ -528,7 +1033,7 @@ void SpecialMathOps(){
 		auto n = NormalizeVec4(v);
 		auto m = glm::normalize(t);
 
-		DiffElement(&n,&m,_arraycount(n.floats));
+		DiffElement(&n,&m,_arraycount(n.container));
 	}	
 	for(u32 i = 0; i < _arraycount(vec3); i++){
 		auto v = vec3[i];
@@ -537,7 +1042,7 @@ void SpecialMathOps(){
 		auto n = NormalizeVec3(v);
 		auto m = glm::normalize(t);
 
-		DiffElement(&n,&m,_arraycount(n.floats));
+		DiffElement(&n,&m,_arraycount(n.container));
 	}	
 	for(u32 i = 0; i < _arraycount(vec2); i++){
 		auto v = vec2[i];
@@ -546,7 +1051,7 @@ void SpecialMathOps(){
 		auto n = NormalizeVec2(v);
 		auto m = glm::normalize(t);
 
-		DiffElement(&n,&m,_arraycount(n.floats));
+		DiffElement(&n,&m,_arraycount(n.container));
 	}	
 
 
@@ -579,7 +1084,7 @@ void SpecialMathOps(){
 		auto m = SchurVec4(v1,v2);
 		auto t = t1 * t2;
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 
 	for(u32 i = 0; i < _arraycount(vec3); i++){
@@ -599,7 +1104,7 @@ void SpecialMathOps(){
 		auto m = SchurVec3(v1,v2);
 		auto t = t1 * t2;
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 
 	for(u32 i = 0; i < _arraycount(vec2); i++){
@@ -619,7 +1124,7 @@ void SpecialMathOps(){
 		auto m = SchurVec2(v1,v2);
 		auto t = t1 * t2;
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 	
 	//Lerp
@@ -641,7 +1146,7 @@ void SpecialMathOps(){
 		auto m = LerpVec4(v1,v2,0.5f);
 		auto t = glm::mix(t1,t2,0.5f);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 
 	for(u32 i = 0; i < _arraycount(vec3); i++){
@@ -661,7 +1166,17 @@ void SpecialMathOps(){
 		auto m = LerpVec3(v1,v2,0.5f);
 		auto t = glm::mix(t1,t2,0.5f);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	for(u32 i = 0;i < _arraycount(vec3); i++){
+		f32 s = vec3[i].x;
+		f32 e = vec3[i].y;
+
+		f32 a = Lerp(s,e,0.5f);
+		f32 b = glm::mix(s,e,0.5f);
+
+		DiffElement(&a,&b,1);
 	}
 
 	//Projection
@@ -683,7 +1198,7 @@ void SpecialMathOps(){
 		auto m = ProjectOntoVec3(v1,v2);
 		auto t = glm::proj(t1,t2);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 	//Rejection
 
@@ -704,9 +1219,8 @@ void SpecialMathOps(){
 		auto m = RejectVec3(v1,v2);
 		auto t = t1 - glm::proj(t1,t2);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
-	//TOO: GetVecRotation. no glm equ. Use projs and glm::orientedAngle
 	
 	//RotateVec
 	for(u32 i = 0; i < _arraycount(vec3); i++){
@@ -729,7 +1243,7 @@ void SpecialMathOps(){
 		t = glm::rotateY(t,t2.y);
 		t = glm::rotateZ(t,t2.z);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 
 	for(u32 i = 0; i < _arraycount(vec2); i++){
@@ -749,7 +1263,7 @@ void SpecialMathOps(){
 		auto m = RotateVec2(v,r.x);
 		auto t = glm::rotate(t1,t2.x);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 	
 	//RotateAxisVec3
@@ -773,7 +1287,7 @@ void SpecialMathOps(){
 		auto m = RotateAxisVec3(v,r,0.123f);
 		auto t = glm::rotate(t1,0.123f,t2);
 
-		DiffElement(&m,&t,_arraycount(m.floats));
+		DiffElement(&m,&t,_arraycount(m.container));
 	}
 
 	//QuatRotateVec3
@@ -906,12 +1420,189 @@ void SpecialMathOps(){
 		DiffElement(&q,&t,4);
 	}
 	//Intersection code
+	
+	for(u32 i = 0; i < _arraycount(ray3); i++){
+		auto r = ray3[i];
+		auto p = planes[i];
+
+		if(i == 0){
+			auto pos = r.pos + (r.dir * 20.0f);
+			auto norm = r.dir * -1.0f;
+
+			p = ConstructPlanePos(norm,pos);
+
+		}
+
+		Vec3 out = {};
+		f32 t = 0.0f;
+
+		auto b1 = IntersectOutRay3Plane(r,p,&out);
+		bool b2 = false;
+
+		{
+			auto rpos = *((glm::vec3*)&r.pos);
+			auto rd = *((glm::vec3*)&r.dir);
+
+			auto pos = GetPlanePos(p);
+
+			auto ppos = *((glm::vec3*)&pos);
+			auto pn = *((glm::vec3*)&p.norm);
+
+			b2 = glm::intersectRayPlane(rpos,rd,
+					ppos,
+					pn,t);
+		}
+
+		if(b1 != b2){
+			printf("ERROR Diff results\n");
+			_breakpoint();
+		}
+
+		if(b1 && b2){
+			auto t_p = (t * r.dir) + r.pos;
+			DiffElement(&out,&t_p,3);
+		}
+
+	}
+
+
+	for(u32 i = 0; i < _arraycount(line3); i++){
+		auto r = line3[i];
+		auto p = planes[i];
+
+
+		Vec3 out = {};
+		f32 t = 0.0f;
+
+		auto b1 = IntersectOutLine3Plane(r,p,&out);
+		bool b2 = false;
+
+		{
+			auto rpos = *((glm::vec3*)&r.pos);
+			auto rd = *((glm::vec3*)&r.dir);
+
+			auto pos = GetPlanePos(p);
+
+			auto ppos = *((glm::vec3*)&pos);
+			auto pn = *((glm::vec3*)&p.norm);
+
+			auto t1 = glm::intersectRayPlane(rpos,rd,
+					ppos,
+					pn,t);
+
+			bool t2 = false;
+
+			if(!t1){
+				t2 = glm::intersectRayPlane(rpos,-rd,
+						ppos,
+						pn,t);
+				t *= -1.0f;
+			}
+
+
+			b2 = t1 || t2;
+		}
+
+		if(b1 != b2){
+			printf("ERROR Diff results\n");
+			_breakpoint();
+		}
+
+		if(b1 && b2){
+			auto t_p = (t * r.dir) + r.pos;
+			DiffElement(&out,&t_p,3);
+		}
+
+	}
+
+
+	for(u32 i = 0; i < _arraycount(line3); i++){
+		auto r = line3[i];
+
+		auto s = ConstructSphere(r.pos + (r.dir * 50.0f),30.0f);
+
+		Vec3 out = {};
+
+		auto b1 = IntersectClosestOutLine3Sphere(r,s,&out);
+
+		bool b2 = false;
+
+		f32 t = 0.0f;
+
+		{
+			auto rpos = *((glm::vec3*)&r.pos);
+			auto rd = *((glm::vec3*)&r.dir);
+
+			auto sp = *((glm::vec3*)&s.pos);
+			f32 r = s.radius * s.radius;
+
+			auto t1 = glm::intersectRaySphere(rpos,rd,
+					sp,r,t);
+
+			bool t2 = false;
+
+			if(!t1){
+			t2 = glm::intersectRaySphere(rpos,-rd,
+					sp,r,t);
+
+			t *= -1.0f;
+			}
+			b2 = t1 || t2;
+		}
+		if(b1 != b2){
+			printf("ERROR Diff results\n");
+			_breakpoint();
+		}
+
+		if(b1 && b2){
+			auto t_p = (t * r.dir) + r.pos;
+			DiffElement(&out,&t_p,3);
+		}
+
+	}
+
+	for(u32 i = 0; i < _arraycount(ray3); i++){
+		auto r = ray3[i];
+
+		auto s = ConstructSphere(r.pos + (r.dir * 50.0f),30.0f);
+
+		Vec3 out = {};
+
+		auto b1 = IntersectClosestOutRay3Sphere(r,s,&out);
+
+		bool b2 = false;
+
+		f32 t = 0.0f;
+
+		{
+			auto rpos = *((glm::vec3*)&r.pos);
+			auto rd = *((glm::vec3*)&r.dir);
+
+			auto sp = *((glm::vec3*)&s.pos);
+			f32 r = s.radius * s.radius;
+			b2 = glm::intersectRaySphere(rpos,rd,
+					sp,r,t);
+		}
+		if(b1 != b2){
+			printf("ERROR Diff results\n");
+			_breakpoint();
+		}
+
+		if(b1 && b2){
+			auto t_p = (t * r.dir) + r.pos;
+			DiffElement(&out,&t_p,3);
+		}
+
+	}
+
+
 }
 
 void MathTest() {
 	// NOTE: We will test against glm
 	printf("\n\nRUNNING Math tests\n");
 
+	MathOps();
 	SpecialMathOps();
 
 

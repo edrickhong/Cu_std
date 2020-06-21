@@ -1539,10 +1539,10 @@ f32 IntersectLine3t(Line3 a, Line3 b){
 	for (u32 i = 0; i < 3; i++) {
 		m32 fi1;
 
-		fi1.f = cross_ab.floats[i];
+		fi1.f = cross_ab.container[i];
 
 		if (fi1.u) {
-			t = cross_diff.floats[i] / cross_ab.floats[i];
+			t = cross_diff.container[i] / cross_ab.container[i];
 			break;
 		}
 	}
@@ -1571,9 +1571,10 @@ f32 IntersectLine3Planet(Line3 line,Plane plane){
 	  t = (dot((B - P),N))/(dot(dir,N))
 	*/
 
-	f32 t =  -1.0f * 
-		(DotVec4(plane.vec,Vec3ToVec4(line.pos))/
-		 DotVec4(plane.vec,Vec3ToDir4(line.dir)));
+	auto a = DotVec4(plane.vec,Vec3ToVec4(line.pos));
+	auto b = DotVec4(plane.vec,Vec3ToDir4(line.dir));
+
+	f32 t =  -1.0f * (a/b);
 	return t;
 }
 
@@ -1929,6 +1930,8 @@ b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
 	f32 t0 = ((-1.0f * b) + root) / (2.0f * a);
 	f32 t1 = ((-1.0f * b) - root) / (2.0f * a);
 
+
+	//MARK: We do not support intersections from the inside
 	if (t0 <= _f32_error_offset || t1 <= _f32_error_offset) {
 		return 0;
 	}
@@ -2401,6 +2404,8 @@ Mat2 operator*(Mat2 lhs, Mat2 rhs) { return MulMat2(lhs, rhs); }
 Mat2 operator*(f32 lhs, Mat2 rhs) { return MulConstLMat2(lhs, rhs); }
 
 Mat2 operator*(Mat2 lhs, f32 rhs) { return rhs * lhs; }
+
+Mat2 operator/(Mat2 lhs, Mat2 rhs) { return DivMat2(lhs,rhs); }
 
 Vec4 operator+(Vec4 lhs, Vec4 rhs) { return AddVec4(lhs, rhs); }
 

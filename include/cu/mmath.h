@@ -63,9 +63,11 @@ Consider using _mm_hadd_ps??
 #define _clampf(x, lower, upper) (fminf(upper, fmaxf(x, lower)))
 
 // MARK: structs and unions
-typedef struct Vec2 {
-	f32 x, y;
-	f32 floats[2];
+typedef union Vec2 {
+	struct{
+		f32 x, y;
+	};
+	f32 container[2];
 } Vec2;
 
 typedef union Vec3 {
@@ -81,8 +83,8 @@ typedef union Vec3 {
 		f32 R, G, B;
 	};
 
-	f32 floats[3];
-	Vec2 vec2;
+	f32 container[3];
+	Vec2 v2;
 } Vec3;
 
 _align(16) typedef union Vec4 {
@@ -100,23 +102,23 @@ _align(16) typedef union Vec4 {
 		f32 r, g, b, a;
 	};
 
-	Vec2 vec2[2];
+	Vec2 v2[2];
 
-	f32 floats[4];
+	f32 container[4];
 
 } Vec4;
 
 typedef struct Vec4SOA {
 	ptrsize count;
 	union {
-		struct {  // refers to 4 floats at a time
+		struct {  // refers to 4 container at a time
 			__m128* simd_x;
 			__m128* simd_y;
 			__m128* simd_z;
 			__m128* simd_w;
 		};
 
-		struct {  // refers to 1 floats at a time
+		struct {  // refers to 1 container at a time
 			f32* x;
 			f32* y;
 			f32* z;
@@ -129,6 +131,8 @@ typedef struct Vec4SOA {
 
 _align(16) typedef union Quat {
 	__m128 simd;
+	Vec4 v4;
+	f32 container[4];
 
 	struct {
 		f32 x, y, z, w;
@@ -141,8 +145,18 @@ _align(16) typedef union Quat {
 
 } Quat;
 
-typedef struct DualQ {
-	Quat q1, q2;
+typedef union DualQ {
+
+	struct{
+		Quat q1, q2;
+	};
+
+	Vec4 v4[2];
+	Vec3 v3[2];
+	Vec2 v2[4];
+
+	f32 container[8];
+
 } DualQ;
 
 typedef Vec4 Color4;
@@ -772,6 +786,7 @@ Plane _ainline ConstructPlaneD(Vec3 norm,f32 d){
 }
 
 Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
+	norm = NormalizeVec3(norm);
 	f32 d = DotVec3(pos,norm) * -1.0f;
 	return ConstructPlaneD(norm,d);
 }

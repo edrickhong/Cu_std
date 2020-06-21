@@ -2712,7 +2712,7 @@ void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color4 c_x,Color4 c_y,Color4 c_z){
 			auto dir = axis.dir;
 			Vec3 rot_axis = {};
 
-			rot_axis.floats[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
+			rot_axis.container[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
 
 
 			auto p = NormalizeVec3(RotateVec3(dir,rot_axis));
@@ -2773,7 +2773,7 @@ void InternalGUIDrawRotAxis(Vec3 obj_w,Mat4 viewproj,u32 selected_id,
 			auto dir = axis.dir;
 			Vec3 rot_axis = {};
 
-			rot_axis.floats[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
+			rot_axis.container[axis.axis_index] = j * ((_twopi)/(f32)_circle_granularity);
 
 
 			auto p = NormalizeVec3(RotateVec3(dir,rot_axis));
@@ -2833,7 +2833,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
 	auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
 
 	Vec3 mouse_c = {};
-	mouse_c.vec2 = GUIMouseCoordToScreenCoord();
+	mouse_c.v2 = GUIMouseCoordToScreenCoord();
 	mouse_c.z = 0;
 	mouse_c.y *= -1.0f;
 
