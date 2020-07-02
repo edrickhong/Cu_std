@@ -269,3 +269,10 @@ _ainline void* MaskPtrTop16Bits(void* ptr) {
 
 	return ptr;
 }
+
+//This is for documentation:
+#ifdef CPP_PASS
+#define REFDOC(...) REFDOC(...)
+#else
+#define REFDOC(...)
+#endif
