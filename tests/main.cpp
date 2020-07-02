@@ -18,6 +18,8 @@
 #include "glm/gtx/intersect.hpp"
 #include "glm/gtx/vector_angle.hpp"
 
+extern "C" DualQ ConjugateDualQ(DualQ q);
+
 struct HashEntry {
 	u64 hash;
 	const s8* string_array[1024 * 8];
@@ -113,7 +115,7 @@ void DiffElement(void* a_1, void* b_1, u32 count,const s8* file,
 		printf("ERROR Exceeded margin of Error %f: %s %s %d\n",
 				(f64)avg,file,function,line);
 
-#if 1
+#if 0
 		_breakpoint();
 #endif
 		return;
@@ -254,15 +256,285 @@ _global Line3 line3[] = {
 	ConstructLine3(vec3[2],vec3[0]),
 };
 
-void MathConstructor(){
+void MathConversions(){
+	/*
+	 * NOTE: Not tested:
+	 *Conversions that just expand, ommit, or directly pass
+	 components are not tested
 
-	//MQuatIdentity
-	//AQuatIdentity
+	 DualQToMat4
+	 WorldSpaceToClipSpaceVec4
+	 ClipSpaceToWorldSpaceVec4
+	 * */
+
+	for(u32 i = 0; i < _arraycount(quat); i++){
+		auto q = quat[i];
+		auto t1 = *((glm::fquat*)&q);
+
+		auto m = QuatToMat4(q);
+		auto t = glm::transpose(glm::toMat4(t1));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	} 
+
+
+#if 0
+
+	/*
+	 * We aren't testing this cos there's no good way to test this.
+	 * There are many different ways to get an arbitrary axis of
+	 * rotation, thus also the angle of rotation. We will know we
+	 * are wrong cos we ALWAYS use this for skeletal animation
+	 * */
+
+	for(u32 i = 0; i < _arraycount(mat4); i++){
+		auto k = mat4[i];
+		auto t1 = *((glm::mat4*)&k);
+
+		auto m = Mat4ToQuat(k);
+		auto t = glm::toQuat(glm::transpose(t1));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+#endif
+
 }
 
-void MathDeconstructor(){}
+
+Vec4 operator*(Mat4 lhs, Vec4 rhs);
+Vec3 operator*(Mat3 lhs, Vec3 rhs);
+
+u32 WrapAround(u32 i, u32 count){
+	return (i >= count) ? 0 : count;
+}
+
+void MathConstructor(){
+	/*
+	 * NOTE: Not tested:
+	 *Line functions
+	 Plane functions
+	 Sphere functions
+
+	MQuatIdentity
+	AQuatIdentity
+	TransformRelativeMat4
+	ScaleDir
+	ScalePerpenDir
+	SkewMat3
+	SkewDirMat3
+	InvolMat3
+	ConstructColor4
+	ConstructColor3
+	GetSphereNormalVec3
+	ConstructQuat
+	ConstructVecQuat
+	ConstructDualQ
+	ConstructDualQM
+
+	We aren't gonna test WorldMat* cos they consist of many
+	sub matrices
+	 * */
+	//ReflectPointPlaneMat (kind of)
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = NormalizeVec3(vec3[i]);
+
+		Vec3 k = {};
+
+		if(i + 1 < _arraycount(vec3)){
+			k = vec3[i + 1];
+		}
+		else{
+			k = vec3[0];
+		}
+
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto p = ConstructPlaneD(v,0.0f);
+
+		auto g = ReflectPointPlaneMat4(p);
+		auto t = glm::reflect(t2,t1);
+
+		auto m = Vec4ToVec3(g * Vec3ToVec4(k));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ViewMat
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+
+		auto p = vec3[i];
+		auto l = vec3[WrapAround(i + 1,_arraycount(vec3))];
+		auto u = NormalizeVec3(vec3[WrapAround(i + 2,
+					_arraycount(vec3))]);
+
+		auto t1 = *((glm::vec3*)&p);
+		auto t2 = *((glm::vec3*)&l);
+		auto t3 = *((glm::vec3*)&u);
+
+		auto m = ViewMat4(p,l,u);
+		auto t = glm::transpose(glm::lookAt(t1,t2,t3));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ProjectionMat4
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+
+		auto p = vec3[i];
+		auto t1 = *((glm::vec3*)&p);
+
+		auto m = ProjectionMat4(p.x,p.y/p.x,p.z,p.y);
+		auto t = glm::transpose(
+				glm::perspective(t1.x,t1.y/t1.x,
+					t1.z,t1.y));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//TranslateMat4
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		
+		auto p = vec3[i];
+		auto t1 = *((glm::vec3*)&p);
+
+		auto m = TranslateMat4(p);
+		auto t = glm::transpose(glm::translate(glm::mat4(),t1));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+
+	//RotationMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		
+		auto p = vec3[i];
+		auto t1 = *((glm::vec3*)&p);
+
+		auto m = Mat3ToMat4(RotateMat3(p));
+
+		glm::mat4 t = {};
+
+		{
+			auto x = glm::vec3(1,0,0);
+			auto y = glm::vec3(0,1,0);
+			auto z = glm::vec3(0,0,1);
+
+			auto mx = glm::rotate(t1.x,x);
+			auto my = glm::rotate(t1.y,y);
+			auto mz = glm::rotate(t1.z,z);
+
+			t = glm::transpose(mz * my * mx);
+		}
+
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		
+		auto p = NormalizeVec3(vec3[i]);
+		auto t1 = *((glm::vec3*)&p);
+
+		auto m = Mat3ToMat4(RotationAxisMat3(p,0.3f));
+		auto t = glm::transpose(glm::rotate(glm::mat4(),
+					0.3f,t1));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ScaleMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		
+		auto p = vec3[i];
+		auto t1 = *((glm::vec3*)&p);
+
+		auto m = Mat3ToMat4(ScaleMat3(p));
+		auto t = glm::transpose(glm::scale(glm::mat4(),t1));
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ReflectMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = NormalizeVec3(vec3[i]);
+		auto k = vec3[WrapAround(i + 1,_arraycount(vec3))];
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto g = ReflectMat3(v);
+		auto m = g * k;
+
+		auto t = glm::reflect(t2,t1);
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ConstructCrossMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = vec3[i];
+		auto k = vec3[WrapAround(i + 1,_arraycount(vec3))];
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto g = ConstructCrossMat3(v);
+		auto m = g * k;
+
+		auto t = glm::cross(t1,t2);
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ConstructProjectOntoMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = vec3[i];
+		auto k = vec3[WrapAround(i + 1,_arraycount(vec3))];
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto g = ConstructProjectOntoMat3(k);
+		auto m = g * v;
+
+		auto t = glm::proj(t1,t2);
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+
+	//ConstructRejectMat3
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = vec3[i];
+		auto k = vec3[WrapAround(i + 1,_arraycount(vec3))];
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto g = ConstructRejectMat3(k);
+		auto m = g * v;
+
+		auto t = t1 - glm::proj(t1,t2);
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
+}
+
+void MathDeconstructor(){
+	/*
+	 * NOTE: Not tested:
+	 *DeconstructQuat glm doesn't support this case apparently
+	 * */
+}
 
 void MathOps(){
+
+	/*
+	 * NOTE:Not tested are functions not supported by glm
+	 * */
 
 	for(u32 i = 0; i < _arraycount(mat4); i++){
 		auto a = mat4[i];
@@ -738,7 +1010,6 @@ void SpecialMathOps(){
 	Plane to plane intersections are not tested
 	2D intersections are not tested
 	Typed intersections are not tested
-	ReflectPointPlaneVec3
 	ProjectVec3OntoPlane
 	InvolVec3
 	AngleQuadrant
@@ -749,6 +1020,32 @@ void SpecialMathOps(){
 	 * */
 	//NOTE: For quats, we don't test operations that are analogous
 	//to their vec4 counterparts
+	
+	
+	//ReflectPointPlaneVec3 (kind of)
+	for(u32 i = 0; i < _arraycount(vec3); i++){
+		auto v = NormalizeVec3(vec3[i]);
+
+		Vec3 k = {};
+
+		if(i + 1 < _arraycount(vec3)){
+			k = vec3[i + 1];
+		}
+		else{
+			k = vec3[0];
+		}
+
+
+		auto t1 = *((glm::vec3*)&v);
+		auto t2 = *((glm::vec3*)&k);
+
+		auto p = ConstructPlaneD(v,0.0f);
+
+		auto m = ReflectPointPlaneVec3(p,k);
+		auto t = glm::reflect(t2,t1);
+
+		DiffElement(&m,&t,_arraycount(m.container));
+	}
 
 	// Schur
 	for(u32 i = 0; i < _arraycount(mat4); i++){
@@ -1403,6 +1700,11 @@ void SpecialMathOps(){
 		auto t1 = *(glm::fquat*)&q1;
 		auto t2 = *(glm::fquat*)&q2;
 
+
+		if(glm::dot(t1,t2) < 0.0f){
+			t2 = t2 * -1.0f;
+		}
+
 		auto q = SLerpQuat(q1,q2,0.5f);
 		auto t = glm::mix(t1,t2,0.5f);
 
@@ -1596,19 +1898,58 @@ void SpecialMathOps(){
 	}
 
 
+	//LinearDQ
+	for(u32 i = 0; i < _arraycount(dq); i++){
+		auto a = dq[i];
+		auto b = dq[WrapAround(i + 1,_arraycount(dq))];
+		auto c = LerpDualQ(a,b,0.5f);
+
+		auto t1 = *((glm::fdualquat*)&a);
+		auto t2 = *((glm::fdualquat*)&b);
+
+		if(glm::dot(t2.real,t1.real)< 0.0f){
+			t2 = t2 * -1.0f;
+		}
+
+		auto t = glm::normalize(glm::lerp(t1,t2,0.5f));
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+
+	//ScLerp -- The results will deviate by quite a bit (glm::lerp)
+	//is not accurate here
+	
+	printf("START SCLERP. ERRORS EXPECTED\n");
+	for(u32 i = 0; i < _arraycount(dq); i++){
+		auto a = dq[i];
+		auto b = dq[WrapAround(i + 1,_arraycount(dq))];
+		auto c = ScLerp(a,b,0.5f);
+
+		auto t1 = *((glm::fdualquat*)&a);
+		auto t2 = *((glm::fdualquat*)&b);
+
+		if(glm::dot(t2.real,t1.real)< 0.0f){
+			t2 = t2 * -1.0f;
+		}
+
+		auto t = glm::normalize(glm::lerp(t1,t2,0.5f));
+
+
+		DiffElement(&c,&t,_arraycount(c.container));
+	}
+	printf("END SCLERP\n");
+
 }
 
 void MathTest() {
 	// NOTE: We will test against glm
 	printf("\n\nRUNNING Math tests\n");
 
+	MathConstructor();
+	MathDeconstructor();
+	MathConversions();
 	MathOps();
 	SpecialMathOps();
-
-
-	// Test MATH OPS
-	// Test constructors
-	// Test deconstructors
 }
 
 int main(s32 argc, s8** argv) {

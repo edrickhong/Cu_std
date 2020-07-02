@@ -1,70 +1,15 @@
 /*
 TODO:
-move glm compare to tests
+Implement dualq interpolation
 Remove extraneous Normalizes:
 Lines,rays and planes are easy to remove extraneous normalized. they
 are pretty opaque objects and don't have operations that directly act
 on them. We would like to do this to our quats and dqs as well, but 
 they are harder to gaurantee to never change
+
+When we have the parser working on comments, we can start using Latex
+to write the docs here
 */
-
-// MARK: Internal
-#ifdef DEBUG
-
-
-//TODO: remove glm testing. we will use it in the tests instead
-#if (_test_matrices)
-
-#ifdef VERBOSE
-#pragma message("MATRIX TESTING ENABLED")
-#endif
-
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE 1
-#define GLM_FORCE_RIGHT_HANDED 1
-#include "glm/glm.hpp"
-#include "glm/gtx/transform.hpp"
-
-
-void InternalCmpMat(f32* f1, f32* f2) {
-#if MATRIX_ROW_MAJOR
-
-	auto k = (Mat4*)f1;
-
-	*k = TransposeMat4(*k);
-
-#endif
-
-	for (u32 i = 0; i < 16; i++) {
-		auto a = f1[i];
-		auto b = f2[i];
-
-		if (a == 0.0f && b == 0.0f) {
-			f1[i] = 0;
-			f2[i] = 0;
-		}
-
-		if (f1[i] - f2[i] > 0.1f) {
-			printf("--------------\n");
-
-#if MATRIX_ROW_MAJOR
-
-			PrintMat4(TransposeMat4(*((Mat4*)f1)));
-			PrintMat4(TransposeMat4(*((Mat4*)f2)));
-
-#else
-
-			PrintMat4(*((Mat4*)f1));
-			PrintMat4(*((Mat4*)f2));
-
-#endif
-
-			_kill("", 1);
-		}
-	}
-}
-
-#endif
-#endif
 
 //Compares value a to check if it is within the error range that we'd
 //consider this 0
@@ -97,6 +42,21 @@ Vec3 operator*(Mat3 lhs,Vec3 rhs){
 	auto z = ((f32*)&g)[2] + ((f32*)&g)[3] + h;
 
 	return {x, y, z};
+}
+
+//MARK: This is internal for now
+Vec4 operator*(Mat4 lhs, Vec4 rhs){
+
+	Vec4 result = {};
+
+	for(u32 i = 0; i < 4; i++){
+		auto s = lhs.simd[i];
+
+		auto r = _mm_mul_ps(s,rhs.simd);
+		result.container[i] = r[0] + r[1] + r[2] + r[3];
+	}
+
+	return result;
 }
 
 void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
@@ -140,26 +100,6 @@ Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 	_rc4(matrix,2, 2) = -forward.z;
 	_rc4(matrix,3, 2) = c;
 
-#ifdef DEBUG
-
-#if _test_matrices
-
-	auto t_mat =
-	    glm::lookAt(glm::vec3(position.x, position.y, position.z),
-			glm::vec3(lookpoint.x, lookpoint.y, lookpoint.z),
-			glm::vec3(updir.x, updir.y, updir.z));
-
-	auto ref_matrix = matrix;
-
-	auto f1 = (f32*)&ref_matrix;
-	auto f2 = (f32*)&t_mat;
-
-	InternalCmpMat(f1, f2);
-
-#endif
-
-#endif
-
 	return matrix;
 }
 
@@ -201,11 +141,13 @@ f32 inline GenericGetDeterminant(f32* in_matrix, u32 n) {
 	return res;
 }
 
-Quat _ainline Neighbourhood(Quat a, Quat b) {
-	f32 dot = DotQuat(a, b);
+//TODO: maybe double cover would be better
+template <class T>
+T Neighbourhood(Quat a, T b){
+	auto b_q = *(Quat*)(&b.container[0]);
+	f32 dot = DotQuat(a,b_q);
 
-	// neighbourhood operator.
-	if (dot < 0.0f) {
+	if(dot < 0.0f){
 		b = b * -1.0f;
 	}
 
@@ -306,7 +248,7 @@ Mat4 QuatToMat4(Quat quaternion) {
 	return matrix;
 }
 Quat Mat4ToQuat(Mat4 matrix) {
-	Quat q;
+	Quat q = {};
 
 	f32 trs = _rc4(matrix,0, 0) + _rc4(matrix,1, 1) +
 		  _rc4(matrix,2, 2);
@@ -1401,7 +1343,7 @@ Vec3 RotateVec3(Vec3 vec, Vec3 rotation) {
 	vec.z = 4;
 #endif
 
-	auto rot_matrix = RotationMat3(rotation);
+	auto rot_matrix = RotateMat3(rotation);
 
 	return rot_matrix * vec;
 }
@@ -1489,9 +1431,13 @@ Quat NLerpQuat(Quat a, Quat b, f32 step) {
 	return q;
 }
 
+//TODO: Look at this again
 Quat SLerpQuat(Quat a, Quat b, f32 step) {
 	//MARK: if these two are normalized, they would already
 	//be clamped between -1 and 1
+	
+	b = Neighbourhood(a,b);
+	
 	f32 dot = _clampf(DotQuat(a, b), -1.0f, 1.0f);
 
 	f32 angle = acosf(dot) * step;
@@ -1515,6 +1461,83 @@ DualQ NormalizeDualQ(DualQ d) {
 	d.q2 = d.q2 / magnitude;
 
 	return d;
+}
+
+struct ScrewCoord{
+	f32 angle;
+	f32 d;
+	Vec3 l;
+	Vec3 m;
+};
+
+ScrewCoord ToScrew(DualQ dq){
+
+	Vec3 v_r = dq.q1.v;
+	Vec3 v_d = dq.q2.v;
+
+	f32 k = 1.0f / MagnitudeVec3(v_r);
+
+	f32 a = 2.0f * acosf(dq.q1.w);
+	f32 d = -2.0f * dq.q2.w * k; 
+	auto l = v_r * k;
+	auto m = (v_d - (l * (d * dq.q1.w * 0.5f))) * k;
+
+	return {a,d,l,m};
+}
+
+Quat ToQuat(Vec3 v,f32 w){
+	Quat q = {};
+
+	q.v = v;
+	q.r = w;
+
+	return q;
+}
+
+DualQ ToDQ(ScrewCoord s){
+
+	f32 sn = sinf(s.angle * 0.5f);
+	f32 cs = cosf(s.angle * 0.5f);
+
+	f32 w_r = cs;
+	Vec3 v_r = s.l * sn;
+
+	f32 w_d = (s.d * -0.5f) * sn;
+	Vec3 v_d = (sn * s.m) + (s.d * 0.5f * cs * s.l);
+
+	return {ToQuat(v_r,w_r),ToQuat(v_d,w_d)};
+}
+
+DualQ PowerDQ(DualQ dq,f32 t){
+
+	auto s = ToScrew(dq);
+
+	s.angle *= t;
+	s.d *= t;
+
+	return ToDQ(s);
+}
+
+DualQ ConjugateDualQ(DualQ dq){
+	dq.q1 = ConjugateQuat(dq.q1);
+	dq.q2 = ConjugateQuat(dq.q2);
+
+	return dq;
+}
+
+
+//TODO: test this using a visual aid
+DualQ ScLerp(DualQ a,DualQ b,f32 step){
+
+	b = Neighbourhood(a.q1,b);
+
+	auto k = ConjugateDualQ(a) * b;
+	return NormalizeDualQ(a * PowerDQ(k,step));
+}
+
+DualQ LerpDualQ(DualQ a,DualQ b,f32 step){
+	b = Neighbourhood(a.q1,b);
+	return NormalizeDualQ(a + ((b - a) * step));
 }
 
 // TODO:  Test these
@@ -2122,23 +2145,6 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 	_rc4(matrix,3, 2) = d;
 	_rc4(matrix,2, 3) = -1.0f;
 
-#ifdef DEBUG
-
-#if _test_matrices
-
-	auto ref_matrix = matrix;
-
-	auto t_mat = glm::perspective(fov, aspectratio, nearz, farz);
-
-	auto f1 = (f32*)&ref_matrix;
-	auto f2 = (f32*)&t_mat;
-
-	InternalCmpMat(f1, f2);
-
-#endif
-
-#endif
-
 	return matrix;
 }
 
@@ -2149,11 +2155,11 @@ Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale) {
 Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale) {
 	Mat4 matrix;
 
-	Mat4 position_matrix4 = PositionMat4(position);
+	Mat4 position_matrix4 = TranslateMat4(position);
 
 	Mat4 scale_matrix4 = Mat3ToMat4(ScaleMat3(scale));
 
-	Mat4 rotation_matrix4 = Mat3ToMat4(RotationMat3(rotation));
+	Mat4 rotation_matrix4 = Mat3ToMat4(RotateMat3(rotation));
 
 	matrix =
 	    WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
@@ -2164,7 +2170,7 @@ Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale) {
 Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale) {
 	Mat4 matrix;
 
-	Mat4 position_matrix4 = PositionMat4(position);
+	Mat4 position_matrix4 = TranslateMat4(position);
 
 	Mat4 scale_matrix4 = Mat3ToMat4(ScaleMat3(scale));
 
@@ -2271,7 +2277,7 @@ DualQ ConstructDualQM(Mat4 transform) {
 	d.q2 =
 	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
 
-	return d;
+	return NormalizeDualQ(d);
 }
 
 DualQ ConstructDualQ(Quat rotation, Vec3 translation) {
@@ -2280,11 +2286,11 @@ DualQ ConstructDualQ(Quat rotation, Vec3 translation) {
 	  dual = 0.5 * translation * rotation
 	*/
 
-	DualQ d;
+	DualQ d = {};
 	d.q1 = rotation;
 	d.q2 =
 	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
-	return d;
+	return NormalizeDualQ(d);
 }
 
 Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere) {
@@ -2311,7 +2317,7 @@ Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere) {
 void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle) {
 	f32 anglew = acosf(quaternion.w) * 2.0f;
 
-	f32 scale = sinf(anglew);
+	f32 scale = sinf(anglew * 0.5f);
 
 	// we should handle the case scale == 0
 	if (scale == 0.0f) {
@@ -2366,6 +2372,14 @@ void PrintVec2(Vec2 vec) { printf("%f   %f\n", (f64)vec.x, (f64)vec.y); }
 void PrintQuat(Quat vec) {
 	printf("%f   %f   %f   %f\n", (f64)vec.x, (f64)vec.y, (f64)vec.z,
 	       (f64)vec.w);
+}
+
+void PrintDualQ(DualQ d) {
+	printf("%f   %f   %f   %f | %f %f %f %f\n", 
+			(f64)d.q1.x, (f64)d.q1.y, (f64)d.q1.z,
+			(f64)d.q1.w,
+			(f64)d.q2.x, (f64)d.q2.y, (f64)d.q2.z,
+			(f64)d.q2.w);
 }
 }
 

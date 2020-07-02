@@ -358,6 +358,7 @@ void PrintVec3(Vec3 vec);
 void PrintVec2(Vec2 vec);
 
 void PrintQuat(Quat quat);
+void PrintDualQ(DualQ d);
 
 // MARK: Conversions
 
@@ -703,6 +704,9 @@ Quat _ainline LerpQuat(Quat a, Quat b, f32 step){
 }
 
 DualQ NormalizeDualQ(DualQ d);
+//TODO: Implement a regular slerp as well
+DualQ ScLerp(DualQ a,DualQ b,f32 step);
+DualQ LerpDualQ(DualQ a,DualQ b,f32 step);
 
 b32 IntersectLine3(Line3 a, Line3 b);
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point);
@@ -823,23 +827,23 @@ Mat4 _ainline ReflectPointPlaneMat4(Plane plane){
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir);
 Mat4 ProjectionMat4(f32 fov, f32 aspectration, f32 nearz, f32 farz);
 
-Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale);
-Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale);
-Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale);
+Mat4 WorldMat4M(Mat4 translation, Mat4 rotation, Mat4 scale);
+Mat4 WorldMat4V(Vec3 translation, Vec3 rotation, Vec3 scale);
+Mat4 WorldMat4Q(Vec3 translation, Quat rotation, Vec3 scale);
 
 Mat4 TransformRelativeMat4(Mat4 transform,Vec3 new_origin);
 
-Mat4 _ainline PositionMat4(Vec3 position) {
+Mat4 _ainline TranslateMat4(Vec3 translation) {
 	Mat4 matrix = IdentityMat4();
 
-	_rc4(matrix,3, 0) = position.x;
-	_rc4(matrix,3, 1) = position.y;
-	_rc4(matrix,3, 2) = position.z;
+	_rc4(matrix,3, 0) = translation.x;
+	_rc4(matrix,3, 1) = translation.y;
+	_rc4(matrix,3, 2) = translation.z;
 
 	return matrix;
 }
 
-Mat3 _ainline RotationMat3(Vec3 rotation) {
+Mat3 _ainline RotateMat3(Vec3 rotation) {
 	f32 cosv = cosf(rotation.x);
 	f32 sinv = sinf(rotation.x);
 
@@ -873,10 +877,7 @@ Mat3 _ainline RotationMat3(Vec3 rotation) {
 	return MulMat3(MulMat3(rotationz_matrix3, rotationy_matrix3), rotationx_matrix3);
 }
 
-Mat3 _ainline RotationAxisMatrix(Vec3 axis, f32 angle){
-	//TODO: test against glm::rotate(mat4, f32, vec3)
-	//https://glm.g-truc.net/0.9.3/api/a00147.html
-	//Remember that glm needs to be transposed
+Mat3 _ainline RotationAxisMat3(Vec3 axis, f32 angle){
 	f32 c = cosf(angle);
 	f32 s = sinf(angle);
 	f32 k = 1 - c;
@@ -1004,7 +1005,7 @@ Mat3 _ainline ReflectMat3(Vec3 normal){
 	Mat3 ret = {
 		1 - (2 * x * x), (-2 * x * y), (-2 * x * z),
 		(-2 * x * y), 1 - (2 * y * y), (-2 * y * z),
-		(-2 * x * z), (2 * y * z), 1 - (2 * z * z),
+		(-2 * x * z), (-2 * y * z), 1 - (2 * z * z),
 	};
 
 	return ret;
