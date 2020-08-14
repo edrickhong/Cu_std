@@ -213,6 +213,10 @@ constexpr str_hash64 PHashString(const s8* string){
     return hash;
 }
 
+b32 _ainline PCmpString(const s8* a,const s8* b){
+	return PHashString(a) == PHashString(b);
+}
+
 
 u32 IdentifyToken(s8 c);
 

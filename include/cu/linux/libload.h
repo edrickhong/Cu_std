@@ -19,3 +19,8 @@ LibFunc _ainline LGetLibFunction(LibHandle handle,const s8* function_name){
     _kill("function doesn't exist\n",!fptr);
     return fptr;
 }
+
+#define _LOADFUNC(ret,func,...) (ret (*)(...))LGetLibFunction(lib,#func)
+
+//for loading a func ptr one time
+#define _LOADFOT(ret,func,...) auto func ##_fptr = _LOADFUNC(ret,func,...)

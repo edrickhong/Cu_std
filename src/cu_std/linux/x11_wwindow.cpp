@@ -481,6 +481,7 @@ void InternalX11DeinitOneTime() {
 }
 
 b32 InternalX11InitOneTime() {
+
 	if (!InternalLoadLibraryX11()) {
 		return false;
 	}
@@ -496,12 +497,6 @@ b32 InternalX11InitOneTime() {
 		return false;
 	}
 
-	return true;
-}
-
-b32 InternalCreateX11Window(WWindowContext* context, const s8* title,
-			    WCreateFlags flags, u32 x, u32 y, u32 width,
-			    u32 height) {
 	impl_wkeycodetoascii = WKeyCodeToASCIIX11;
 	impl_wwaitforevent = WWaitForWindowEventX11;
 	impl_wsettitle = WSetTitleX11;
@@ -511,6 +506,13 @@ b32 InternalCreateX11Window(WWindowContext* context, const s8* title,
 	impl_wdestroybackbuffer = WDestroyBackBufferX11;
 	impl_wretireevent = WRetireEventX11;
 	impl_wackresizeevent = WAckResizeEventX11;
+
+	return true;
+}
+
+b32 InternalCreateX11Window(WWindowContext* context, const s8* title,
+			    WCreateFlags flags, u32 x, u32 y, u32 width,
+			    u32 height) {
 
 	// get all the functions needed for init
 

@@ -1401,6 +1401,17 @@ wayland_shutdown:
 		goto wayland_shutdown;
 	}
 
+
+	impl_wkeycodetoascii = WKeyCodeToASCIIWayland;
+	impl_wwaitforevent = WWaitForWindowEventWayland;
+	impl_wsettitle = WSetTitleWayland;
+	impl_getwindowsize = GetWindowSizeWayland;
+	impl_wpresentbackbuffer = WPresentBackBufferWayland;
+	impl_wcreatebackbuffer = WCreateBackBufferWayland;
+	impl_wdestroybackbuffer = WDestroyBackBufferWayland;
+	impl_wackresizeevent = WAckResizeEventWayland;
+	impl_wretireevent = WRetireEventWayland;
+
 	return true;
 }
 
@@ -1436,16 +1447,6 @@ b32 InternalCreateWaylandWindow(WWindowContext* context, const s8* title,
 
 	wl_surface_commit((wl_surface*)context->window);
 	wl_display_roundtrip_fptr(display);
-
-	impl_wkeycodetoascii = WKeyCodeToASCIIWayland;
-	impl_wwaitforevent = WWaitForWindowEventWayland;
-	impl_wsettitle = WSetTitleWayland;
-	impl_getwindowsize = GetWindowSizeWayland;
-	impl_wpresentbackbuffer = WPresentBackBufferWayland;
-	impl_wcreatebackbuffer = WCreateBackBufferWayland;
-	impl_wdestroybackbuffer = WDestroyBackBufferWayland;
-	impl_wackresizeevent = WAckResizeEventWayland;
-	impl_wretireevent = WRetireEventWayland;
 
 	context->data->type = _WAYLAND_WINDOW;
 
