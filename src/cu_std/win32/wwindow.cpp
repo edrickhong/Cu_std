@@ -200,6 +200,17 @@ WWindowContext WCreateWindow(const s8* title,WCreateFlags flags,u32 x,u32 y,u32 
     
     _kill("Failed to register WNDCLASS", !res);
     _kill("Unable to create window", !(context.window));
+
+    //NOTE: this removes the resize message to be consistent w other operating systems
+
+    for(u32 i = 0; i < event_count; i++){
+	    auto e = &event_array[i];
+
+	    if(e->type == W_EVENT_RESIZE){
+		    e->type = W_EVENT_NONE;
+		    break;
+	    }
+    }
     
     return context;
 }
