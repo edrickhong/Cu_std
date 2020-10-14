@@ -473,22 +473,38 @@ Vec2 _ainline Vec3ToVec2(Vec3 vec) {
 }
 
 Ray3 _ainline Line3ToRay3(Line3 line){
-	Ray3 ray = {.pos = line.pos, .dir = line.dir};
+	Ray3 ray = {0};
+
+	ray.pos = line.pos;
+	ray.dir = line.dir;
+
 	return ray;
 }
 
 Line3 _ainline Ray3ToLine3(Ray3 ray){
-	Line3 line = {.pos = ray.pos, .dir = ray.dir};
+	Line3 line = {0};
+
+	line.pos = ray.pos;
+	line.dir = ray.dir;
+
 	return line;
 }
 
 Ray2 _ainline Line2ToRay2(Line2 line){
-	Ray2 ray = {.pos = line.pos, .dir = line.dir};
+	Ray2 ray = {0};
+
+	ray.pos = line.pos;
+	ray.dir = line.dir;
+
 	return ray;
 }
 
 Line2 _ainline Ray2ToLine2(Ray2 ray){
-	Line2 line = {.pos = ray.pos, .dir = ray.dir};
+	Line2 line = {0};
+
+	line.pos = ray.pos;
+	line.dir = ray.dir;
+
 	return line;
 }
 
@@ -750,13 +766,21 @@ f32 AngleQuadrant(f32 x, f32 y);
 // MARK: constructors
 
 Line3 _ainline ConstructLine3(Vec3 pos,Vec3 dir){
-	Line3 l = {.pos = pos, .dir = NormalizeVec3(dir)};
+	Line3 l = {0};
+
+	l.pos = pos;
+	l.dir = NormalizeVec3(dir);
+
 	return l;
 }
 
 
 Line2 _ainline ConstructLine2(Vec2 pos,Vec2 dir){
-	Line2 l = {.pos = pos, .dir = NormalizeVec2(dir)};
+	Line2 l = {0};
+
+	l.pos = pos;
+	l.dir = NormalizeVec2(dir);
+
 	return l;
 }
 
@@ -796,7 +820,11 @@ Plane _ainline ConstructPlanePos(Vec3 norm,Vec3 pos){
 }
 
 Sphere _ainline ConstructSphere(Vec3 pos,f32 radius){
-	Sphere s = {.pos = pos, .radius = radius};
+	Sphere s = {0};
+
+	s.pos = pos;
+	s.radius = radius;
+
 	return s;
 }
 

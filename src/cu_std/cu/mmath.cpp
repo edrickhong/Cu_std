@@ -4,24 +4,21 @@ Implement dualq interpolation
 Remove extraneous Normalizes:
 Lines,rays and planes are easy to remove extraneous normalized. they
 are pretty opaque objects and don't have operations that directly act
-on them. We would like to do this to our quats and dqs as well, but 
+on them. We would like to do this to our quats and dqs as well, but
 they are harder to gaurantee to never change
 
 When we have the parser working on comments, we can start using Latex
 to write the docs here
 */
 
-//Compares value a to check if it is within the error range that we'd
-//consider this 0
-b32 CmpErrorZero(f32 a){
+// Compares value a to check if it is within the error range that we'd
+// consider this 0
+b32 CmpErrorZero(f32 a) {
 	return a < _f32_error_offset && a > (-1.0f * _f32_error_offset);
 }
 
-
-
-//MARK: This is internal for now
-Vec3 operator*(Mat3 lhs,Vec3 rhs){
-
+// MARK: This is internal for now
+Vec3 operator*(Mat3 lhs, Vec3 rhs) {
 	auto a = lhs.simd[0];
 	auto b = lhs.simd[1];
 	auto c = lhs.k;
@@ -36,7 +33,7 @@ Vec3 operator*(Mat3 lhs,Vec3 rhs){
 	auto h = c * rhs.z;
 
 	// MARK: technically we can shuffle here and do an sse add.
-	// idk what the wins are 
+	// idk what the wins are
 	auto x = ((f32*)&f)[0] + ((f32*)&f)[1] + ((f32*)&f)[2];
 	auto y = ((f32*)&f)[3] + ((f32*)&g)[0] + ((f32*)&g)[1];
 	auto z = ((f32*)&g)[2] + ((f32*)&g)[3] + h;
@@ -44,16 +41,18 @@ Vec3 operator*(Mat3 lhs,Vec3 rhs){
 	return {x, y, z};
 }
 
-//MARK: This is internal for now
-Vec4 operator*(Mat4 lhs, Vec4 rhs){
-
+// MARK: This is internal for now
+Vec4 operator*(Mat4 lhs, Vec4 rhs) {
 	Vec4 result = {};
 
-	for(u32 i = 0; i < 4; i++){
+	for (u32 i = 0; i < 4; i++) {
 		auto s = lhs.simd[i];
 
-		auto r = _mm_mul_ps(s,rhs.simd);
-		result.container[i] = r[0] + r[1] + r[2] + r[3];
+		auto r = _mm_mul_ps(s, rhs.simd);
+
+		auto k = (f32*)&r;
+
+		result.container[i] = k[0] + k[1] + k[2] + k[3];  
 	}
 
 	return result;
@@ -85,20 +84,20 @@ Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 
 	Mat4 matrix = IdentityMat4();
 
-	_rc4(matrix,0, 0) = side.x;
-	_rc4(matrix,1, 0) = side.y;
-	_rc4(matrix,2, 0) = side.z;
-	_rc4(matrix,3, 0) = a;
+	_rc4(matrix, 0, 0) = side.x;
+	_rc4(matrix, 1, 0) = side.y;
+	_rc4(matrix, 2, 0) = side.z;
+	_rc4(matrix, 3, 0) = a;
 
-	_rc4(matrix,0, 1) = up.x;
-	_rc4(matrix,1, 1) = up.y;
-	_rc4(matrix,2, 1) = up.z;
-	_rc4(matrix,3, 1) = b;
+	_rc4(matrix, 0, 1) = up.x;
+	_rc4(matrix, 1, 1) = up.y;
+	_rc4(matrix, 2, 1) = up.z;
+	_rc4(matrix, 3, 1) = b;
 
-	_rc4(matrix,0, 2) = -forward.x;
-	_rc4(matrix,1, 2) = -forward.y;
-	_rc4(matrix,2, 2) = -forward.z;
-	_rc4(matrix,3, 2) = c;
+	_rc4(matrix, 0, 2) = -forward.x;
+	_rc4(matrix, 1, 2) = -forward.y;
+	_rc4(matrix, 2, 2) = -forward.z;
+	_rc4(matrix, 3, 2) = c;
 
 	return matrix;
 }
@@ -141,13 +140,13 @@ f32 inline GenericGetDeterminant(f32* in_matrix, u32 n) {
 	return res;
 }
 
-//TODO: maybe double cover would be better
+// TODO: maybe double cover would be better
 template <class T>
-T Neighbourhood(Quat a, T b){
+T Neighbourhood(Quat a, T b) {
 	auto b_q = *(Quat*)(&b.container[0]);
-	f32 dot = DotQuat(a,b_q);
+	f32 dot = DotQuat(a, b_q);
 
-	if(dot < 0.0f){
+	if (dot < 0.0f) {
 		b = b * -1.0f;
 	}
 
@@ -195,16 +194,15 @@ _ainline b32 InternalIsParallel(Ray2 a, Ray2 b) {
 // MARK: conversions
 
 extern "C" {
-	
-Mat4 QuatToMat4(Quat quaternion) {
 
+Mat4 QuatToMat4(Quat quaternion) {
 	Quat squared = {};
 
-	squared.simd = _mm_mul_ps(quaternion.simd,quaternion.simd);
+	squared.simd = _mm_mul_ps(quaternion.simd, quaternion.simd);
 
 	f32 a = 1.0f - (2.0f * (squared.y + squared.z));
 
-	//MARK: I feel like these can be simd'd
+	// MARK: I feel like these can be simd'd
 
 	f32 b =
 	    ((quaternion.x * quaternion.y) - (quaternion.w * quaternion.z)) *
@@ -231,95 +229,65 @@ Mat4 QuatToMat4(Quat quaternion) {
 
 	Mat4 matrix = {};
 
-	_rc4(matrix,0, 0) = a;
-	_rc4(matrix,1, 0) = b;
-	_rc4(matrix,2, 0) = c;
+	_rc4(matrix, 0, 0) = a;
+	_rc4(matrix, 1, 0) = b;
+	_rc4(matrix, 2, 0) = c;
 
-	_rc4(matrix,0, 1) = d;
-	_rc4(matrix,1, 1) = e;
-	_rc4(matrix,2, 1) = f;
+	_rc4(matrix, 0, 1) = d;
+	_rc4(matrix, 1, 1) = e;
+	_rc4(matrix, 2, 1) = f;
 
-	_rc4(matrix,0, 2) = g;
-	_rc4(matrix,1, 2) = h;
-	_rc4(matrix,2, 2) = i;
+	_rc4(matrix, 0, 2) = g;
+	_rc4(matrix, 1, 2) = h;
+	_rc4(matrix, 2, 2) = i;
 
-	_rc4(matrix,3, 3) = 1.0f;
+	_rc4(matrix, 3, 3) = 1.0f;
 
 	return matrix;
 }
 Quat Mat4ToQuat(Mat4 matrix) {
 	Quat q = {};
 
-	f32 trs = _rc4(matrix,0, 0) + _rc4(matrix,1, 1) +
-		  _rc4(matrix,2, 2);
+	f32 trs = _rc4(matrix, 0, 0) + _rc4(matrix, 1, 1) + _rc4(matrix, 2, 2);
 
 	if (trs > 0.0f) {
 		f32 s = sqrtf(trs + 1.0f) * 2.0f;
 		q.w = 0.25f * s;
-		q.x = (_rc4(matrix,1, 2) -
-		       _rc4(matrix,2, 1)) /
-		      s;
-		q.y = (_rc4(matrix,2, 0) -
-		       _rc4(matrix,0, 2)) /
-		      s;
-		q.z = (_rc4(matrix,0, 1) -
-		       _rc4(matrix,1, 0)) /
-		      s;
+		q.x = (_rc4(matrix, 1, 2) - _rc4(matrix, 2, 1)) / s;
+		q.y = (_rc4(matrix, 2, 0) - _rc4(matrix, 0, 2)) / s;
+		q.z = (_rc4(matrix, 0, 1) - _rc4(matrix, 1, 0)) / s;
 	}
 
-	else if ((_rc4(matrix,0, 0) >
-		  _rc4(matrix,1, 1)) &&
-		 (_rc4(matrix,0, 0) >
-		  _rc4(matrix,2, 2))) {
-		f32 s = sqrtf(1.0f + _rc4(matrix,0, 0) -
-			      _rc4(matrix,1, 1) -
-			      _rc4(matrix,2, 2)) *
+	else if ((_rc4(matrix, 0, 0) > _rc4(matrix, 1, 1)) &&
+		 (_rc4(matrix, 0, 0) > _rc4(matrix, 2, 2))) {
+		f32 s = sqrtf(1.0f + _rc4(matrix, 0, 0) - _rc4(matrix, 1, 1) -
+			      _rc4(matrix, 2, 2)) *
 			2.0f;
-		q.w = (_rc4(matrix,1, 2) -
-		       _rc4(matrix,2, 1)) /
-		      s;
+		q.w = (_rc4(matrix, 1, 2) - _rc4(matrix, 2, 1)) / s;
 		q.x = 0.25f * s;
-		q.y = (_rc4(matrix,1, 0) +
-		       _rc4(matrix,1, 0)) /
-		      s;
-		q.z = (_rc4(matrix,2, 0) +
-		       _rc4(matrix,0, 2)) /
-		      s;
+		q.y = (_rc4(matrix, 1, 0) + _rc4(matrix, 1, 0)) / s;
+		q.z = (_rc4(matrix, 2, 0) + _rc4(matrix, 0, 2)) / s;
 	}
 
-	else if (_rc4(matrix,1, 1) > _rc4(matrix,2, 2)) {
-		f32 s = sqrtf(1.0f + _rc4(matrix,1, 1) -
-			      _rc4(matrix,0, 0) -
-			      _rc4(matrix,2, 2)) *
+	else if (_rc4(matrix, 1, 1) > _rc4(matrix, 2, 2)) {
+		f32 s = sqrtf(1.0f + _rc4(matrix, 1, 1) - _rc4(matrix, 0, 0) -
+			      _rc4(matrix, 2, 2)) *
 			2.0f;
 
-		q.w = (_rc4(matrix,2, 0) -
-		       _rc4(matrix,0, 2)) /
-		      s;
-		q.x = (_rc4(matrix,1, 0) +
-		       _rc4(matrix,1, 0)) /
-		      s;
+		q.w = (_rc4(matrix, 2, 0) - _rc4(matrix, 0, 2)) / s;
+		q.x = (_rc4(matrix, 1, 0) + _rc4(matrix, 1, 0)) / s;
 		q.y = 0.25f * s;
-		q.z = (_rc4(matrix,2, 1) +
-		       _rc4(matrix,1, 2)) /
-		      s;
+		q.z = (_rc4(matrix, 2, 1) + _rc4(matrix, 1, 2)) / s;
 	}
 
 	else {
-		f32 s = sqrtf(1.0f + _rc4(matrix,2, 2) -
-			      _rc4(matrix,0, 0) -
-			      _rc4(matrix,1, 1)) *
+		f32 s = sqrtf(1.0f + _rc4(matrix, 2, 2) - _rc4(matrix, 0, 0) -
+			      _rc4(matrix, 1, 1)) *
 			2.0f;
 
-		q.w = (_rc4(matrix,0, 1) -
-		       _rc4(matrix,1, 0)) /
-		      s;
-		q.x = (_rc4(matrix,2, 0) +
-		       _rc4(matrix,0, 2)) /
-		      s;
-		q.y = (_rc4(matrix,2, 1) +
-		       _rc4(matrix,1, 2)) /
-		      s;
+		q.w = (_rc4(matrix, 0, 1) - _rc4(matrix, 1, 0)) / s;
+		q.x = (_rc4(matrix, 2, 0) + _rc4(matrix, 0, 2)) / s;
+		q.y = (_rc4(matrix, 2, 1) + _rc4(matrix, 1, 2)) / s;
 		q.z = 0.25f * s;
 	}
 
@@ -327,16 +295,16 @@ Quat Mat4ToQuat(Mat4 matrix) {
 }
 
 Mat4 DualQToMat4(DualQ d) {
-	d = NormalizeDualQ(d);//MARK: possibly extraneous
+	d = NormalizeDualQ(d);	// MARK: possibly extraneous
 
 	Mat4 matrix = QuatToMat4(d.q1);
 	Quat t = d.q2 * 2.0f;
 	t = t * ConjugateQuat(d.q1);
 
-	_rc4(matrix,3, 0) = t.x;
-	_rc4(matrix,3, 1) = t.y;
-	_rc4(matrix,3, 2) = t.z;
-	_rc4(matrix,3, 3) = 1.0f;
+	_rc4(matrix, 3, 0) = t.x;
+	_rc4(matrix, 3, 1) = t.y;
+	_rc4(matrix, 3, 2) = t.z;
+	_rc4(matrix, 3, 3) = 1.0f;
 
 	return matrix;
 }
@@ -402,17 +370,13 @@ Vec4 ClipSpaceToWorldSpaceVec4(Vec4 pos, Mat4 viewproj) {
 Mat4 AddMat4(Mat4 lhs, Mat4 rhs) {
 	Mat4 matrix;
 
-	_mm_store_ps(&_ac4(matrix,0, 0),
-		     _mm_add_ps(lhs.simd[0], rhs.simd[0]));
+	_mm_store_ps(&_ac4(matrix, 0, 0), _mm_add_ps(lhs.simd[0], rhs.simd[0]));
 
-	_mm_store_ps(&_ac4(matrix,0, 1),
-		     _mm_add_ps(lhs.simd[1], rhs.simd[1]));
+	_mm_store_ps(&_ac4(matrix, 0, 1), _mm_add_ps(lhs.simd[1], rhs.simd[1]));
 
-	_mm_store_ps(&_ac4(matrix,0, 2),
-		     _mm_add_ps(lhs.simd[2], rhs.simd[2]));
+	_mm_store_ps(&_ac4(matrix, 0, 2), _mm_add_ps(lhs.simd[2], rhs.simd[2]));
 
-	_mm_store_ps(&_ac4(matrix,0, 3),
-		     _mm_add_ps(lhs.simd[3], rhs.simd[3]));
+	_mm_store_ps(&_ac4(matrix, 0, 3), _mm_add_ps(lhs.simd[3], rhs.simd[3]));
 
 	return matrix;
 }
@@ -420,17 +384,13 @@ Mat4 AddMat4(Mat4 lhs, Mat4 rhs) {
 Mat4 SubMat4(Mat4 lhs, Mat4 rhs) {
 	Mat4 matrix;
 
-	_mm_store_ps(&_ac4(matrix,0, 0),
-		     _mm_sub_ps(lhs.simd[0], rhs.simd[0]));
+	_mm_store_ps(&_ac4(matrix, 0, 0), _mm_sub_ps(lhs.simd[0], rhs.simd[0]));
 
-	_mm_store_ps(&_ac4(matrix,0, 1),
-		     _mm_sub_ps(lhs.simd[1], rhs.simd[1]));
+	_mm_store_ps(&_ac4(matrix, 0, 1), _mm_sub_ps(lhs.simd[1], rhs.simd[1]));
 
-	_mm_store_ps(&_ac4(matrix,0, 2),
-		     _mm_sub_ps(lhs.simd[2], rhs.simd[2]));
+	_mm_store_ps(&_ac4(matrix, 0, 2), _mm_sub_ps(lhs.simd[2], rhs.simd[2]));
 
-	_mm_store_ps(&_ac4(matrix,0, 3),
-		     _mm_sub_ps(lhs.simd[3], rhs.simd[3]));
+	_mm_store_ps(&_ac4(matrix, 0, 3), _mm_sub_ps(lhs.simd[3], rhs.simd[3]));
 
 	return matrix;
 }
@@ -470,10 +430,10 @@ Mat4 MulMat4(Mat4 lhs, Mat4 rhs) {
 		f32* _restrict r3 = (f32*)&res3;
 		f32* _restrict r4 = (f32*)&res4;
 
-		_ac4(matrix,0, i) = r1[0] + r1[1] + r1[2] + r1[3];
-		_ac4(matrix,1, i) = r2[0] + r2[1] + r2[2] + r2[3];
-		_ac4(matrix,2, i) = r3[0] + r3[1] + r3[2] + r3[3];
-		_ac4(matrix,3, i) = r4[0] + r4[1] + r4[2] + r4[3];
+		_ac4(matrix, 0, i) = r1[0] + r1[1] + r1[2] + r1[3];
+		_ac4(matrix, 1, i) = r2[0] + r2[1] + r2[2] + r2[3];
+		_ac4(matrix, 2, i) = r3[0] + r3[1] + r3[2] + r3[3];
+		_ac4(matrix, 3, i) = r4[0] + r4[1] + r4[2] + r4[3];
 	}
 
 	// FIXME: test isn't running when not row major
@@ -505,19 +465,19 @@ Mat4 MulConstLMat4(f32 lhs, Mat4 rhs) {
 
 	__m128 res = _mm_mul_ps(rhs.simd[0], k);
 
-	_mm_store_ps(&_ac4(matrix,0, 0), res);
+	_mm_store_ps(&_ac4(matrix, 0, 0), res);
 
 	res = _mm_mul_ps(rhs.simd[1], k);
 
-	_mm_store_ps(&_ac4(matrix,0, 1), res);
+	_mm_store_ps(&_ac4(matrix, 0, 1), res);
 
 	res = _mm_mul_ps(rhs.simd[2], k);
 
-	_mm_store_ps(&_ac4(matrix,0, 2), res);
+	_mm_store_ps(&_ac4(matrix, 0, 2), res);
 
 	res = _mm_mul_ps(rhs.simd[3], k);
 
-	_mm_store_ps(&_ac4(matrix,0, 3), res);
+	_mm_store_ps(&_ac4(matrix, 0, 3), res);
 
 	return matrix;
 }
@@ -592,26 +552,17 @@ Mat3 MulMat3(Mat3 lhs, Mat3 rhs) {
 
 	// NOTE: god I hope the compiler reorders this
 
-	_rc3(matrix,0, 0) =
-	    ((f32*)&h)[0] + ((f32*)&h)[1] + ((f32*)&h)[2];
-	_rc3(matrix,1, 0) =
-	    ((f32*)&i)[0] + ((f32*)&i)[1] + ((f32*)&i)[2];
-	_rc3(matrix,2, 0) =
-	    ((f32*)&j)[0] + ((f32*)&j)[1] + ((f32*)&j)[2];
+	_rc3(matrix, 0, 0) = ((f32*)&h)[0] + ((f32*)&h)[1] + ((f32*)&h)[2];
+	_rc3(matrix, 1, 0) = ((f32*)&i)[0] + ((f32*)&i)[1] + ((f32*)&i)[2];
+	_rc3(matrix, 2, 0) = ((f32*)&j)[0] + ((f32*)&j)[1] + ((f32*)&j)[2];
 
-	_rc3(matrix,0, 1) =
-	    ((f32*)&j)[3] + ((f32*)&k)[0] + ((f32*)&k)[1];
-	_rc3(matrix,1, 1) =
-	    ((f32*)&h)[3] + ((f32*)&l)[0] + ((f32*)&l)[1];
-	_rc3(matrix,2, 1) =
-	    ((f32*)&i)[3] + ((f32*)&m)[0] + ((f32*)&m)[1];
+	_rc3(matrix, 0, 1) = ((f32*)&j)[3] + ((f32*)&k)[0] + ((f32*)&k)[1];
+	_rc3(matrix, 1, 1) = ((f32*)&h)[3] + ((f32*)&l)[0] + ((f32*)&l)[1];
+	_rc3(matrix, 2, 1) = ((f32*)&i)[3] + ((f32*)&m)[0] + ((f32*)&m)[1];
 
-	_rc3(matrix,0, 2) =
-	    ((f32*)&m)[2] + ((f32*)&m)[3] + ((f32*)&o)[0];
-	_rc3(matrix,1, 2) =
-	    ((f32*)&k)[2] + ((f32*)&k)[3] + ((f32*)&o)[1];
-	_rc3(matrix,2, 2) =
-	    ((f32*)&l)[2] + ((f32*)&l)[3] + ((f32*)&o)[2];
+	_rc3(matrix, 0, 2) = ((f32*)&m)[2] + ((f32*)&m)[3] + ((f32*)&o)[0];
+	_rc3(matrix, 1, 2) = ((f32*)&k)[2] + ((f32*)&k)[3] + ((f32*)&o)[1];
+	_rc3(matrix, 2, 2) = ((f32*)&l)[2] + ((f32*)&l)[3] + ((f32*)&o)[2];
 
 	return matrix;
 }
@@ -843,9 +794,7 @@ DualQ MulConstLDualQ(f32 lhs, DualQ rhs) {
 	return rhs;
 }
 
-DualQ MulConstRDualQ(DualQ lhs, f32 rhs) {
-	return MulConstLDualQ(rhs, lhs);
-}
+DualQ MulConstRDualQ(DualQ lhs, f32 rhs) { return MulConstLDualQ(rhs, lhs); }
 
 // MARK: SPECIAL MATH OPS
 
@@ -882,18 +831,18 @@ Mat4 TransposeMat4(Mat4 matrix) {
 	row2 = _mm_shuffle_ps(tmp1, row3, 0x88);
 	row3 = _mm_shuffle_ps(row3, tmp1, 0xDD);
 
-	_mm_storeu_ps(&_ac4(store_matrix,0, 0), row0);
+	_mm_storeu_ps(&_ac4(store_matrix, 0, 0), row0);
 
 	// this is swapped
 	row1 = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&_ac4(store_matrix,0, 1), row1);
+	_mm_storeu_ps(&_ac4(store_matrix, 0, 1), row1);
 
-	_mm_storeu_ps(&_ac4(store_matrix,0, 2), row2);
+	_mm_storeu_ps(&_ac4(store_matrix, 0, 2), row2);
 
 	// this is swapped
 
 	row3 = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(1, 0, 3, 2));
-	_mm_storeu_ps(&_ac4(store_matrix,0, 3), row3);
+	_mm_storeu_ps(&_ac4(store_matrix, 0, 3), row3);
 
 	return store_matrix;
 }
@@ -951,73 +900,65 @@ Mat4 InverseMat4(Mat4 matrix) {
 
 #else
 
+	f32 x = _ac4(matrix, 0, 3);
+	f32 y = _ac4(matrix, 1, 3);
+	f32 z = _ac4(matrix, 2, 3);
+	f32 w = _ac4(matrix, 3, 3);
 
-	f32 x = _ac4(matrix,0,3);
-	f32 y = _ac4(matrix,1,3);
-	f32 z = _ac4(matrix,2,3);
-	f32 w = _ac4(matrix,3,3);
+	Vec3 a = {_ac4(matrix, 0, 0), _ac4(matrix, 0, 1), _ac4(matrix, 0, 2)};
+	Vec3 b = {_ac4(matrix, 1, 0), _ac4(matrix, 1, 1), _ac4(matrix, 1, 2)};
+	Vec3 c = {_ac4(matrix, 2, 0), _ac4(matrix, 2, 1), _ac4(matrix, 2, 2)};
+	Vec3 d = {_ac4(matrix, 3, 0), _ac4(matrix, 3, 1), _ac4(matrix, 3, 2)};
 
-	Vec3 a = {_ac4(matrix,0,0),_ac4(matrix,0,1),_ac4(matrix,0,2)};
-	Vec3 b = {_ac4(matrix,1,0),_ac4(matrix,1,1),_ac4(matrix,1,2)};
-	Vec3 c = {_ac4(matrix,2,0),_ac4(matrix,2,1),_ac4(matrix,2,2)};
-	Vec3 d = {_ac4(matrix,3,0),_ac4(matrix,3,1),_ac4(matrix,3,2)};
-
-	auto s = CrossVec3(a,b);
-	auto t = CrossVec3(c,d);
+	auto s = CrossVec3(a, b);
+	auto t = CrossVec3(c, d);
 	auto u = (y * a) - (x * b);
 	auto v = (w * c) - (z * d);
 
-	f32 det = (DotVec3(s,v)) + (DotVec3(t,u));
+	f32 det = (DotVec3(s, v)) + (DotVec3(t, u));
 
-	auto r0 = CrossVec3(b,v) + (y * t);
-	auto r1 = CrossVec3(v,a) - (x * t);
-	auto r2 = CrossVec3(d,u) + (w * s);
-	auto r3 = CrossVec3(u,c) - (z * s);
+	auto r0 = CrossVec3(b, v) + (y * t);
+	auto r1 = CrossVec3(v, a) - (x * t);
+	auto r2 = CrossVec3(d, u) + (w * s);
+	auto r3 = CrossVec3(u, c) - (z * s);
 
 	Mat4 mat = {
-		r0.x,r0.y,r0.z,-DotVec3(b,t),
-		r1.x,r1.y,r1.z,DotVec3(a,t),
-		r2.x,r2.y,r2.z,-DotVec3(d,s),
-		r3.x,r3.y,r3.z,DotVec3(c,s),
+	    r0.x, r0.y, r0.z, -DotVec3(b, t), r1.x, r1.y, r1.z, DotVec3(a, t),
+	    r2.x, r2.y, r2.z, -DotVec3(d, s), r3.x, r3.y, r3.z, DotVec3(c, s),
 	};
 
 	return (1.0f / det) * mat;
 #endif
 }
 
-
-Mat4 InverseTransform(Mat4 matrix){
-
+Mat4 InverseTransform(Mat4 matrix) {
 	auto m = InverseMat3(Mat4ToMat3(matrix));
-	auto r = Mat3ToMat4(m); 
+	auto r = Mat3ToMat4(m);
 
-	Vec3 t = {_ac4(matrix,3,0),_ac4(matrix,3,1),_ac4(matrix,3,2)};
+	Vec3 t = {_ac4(matrix, 3, 0), _ac4(matrix, 3, 1), _ac4(matrix, 3, 2)};
 
 	m = m * -1.0f;
 	t = m * t;
 
-	_ac4(r,3,0) = t.x;
-	_ac4(r,3,1) = t.y;
-	_ac4(r,3,2) = t.z;
+	_ac4(r, 3, 0) = t.x;
+	_ac4(r, 3, 1) = t.y;
+	_ac4(r, 3, 2) = t.z;
 
 	return r;
 }
 
-Mat4 OuterMat4(Vec4 a_1, Vec4 b){
-
+Mat4 OuterMat4(Vec4 a_1, Vec4 b) {
 	Mat4 a = {};
-
 
 	a.simd[0] = _mm_set1_ps(a_1.x);
 	a.simd[1] = _mm_set1_ps(a_1.y);
 	a.simd[2] = _mm_set1_ps(a_1.z);
-	a.simd[3] = _mm_set1_ps(a_1.w);	
+	a.simd[3] = _mm_set1_ps(a_1.w);
 
-	a.simd[0] = _mm_mul_ps(a.simd[0],b.simd);
-	a.simd[1] = _mm_mul_ps(a.simd[1],b.simd);
-	a.simd[2] = _mm_mul_ps(a.simd[2],b.simd);
-	a.simd[3] = _mm_mul_ps(a.simd[3],b.simd);
-
+	a.simd[0] = _mm_mul_ps(a.simd[0], b.simd);
+	a.simd[1] = _mm_mul_ps(a.simd[1], b.simd);
+	a.simd[2] = _mm_mul_ps(a.simd[2], b.simd);
+	a.simd[3] = _mm_mul_ps(a.simd[3], b.simd);
 
 	return a;
 }
@@ -1089,46 +1030,42 @@ Mat3 InverseMat3(Mat3 matrix) {
 
 	return adj_matrix;
 #else
-	Vec3 a = {_ac3(matrix,0,0),_ac3(matrix,0,1),_ac3(matrix,0,2)};
-	Vec3 b = {_ac3(matrix,1,0),_ac3(matrix,1,1),_ac3(matrix,1,2)};
-	Vec3 c = {_ac3(matrix,2,0),_ac3(matrix,2,1),_ac3(matrix,2,2)};
+	Vec3 a = {_ac3(matrix, 0, 0), _ac3(matrix, 0, 1), _ac3(matrix, 0, 2)};
+	Vec3 b = {_ac3(matrix, 1, 0), _ac3(matrix, 1, 1), _ac3(matrix, 1, 2)};
+	Vec3 c = {_ac3(matrix, 2, 0), _ac3(matrix, 2, 1), _ac3(matrix, 2, 2)};
 
-	f32 det = ScalTripleVec3(a,b,c);
+	f32 det = ScalTripleVec3(a, b, c);
 
-	auto r0 = CrossVec3(b,c);
-	auto r1 = CrossVec3(c,a);
-	auto r2 = CrossVec3(a,b);
+	auto r0 = CrossVec3(b, c);
+	auto r1 = CrossVec3(c, a);
+	auto r2 = CrossVec3(a, b);
 
 	Mat3 mat = {
-		r0.x,r0.y,r0.z,
-		r1.x,r1.y,r1.z,
-		r2.x,r2.y,r2.z,
+	    r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, r2.x, r2.y, r2.z,
 	};
 
 	return (1.0f / det) * mat;
 #endif
 }
 
-
-Mat3 OuterMat3(Vec3 a_1, Vec3 b){
-	Mat3 a = {}; 
+Mat3 OuterMat3(Vec3 a_1, Vec3 b) {
+	Mat3 a = {};
 
 	a.simd[0] = _mm_set1_ps(a_1.x);
 	a.simd[1] = _mm_set1_ps(a_1.y);
 
-	_ac3(a,0,1) = a_1.y;
+	_ac3(a, 0, 1) = a_1.y;
 
-	_ac3(a,0,2) = a_1.z;
-	_ac3(a,1,2) = a_1.z;
+	_ac3(a, 0, 2) = a_1.z;
+	_ac3(a, 1, 2) = a_1.z;
 	a.k = a_1.z;
 
-	__m128 k = {b.x,b.y,b.z,b.x};
-	auto d = _mm_shuffle_ps(k,k,_MM_SHUFFLE(1,0,2,1));
+	__m128 k = {b.x, b.y, b.z, b.x};
+	auto d = _mm_shuffle_ps(k, k, _MM_SHUFFLE(1, 0, 2, 1));
 
-	a.simd[0] = _mm_mul_ps(a.simd[0],k);
-	a.simd[1] = _mm_mul_ps(a.simd[1],d);
+	a.simd[0] = _mm_mul_ps(a.simd[0], k);
+	a.simd[1] = _mm_mul_ps(a.simd[1], d);
 	a.k *= b.z;
-
 
 	return a;
 }
@@ -1141,17 +1078,17 @@ Mat2 TransposeMat2(Mat2 matrix) {
 }
 
 Mat2 InverseMat2(Mat2 matrix) {
-	f32 a = _rc2(matrix,0, 0);
-	f32 b = _rc2(matrix,1, 0);
-	f32 c = _rc2(matrix,0, 1);
-	f32 d = _rc2(matrix,1, 1);
+	f32 a = _rc2(matrix, 0, 0);
+	f32 b = _rc2(matrix, 1, 0);
+	f32 c = _rc2(matrix, 0, 1);
+	f32 d = _rc2(matrix, 1, 1);
 
 	f32 k = 1.0f / ((a * d) - (b * c));
 
-	_rc2(matrix,0, 0) = d;
-	_rc2(matrix,1, 0) = -b;
-	_rc2(matrix,0, 1) = -c;
-	_rc2(matrix,1, 1) = a;
+	_rc2(matrix, 0, 0) = d;
+	_rc2(matrix, 1, 0) = -b;
+	_rc2(matrix, 0, 1) = -c;
+	_rc2(matrix, 1, 1) = a;
 
 	return matrix * k;
 }
@@ -1165,9 +1102,7 @@ f32 MagnitudeVec4(Vec4 vec) {
 	return res;
 }
 
-f32 SquaredVec4(Vec4 vec){
-	return DotVec4(vec, vec);
-}
+f32 SquaredVec4(Vec4 vec) { return DotVec4(vec, vec); }
 
 f32 DotVec4(Vec4 vec1, Vec4 vec2) {
 	//|a| * |b| * cos(angle between a and b)
@@ -1206,9 +1141,7 @@ f32 MagnitudeVec3(Vec3 vec) {
 	return res;
 }
 
-f32 SquaredVec3(Vec3 vec){
-	return DotVec3(vec, vec);
-}
+f32 SquaredVec3(Vec3 vec) { return DotVec3(vec, vec); }
 
 f32 DotVec3(Vec3 vec1, Vec3 vec2) {
 	//|a| * |b| * cos(angle between a and b)
@@ -1239,21 +1172,19 @@ Vec3 CrossVec3(Vec3 a, Vec3 b) {
 
 	return vec;
 }
-Vec3 VecTripleVec3(Vec3 a,Vec3 b,Vec3 c){
-	return (b * DotVec3(a,c)) - (c * DotVec3(a,b));
+Vec3 VecTripleVec3(Vec3 a, Vec3 b, Vec3 c) {
+	return (b * DotVec3(a, c)) - (c * DotVec3(a, b));
 }
 
-
-f32 ScalTripleVec3(Vec3 a,Vec3 b,Vec3 c){
-	//NOTE: a b c = c a b = b c a
-	//c b a = b a c = a c b = - (a b c)
-	//Think about it of a triangle in clockwise points a b c
-	//When winding clockwise, it is the same
-	//When winding counter clockwise, it is the negative of the
-	//normal value
-	return DotVec3(CrossVec3(a,b),c);
+f32 ScalTripleVec3(Vec3 a, Vec3 b, Vec3 c) {
+	// NOTE: a b c = c a b = b c a
+	// c b a = b a c = a c b = - (a b c)
+	// Think about it of a triangle in clockwise points a b c
+	// When winding clockwise, it is the same
+	// When winding counter clockwise, it is the negative of the
+	// normal value
+	return DotVec3(CrossVec3(a, b), c);
 }
-
 
 f32 CompVec3(Vec3 a, Vec3 b) { return DotVec3(a, NormalizeVec3(b)); }
 
@@ -1261,27 +1192,22 @@ Vec3 ProjectOntoVec3(Vec3 a, Vec3 b) {
 	return CompVec3(a, b) * NormalizeVec3(b);
 }
 
-
-
-f32 DistPointToPlane(Plane plane, Vec3 point){
-	return DotVec4(plane.vec,Vec3ToVec4(point));
+f32 DistPointToPlane(Plane plane, Vec3 point) {
+	return DotVec4(plane.vec, Vec3ToVec4(point));
 }
 
-
-Vec3 ReflectPointPlaneVec3(Plane plane, Vec3 point){
-	f32 dist = DistPointToPlane(plane,point);
+Vec3 ReflectPointPlaneVec3(Plane plane, Vec3 point) {
+	f32 dist = DistPointToPlane(plane, point);
 
 	return point - (dist * plane.norm * 2.0f);
 }
 
 Vec3 ProjectVec3OntoPlane(Vec3 vec, Plane plane) {
 	auto dir = plane.norm * plane.d;
-	return RejectVec3(vec,plane.norm) - dir;
+	return RejectVec3(vec, plane.norm) - dir;
 }
 
-Vec3 RejectVec3(Vec3 a, Vec3 b){
-	return a - ProjectOntoVec3(a,b);
-}
+Vec3 RejectVec3(Vec3 a, Vec3 b) { return a - ProjectOntoVec3(a, b); }
 
 Vec3 GetVecRotation(Vec3 lookat) {
 	// updown,leftright,roll left roll right
@@ -1347,13 +1273,13 @@ Vec3 RotateVec3(Vec3 vec, Vec3 rotation) {
 
 	return rot_matrix * vec;
 }
-Vec3 RotateAxisVec3(Vec3 vec, Vec3 axis,f32 angle){
-	axis = NormalizeVec3(axis); 
+Vec3 RotateAxisVec3(Vec3 vec, Vec3 axis, f32 angle) {
+	axis = NormalizeVec3(axis);
 	f32 s = sinf(angle);
 	f32 c = cosf(angle);
 
-	auto ret = (c * vec) + (ProjectOntoVec3(vec,axis) * (1.0f - c))
-		+ (s * CrossVec3(axis,vec));
+	auto ret = (c * vec) + (ProjectOntoVec3(vec, axis) * (1.0f - c)) +
+		   (s * CrossVec3(axis, vec));
 
 	return ret;
 }
@@ -1367,8 +1293,8 @@ Vec3 ReflectVec3(Vec3 vec, Vec3 normal) {
 	return SubVec3(vec, MulConstRVec3(ProjectOntoVec3(vec, normal), 2.0f));
 }
 
-Vec3 InvolVec3(Vec3 vec, Vec3 normal){
-	return ProjectOntoVec3(vec,normal) - RejectVec3(vec,normal);
+Vec3 InvolVec3(Vec3 vec, Vec3 normal) {
+	return ProjectOntoVec3(vec, normal) - RejectVec3(vec, normal);
 }
 
 f32 MagnitudeVec2(Vec2 a) {
@@ -1378,9 +1304,7 @@ f32 MagnitudeVec2(Vec2 a) {
 	return sqrtf(a.x + a.y);
 }
 
-f32 SquaredVec2(Vec2 vec){
-	return DotVec2(vec, vec);
-}
+f32 SquaredVec2(Vec2 vec) { return DotVec2(vec, vec); }
 
 f32 DotVec2(Vec2 a, Vec2 b) {
 	a = SchurVec2(a, b);
@@ -1396,7 +1320,6 @@ Vec2 SchurVec2(Vec2 a, Vec2 b) {
 }
 
 Vec2 RotateVec2(Vec2 vec, f32 rotation) {
-
 	f32 c = cosf(rotation);
 	f32 s = sinf(rotation);
 
@@ -1431,13 +1354,13 @@ Quat NLerpQuat(Quat a, Quat b, f32 step) {
 	return q;
 }
 
-//TODO: Look at this again
+// TODO: Look at this again
 Quat SLerpQuat(Quat a, Quat b, f32 step) {
-	//MARK: if these two are normalized, they would already
-	//be clamped between -1 and 1
-	
-	b = Neighbourhood(a,b);
-	
+	// MARK: if these two are normalized, they would already
+	// be clamped between -1 and 1
+
+	b = Neighbourhood(a, b);
+
 	f32 dot = _clampf(DotQuat(a, b), -1.0f, 1.0f);
 
 	f32 angle = acosf(dot) * step;
@@ -1463,29 +1386,28 @@ DualQ NormalizeDualQ(DualQ d) {
 	return d;
 }
 
-struct ScrewCoord{
+struct ScrewCoord {
 	f32 angle;
 	f32 d;
 	Vec3 l;
 	Vec3 m;
 };
 
-ScrewCoord ToScrew(DualQ dq){
-
+ScrewCoord ToScrew(DualQ dq) {
 	Vec3 v_r = dq.q1.v;
 	Vec3 v_d = dq.q2.v;
 
 	f32 k = 1.0f / MagnitudeVec3(v_r);
 
 	f32 a = 2.0f * acosf(dq.q1.w);
-	f32 d = -2.0f * dq.q2.w * k; 
+	f32 d = -2.0f * dq.q2.w * k;
 	auto l = v_r * k;
 	auto m = (v_d - (l * (d * dq.q1.w * 0.5f))) * k;
 
-	return {a,d,l,m};
+	return {a, d, l, m};
 }
 
-Quat ToQuat(Vec3 v,f32 w){
+Quat ToQuat(Vec3 v, f32 w) {
 	Quat q = {};
 
 	q.v = v;
@@ -1494,8 +1416,7 @@ Quat ToQuat(Vec3 v,f32 w){
 	return q;
 }
 
-DualQ ToDQ(ScrewCoord s){
-
+DualQ ToDQ(ScrewCoord s) {
 	f32 sn = sinf(s.angle * 0.5f);
 	f32 cs = cosf(s.angle * 0.5f);
 
@@ -1505,11 +1426,10 @@ DualQ ToDQ(ScrewCoord s){
 	f32 w_d = (s.d * -0.5f) * sn;
 	Vec3 v_d = (sn * s.m) + (s.d * 0.5f * cs * s.l);
 
-	return {ToQuat(v_r,w_r),ToQuat(v_d,w_d)};
+	return {ToQuat(v_r, w_r), ToQuat(v_d, w_d)};
 }
 
-DualQ PowerDQ(DualQ dq,f32 t){
-
+DualQ PowerDQ(DualQ dq, f32 t) {
 	auto s = ToScrew(dq);
 
 	s.angle *= t;
@@ -1518,38 +1438,35 @@ DualQ PowerDQ(DualQ dq,f32 t){
 	return ToDQ(s);
 }
 
-DualQ ConjugateDualQ(DualQ dq){
+DualQ ConjugateDualQ(DualQ dq) {
 	dq.q1 = ConjugateQuat(dq.q1);
 	dq.q2 = ConjugateQuat(dq.q2);
 
 	return dq;
 }
 
-
-//TODO: test this using a visual aid
-DualQ ScLerp(DualQ a,DualQ b,f32 step){
-
-	b = Neighbourhood(a.q1,b);
+// TODO: test this using a visual aid
+DualQ ScLerp(DualQ a, DualQ b, f32 step) {
+	b = Neighbourhood(a.q1, b);
 
 	auto k = ConjugateDualQ(a) * b;
-	return NormalizeDualQ(a * PowerDQ(k,step));
+	return NormalizeDualQ(a * PowerDQ(k, step));
 }
 
-DualQ LerpDualQ(DualQ a,DualQ b,f32 step){
-	b = Neighbourhood(a.q1,b);
+DualQ LerpDualQ(DualQ a, DualQ b, f32 step) {
+	b = Neighbourhood(a.q1, b);
 	return NormalizeDualQ(a + ((b - a) * step));
 }
 
 // TODO:  Test these
 
-//NOTE: these are the general functions that just return the t
-//values
-f32 IntersectLine3t(Line3 a, Line3 b){
+// NOTE: these are the general functions that just return the t
+// values
+f32 IntersectLine3t(Line3 a, Line3 b) {
 	auto cross_ab = NormalizeVec3(CrossVec3(a.dir, b.dir));
 	auto cross_diff = NormalizeVec3(CrossVec3(b.pos - a.pos, b.dir));
 
 	auto dot = DotVec3(cross_ab, cross_diff);
-
 
 	f32 t = 0.0f;
 
@@ -1573,8 +1490,7 @@ f32 IntersectLine3t(Line3 a, Line3 b){
 	return t;
 }
 
-f32 IntersectLine3Planet(Line3 line,Plane plane){
-
+f32 IntersectLine3Planet(Line3 line, Plane plane) {
 	/*
 	  we first imagine a line (A) from our plane normal position (B) to any
 	  position on our line (L). the angle between the normal (N) and the
@@ -1594,69 +1510,65 @@ f32 IntersectLine3Planet(Line3 line,Plane plane){
 	  t = (dot((B - P),N))/(dot(dir,N))
 	*/
 
-	auto a = DotVec4(plane.vec,Vec3ToVec4(line.pos));
-	auto b = DotVec4(plane.vec,Vec3ToDir4(line.dir));
+	auto a = DotVec4(plane.vec, Vec3ToVec4(line.pos));
+	auto b = DotVec4(plane.vec, Vec3ToDir4(line.dir));
 
-	f32 t =  -1.0f * (a/b);
+	f32 t = -1.0f * (a / b);
 	return t;
 }
 
-b32 IsPerpendicularLine3Plane(Line3 a,Plane b){
-
-	//Assuming line.dir and plane.norm and perpendicular to each
-	//other, the only time they intersect is if the line is on
-	//the plane. Thus any point on the line will be perpendicular
-	//to the plane
+b32 IsPerpendicularLine3Plane(Line3 a, Plane b) {
+	// Assuming line.dir and plane.norm and perpendicular to each
+	// other, the only time they intersect is if the line is on
+	// the plane. Thus any point on the line will be perpendicular
+	// to the plane
 
 	m32 fi;
 
 	auto plane_pos = GetPlanePos(b);
 	auto dir = NormalizeVec3(a.pos - plane_pos);
 
-
-	fi.f = DotVec3(dir,b.norm);
+	fi.f = DotVec3(dir, b.norm);
 	return !fi.u;
-
 }
 
-
-f32 DistPointRay3ToLine3(Line3 line,Vec3 point){
-	auto c = CrossVec3(point - line.pos,line.dir);
+f32 DistPointRay3ToLine3(Line3 line, Vec3 point) {
+	auto c = CrossVec3(point - line.pos, line.dir);
 
 	return sqrtf(SquaredVec3(c));
 }
 
-f32 DistLineRay3ToLine3(Line3 a,Line3 b){
-
-	if(IntersectLine3(a,b)){
+f32 DistLineRay3ToLine3(Line3 a, Line3 b) {
+	if (IntersectLine3(a, b)) {
 		return 0.0f;
 	}
 
-
-	f32 d = DotVec3(a.dir,b.dir);
+	f32 d = DotVec3(a.dir, b.dir);
 
 	f32 v1_sq = SquaredVec3(a.dir);
 	f32 v2_sq = SquaredVec3(b.dir);
-	
+
 	f32 det = (d * d) - (v1_sq * v2_sq);
 
-	if(det > 0.0f && det < _f32_error_offset){
-		//the lines are parallel
-		auto k = CrossVec3((b.pos - a.pos),a.dir);
+	if (det > 0.0f && det < _f32_error_offset) {
+		// the lines are parallel
+		auto k = CrossVec3((b.pos - a.pos), a.dir);
 		return sqrtf(SquaredVec3(k));
 	}
 
-	__m128 res = {-1.0f * v2_sq,d,-1.0f * d,v1_sq};
+	__m128 res = {-1.0f * v2_sq, d, -1.0f * d, v1_sq};
 
-	f32 i = DotVec3((b.pos - a.pos),a.dir);
-	f32 j = DotVec3((b.pos - a.pos),b.dir);
+	f32 i = DotVec3((b.pos - a.pos), a.dir);
+	f32 j = DotVec3((b.pos - a.pos), b.dir);
 
-	__m128 k = {i,j,i,j};
+	__m128 k = {i, j, i, j};
 
-	res = _mm_mul_ps(_mm_mul_ps(res,k),_mm_set1_ps(1.0f/d));
+	res = _mm_mul_ps(_mm_mul_ps(res, k), _mm_set1_ps(1.0f / d));
 
-	f32 t0 = res[0] + res[1];
-	f32 t1 = res[2] + res[3];
+	auto s = (f32*)&res;
+
+	f32 t0 = s[0] + s[1];  
+	f32 t1 = s[2] + s[3]; 
 
 	auto dir = (a.pos + (t0 * a.dir)) - (b.pos + (t1 * b.dir));
 
@@ -1691,7 +1603,7 @@ b32 IntersectLine3(Line3 a, Line3 b) {
 
 	*/
 
-	if (InternalIsParallel(a,b)) {
+	if (InternalIsParallel(a, b)) {
 		return false;
 	}
 
@@ -1703,12 +1615,11 @@ b32 IntersectLine3(Line3 a, Line3 b) {
 }
 
 b32 IntersectOutLine3(Line3 a, Line3 b, Point3* out_point) {
-
 	if (IntersectLine3(a, b)) {
 		return false;
 	}
 
-	f32 t = IntersectLine3t(a,b);
+	f32 t = IntersectLine3t(a, b);
 
 	*out_point = (a.dir * t) + a.pos;
 
@@ -1727,24 +1638,21 @@ b32 TypedIntersectLine3(Line3 a, Line3 b) {
 	return is_intersect;
 }
 
-
-
 b32 IntersectLine3Plane(Line3 a, Plane b) {
 	m32 fi1;
 
 	// if they are perpendicular, f is 0 and they do not intersect
-	fi1.f = DotVec3(a.dir,b.norm);
+	fi1.f = DotVec3(a.dir, b.norm);
 
 	return fi1.u != 0;
 }
 
 b32 IntersectOutLine3Plane(Line3 a, Plane b, Point3* out_point) {
-
 	if (!IntersectLine3Plane(a, b)) {
 		return false;
 	}
 
-	f32 t = IntersectLine3Planet(a,b);
+	f32 t = IntersectLine3Planet(a, b);
 
 	*out_point = a.pos + (t * a.dir);
 
@@ -1758,7 +1666,7 @@ b32 TypedIntersectLine3Plane(Line3 a, Plane b) {
 	*/
 
 	auto is_intersect = IntersectLine3Plane(a, b);
-	auto is_perpendicular = IsPerpendicularLine3Plane(a,b);
+	auto is_perpendicular = IsPerpendicularLine3Plane(a, b);
 
 	if (!is_intersect && is_perpendicular) {
 		return INTERSECT_INFINITE;
@@ -1791,7 +1699,6 @@ b32 IntersectOutLine2(Line2 a, Line2 b, Point2* out_point) {
 }
 
 b32 TypedIntersectLine2(Line2 a, Line2 b) {
-
 	b32 is_parallel = InternalIsParallel(a, b);
 	b32 is_intersect = IntersectLine2(a, b);
 	b32 is_inline = InternalIsInline(a, b);
@@ -1804,12 +1711,11 @@ b32 TypedIntersectLine2(Line2 a, Line2 b) {
 }
 
 b32 IntersectRay3(Ray3 a, Ray3 b) {
-
 	if (InternalIsParallel(a, b)) {
 		return false;
 	}
 
-	f32 t = IntersectLine3t(Ray3ToLine3(a),Ray3ToLine3(b));
+	f32 t = IntersectLine3t(Ray3ToLine3(a), Ray3ToLine3(b));
 
 	// We need the k term and make sure that that is positive too
 
@@ -1824,13 +1730,11 @@ b32 IntersectRay3(Ray3 a, Ray3 b) {
 }
 
 b32 IntersectOutRay3(Ray3 a, Ray3 b, Point3* out_point) {
-
 	if (InternalIsParallel(a, b)) {
 		return false;
 	}
 
-
-	f32 t = IntersectLine3t(Ray3ToLine3(a),Ray3ToLine3(b));
+	f32 t = IntersectLine3t(Ray3ToLine3(a), Ray3ToLine3(b));
 
 	// We need the k term and make sure that that is positive too
 
@@ -1859,22 +1763,20 @@ b32 TypedIntersectRay3(Ray3 a, Ray3 b) {
 }
 
 b32 IntersectRay3Plane(Ray3 a, Plane b) {
-
-	if(!IntersectLine3Plane(Ray3ToLine3(a),b)){
+	if (!IntersectLine3Plane(Ray3ToLine3(a), b)) {
 		return false;
 	}
 
-	f32 t = IntersectLine3Planet(Ray3ToLine3(a),b);
+	f32 t = IntersectLine3Planet(Ray3ToLine3(a), b);
 	return t > _f32_error_offset;
 }
 
 b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
-
-	if(!IntersectLine3Plane(Ray3ToLine3(a),b)){
+	if (!IntersectLine3Plane(Ray3ToLine3(a), b)) {
 		return false;
 	}
 
-	f32 t = IntersectLine3Planet(Ray3ToLine3(a),b);
+	f32 t = IntersectLine3Planet(Ray3ToLine3(a), b);
 
 	if (t >= _f32_error_offset) {
 		*out_point = a.pos + (t * a.dir);
@@ -1886,8 +1788,7 @@ b32 IntersectOutRay3Plane(Ray3 a, Plane b, Point3* out_point) {
 
 b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 	auto is_intersect = IntersectRay3Plane(a, b);
-	auto is_perpendicular = 
-		IsPerpendicularLine3Plane(Ray3ToLine3(a),b);
+	auto is_perpendicular = IsPerpendicularLine3Plane(Ray3ToLine3(a), b);
 
 	if (!is_intersect && is_perpendicular) {
 		return INTERSECT_INFINITE;
@@ -1897,7 +1798,6 @@ b32 TypedIntersectRay3Plane(Ray3 a, Plane b) {
 }
 
 b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point) {
-
 	Vec3 line_to_sphere = SubVec3(sphere.pos, line.pos);
 
 	f32 a = DotVec3(line.dir, line.dir);
@@ -1919,9 +1819,9 @@ b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point) {
 
 	f32 error_margin = _f32_error_offset;
 
-	b32 line_condition =  (abs_t0 < _f32_error_offset) || 
-		(abs_t1 < _f32_error_offset);
-			    
+	b32 line_condition =
+	    (abs_t0 < _f32_error_offset) || (abs_t1 < _f32_error_offset);
+
 	if (line_condition) {
 		return 0;
 	}
@@ -1936,13 +1836,11 @@ b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point) {
 }
 
 b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
-
 	Vec3 ray_to_sphere = SubVec3(sphere.pos, ray.pos);
 
 	f32 a = SquaredVec3(ray.dir);
 	f32 b = -2.0f * DotVec3(ray.dir, ray_to_sphere);
-	f32 c = SquaredVec3(ray_to_sphere) -
-		(sphere.radius * sphere.radius);
+	f32 c = SquaredVec3(ray_to_sphere) - (sphere.radius * sphere.radius);
 	f32 discriminant = (b * b) - (4.0f * a * c);
 
 	if (discriminant < 0.0f) {
@@ -1953,8 +1851,7 @@ b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
 	f32 t0 = ((-1.0f * b) + root) / (2.0f * a);
 	f32 t1 = ((-1.0f * b) - root) / (2.0f * a);
 
-
-	//MARK: We do not support intersections from the inside
+	// MARK: We do not support intersections from the inside
 	if (t0 <= _f32_error_offset || t1 <= _f32_error_offset) {
 		return 0;
 	}
@@ -1969,10 +1866,9 @@ b32 IntersectClosestOutRay3Sphere(Ray3 ray, Sphere sphere, Point3* point) {
 }
 
 b32 IntersectRay2(Ray2 a, Ray2 b) {
-
 	Point2 p = {};
 
-	if(!IntersectOutLine2(Ray2ToLine2(a),Ray2ToLine2(b),&p)){
+	if (!IntersectOutLine2(Ray2ToLine2(a), Ray2ToLine2(b), &p)) {
 		return false;
 	}
 
@@ -1987,10 +1883,9 @@ b32 IntersectRay2(Ray2 a, Ray2 b) {
 }
 
 b32 IntersectOutRay2(Ray2 a, Ray2 b, Point2* out_point) {
-
 	Point2 p = {};
 
-	if(!IntersectOutLine2(Ray2ToLine2(a),Ray2ToLine2(b),&p)){
+	if (!IntersectOutLine2(Ray2ToLine2(a), Ray2ToLine2(b), &p)) {
 		return false;
 	}
 
@@ -2021,42 +1916,41 @@ b32 TypedIntersectRay2(Ray2 a, Ray2 b) {
 	return is_intersect;
 }
 
+b32 Intersect3Planes(Plane a, Plane b, Plane c, Vec3* out) {
+	f32 k = ScalTripleVec3(a.norm, b.norm, c.norm);
 
-b32 Intersect3Planes(Plane a,Plane b,Plane c,Vec3* out){
-	f32 k = ScalTripleVec3(a.norm,b.norm,c.norm);
-
-	if(CmpErrorZero(k)){
+	if (CmpErrorZero(k)) {
 		return false;
 	}
 
-	k = 1.0f/k;
-	
-	auto d = CrossVec3(c.norm,b.norm) * a.d;
-	auto e = CrossVec3(a.norm,c.norm) * b.d;
-	auto f = CrossVec3(b.norm,a.norm) * c.d;
+	k = 1.0f / k;
+
+	auto d = CrossVec3(c.norm, b.norm) * a.d;
+	auto e = CrossVec3(a.norm, c.norm) * b.d;
+	auto f = CrossVec3(b.norm, a.norm) * c.d;
 
 	*out = (d + e + f) * k;
 
 	return true;
 }
 
-b32 Intersect2Planes(Plane a,Plane b,Line3* out){
-	auto dir = CrossVec3(a.norm,b.norm);
+b32 Intersect2Planes(Plane a, Plane b, Line3* out) {
+	auto dir = CrossVec3(a.norm, b.norm);
 	auto dir_sq = SquaredVec3(dir);
 
-	if(CmpErrorZero(dir_sq)){
+	if (CmpErrorZero(dir_sq)) {
 		return false;
 	}
 
-	auto c = CrossVec3(dir,b.norm) * a.d;
-	auto d = CrossVec3(a.norm,dir) * a.d;
+	auto c = CrossVec3(dir, b.norm) * a.d;
+	auto d = CrossVec3(a.norm, dir) * a.d;
 
-	auto pos = (c + d)/dir_sq;
+	auto pos = (c + d) / dir_sq;
 
-	auto l = ConstructLine3(pos,dir);
+	auto l = ConstructLine3(pos, dir);
 
-	(Vec3)out->pos = l.pos;
-	(Vec3)out->dir = l.dir;
+	(Vec3) out->pos = l.pos;
+	(Vec3) out->dir = l.dir;
 
 	return true;
 }
@@ -2139,11 +2033,11 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 
 	Mat4 matrix = {};
 
-	_rc4(matrix,0, 0) = a;
-	_rc4(matrix,1, 1) = b;
-	_rc4(matrix,2, 2) = c;
-	_rc4(matrix,3, 2) = d;
-	_rc4(matrix,2, 3) = -1.0f;
+	_rc4(matrix, 0, 0) = a;
+	_rc4(matrix, 1, 1) = b;
+	_rc4(matrix, 2, 2) = c;
+	_rc4(matrix, 3, 2) = d;
+	_rc4(matrix, 2, 3) = -1.0f;
 
 	return matrix;
 }
@@ -2161,8 +2055,7 @@ Mat4 WorldMat4V(Vec3 position, Vec3 rotation, Vec3 scale) {
 
 	Mat4 rotation_matrix4 = Mat3ToMat4(RotateMat3(rotation));
 
-	matrix =
-	    WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
+	matrix = WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
 
 	return matrix;
 }
@@ -2176,59 +2069,48 @@ Mat4 WorldMat4Q(Vec3 position, Quat rotation, Vec3 scale) {
 
 	Mat4 rotation_matrix4 = QuatToMat4(rotation);
 
-	matrix =
-	    WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
+	matrix = WorldMat4M(position_matrix4, rotation_matrix4, scale_matrix4);
 
 	return matrix;
 }
 
-
-Mat4 TransformRelativeMat4(Mat4 transform,Vec3 new_origin){
-	//TODO: we can optimize this by just doing the math
-	auto p = new_origin;	
+Mat4 TransformRelativeMat4(Mat4 transform, Vec3 new_origin) {
+	// TODO: we can optimize this by just doing the math
+	auto p = new_origin;
 	auto q = -1.0f * p;
 
 	Mat4 t0 = {
-		1,0,0,p.x,
-		0,1,0,p.y,
-		0,0,1,p.z,
-		0,0,0,1,
+	    1, 0, 0, p.x, 0, 1, 0, p.y, 0, 0, 1, p.z, 0, 0, 0, 1,
 	};
 
 	Mat4 t1 = {
-		1,0,0,q.x,
-		0,1,0,q.y,
-		0,0,1,q.z,
-		0,0,0,1,
+	    1, 0, 0, q.x, 0, 1, 0, q.y, 0, 0, 1, q.z, 0, 0, 0, 1,
 	};
 
 	return t1 * transform * t0;
 }
 
-Mat3 ConstructCrossMat3(Vec3 vec){
-		Mat3 mat = {
-			0,-vec.z,vec.y,
-			vec.z,0,-vec.x,
-			-vec.y,vec.x,0,
+Mat3 ConstructCrossMat3(Vec3 vec) {
+	Mat3 mat = {
+	    0, -vec.z, vec.y, vec.z, 0, -vec.x, -vec.y, vec.x, 0,
 
-		};
+	};
 
-		return mat;
+	return mat;
 }
 
-
-Mat3 ConstructProjectOntoMat3(Vec3 vec){
+Mat3 ConstructProjectOntoMat3(Vec3 vec) {
 	f32 k = 1.0f / (SquaredVec3(vec));
-	return k * OuterMat3(vec,vec);
+	return k * OuterMat3(vec, vec);
 }
 
-Mat3 ConstructRejectMat3(Vec3 v){
+Mat3 ConstructRejectMat3(Vec3 v) {
 	f32 k = 1.0f / (SquaredVec3(v));
 
 	Mat3 mat = {
-		(v.y * v.y) + (v.z * v.z), - (v.x * v.y), - (v.x * v.z),
-		-(v.x * v.y), (v.x * v.x) + (v.z * v.z), -(v.y * v.z),
-		-(v.x * v.z), -(v.y * v.z), (v.x * v.x) + (v.y * v.y),
+	    (v.y * v.y) + (v.z * v.z), -(v.x * v.y), -(v.x * v.z), -(v.x * v.y),
+	    (v.x * v.x) + (v.z * v.z), -(v.y * v.z), -(v.x * v.z), -(v.y * v.z),
+	    (v.x * v.x) + (v.y * v.y),
 	};
 
 	return mat * k;
@@ -2253,16 +2135,14 @@ Quat ConstructQuat(Vec3 vector, f32 angle) {
 	return quaternion;
 }
 
-
-Quat ConstructVecQuat(Vec3 v1,Vec3 v2){
-
+Quat ConstructVecQuat(Vec3 v1, Vec3 v2) {
 	v1 = NormalizeVec3(v1);
 	v2 = NormalizeVec3(v2);
 
-	f32 c = Cosf(v1,v2);
+	f32 c = Cosf(v1, v2);
 
 	Quat q = {};
-	q.v = CrossVec3(v1,v2) * (1.0f/(2 * c));
+	q.v = CrossVec3(v1, v2) * (1.0f / (2 * c));
 	q.r = c;
 
 	return q;
@@ -2275,7 +2155,7 @@ DualQ ConstructDualQM(Mat4 transform) {
 	Vec3 translation = Mat4ToTranslationVec(transform);
 
 	d.q2 =
-	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
+	    Quat{translation.x, translation.y, translation.z, 0} * d.q1 * 0.5f;
 
 	return NormalizeDualQ(d);
 }
@@ -2289,7 +2169,7 @@ DualQ ConstructDualQ(Quat rotation, Vec3 translation) {
 	DualQ d = {};
 	d.q1 = rotation;
 	d.q2 =
-	    Quat{translation.x, translation.y, translation.z,0} * d.q1 * 0.5f;
+	    Quat{translation.x, translation.y, translation.z, 0} * d.q1 * 0.5f;
 	return NormalizeDualQ(d);
 }
 
@@ -2375,11 +2255,9 @@ void PrintQuat(Quat vec) {
 }
 
 void PrintDualQ(DualQ d) {
-	printf("%f   %f   %f   %f | %f %f %f %f\n", 
-			(f64)d.q1.x, (f64)d.q1.y, (f64)d.q1.z,
-			(f64)d.q1.w,
-			(f64)d.q2.x, (f64)d.q2.y, (f64)d.q2.z,
-			(f64)d.q2.w);
+	printf("%f   %f   %f   %f | %f %f %f %f\n", (f64)d.q1.x, (f64)d.q1.y,
+	       (f64)d.q1.z, (f64)d.q1.w, (f64)d.q2.x, (f64)d.q2.y, (f64)d.q2.z,
+	       (f64)d.q2.w);
 }
 }
 
@@ -2419,7 +2297,7 @@ Mat2 operator*(f32 lhs, Mat2 rhs) { return MulConstLMat2(lhs, rhs); }
 
 Mat2 operator*(Mat2 lhs, f32 rhs) { return rhs * lhs; }
 
-Mat2 operator/(Mat2 lhs, Mat2 rhs) { return DivMat2(lhs,rhs); }
+Mat2 operator/(Mat2 lhs, Mat2 rhs) { return DivMat2(lhs, rhs); }
 
 Vec4 operator+(Vec4 lhs, Vec4 rhs) { return AddVec4(lhs, rhs); }
 

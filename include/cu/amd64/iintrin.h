@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ttype.h"
+
 #include "xmmintrin.h"//sse (ivy bridge)
 #include "emmintrin.h"//sse2 (ivy bridge)
 #include "immintrin.h"//fma (haswell)

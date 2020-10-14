@@ -340,6 +340,12 @@ void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled){
 void WCreateWindowConnection(WPlatform platform){}
 void WDestroyWindowConnection(){}
 
+void WDestroyBackBuffer(WBackBufferContext* buffer){
+
+	unalloc(buffer->pixels);
+	*buffer = {};
+}
+
 #ifdef __cplusplus
 }
 #endif
