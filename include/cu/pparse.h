@@ -67,7 +67,7 @@ void _ainline PCharToHexString(u8 c,s8* dst_buffer){
         dst_buffer++;
     }
     
-    s8 tbuffer[128] = {};
+    s8 tbuffer[128] = {0};
     u32 count = 0;
     
     while(c){
@@ -221,8 +221,14 @@ f32 PHexStringToFloat(const s8* string);
 
 //We should add an function pointer to allow different criteria 
 
+
+//NOTE: a chunk is a series of visible characters separated by white space
+void PGetChunk(s8* dst_string,s8* src_string,ptrsize* pos,u32* word_count);
+
+//NOTE: a word is a series of alphabetic characters separated by white space
 void PGetWord(s8* dst_string,s8* src_string,ptrsize* pos,u32* word_count);
 
+//NOTE: a word is a series of alphabetic  and numeric characters separated by white space. Meant for parsing things like var names
 void PGetSymbol(s8* dst_string,s8* src_string,ptrsize* pos,u32* word_count);
 
 void PGetLine(s8* dst_string,s8* src_string,ptrsize* pos,u32* len);
@@ -497,7 +503,7 @@ enum CParseTags{
 
 struct EvalChar{
     u64 hash;
-    s8 string[128] = {};
+    s8 string[128] = {0};
     
     u32 tag;
 };

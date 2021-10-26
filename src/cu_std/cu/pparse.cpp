@@ -163,6 +163,26 @@ f32 PHexStringToFloat(const s8* string){
 }
 
 
+void PGetChunk(s8* dst_string,s8* src_string,ptrsize* pos,u32* word_count){
+    u32 startpos = *pos;
+    u32 curpos = *pos;
+    
+    //NOTE:should this be the default
+    while(!PIsWhiteSpace(src_string[curpos])){
+        curpos++;
+    }
+    
+    u32 len = (curpos - startpos);
+    
+    memcpy(dst_string,(src_string + startpos),len);
+    
+    *pos = curpos;
+    
+    if(word_count){
+        *word_count = len;  
+    }
+}
+
 void PGetWord(s8* dst_string,s8* src_string,ptrsize* pos,u32* word_count){
     
     u32 startpos = *pos;
