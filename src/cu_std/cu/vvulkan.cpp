@@ -839,31 +839,6 @@ void VInitVulkan(){
         "vulkan-1.dll",
         "vulkan.dll",
 #else
-        "libvulkan.so.1.1.70", // required for 1.1
-        
-        "libvulkan.so.1.0.66",
-        "libvulkan.so.1.0.65",
-        "libvulkan.so.1.0.61",
-        "libvulkan.so.1.0.57",
-        "libvulkan.so.1.0.54",
-        "libvulkan.so.1.0.51",
-        "libvulkan.so.1.0.49",
-        "libvulkan.so.1.0.46",
-        "libvulkan.so.1.0.42",
-        "libvulkan.so.1.0.39",
-        "libvulkan.so.1.0.37",
-        "libvulkan.so.1.0.33",
-        "libvulkan.so.1.0.30",
-        "libvulkan.so.1.0.26",
-        "libvulkan.so.1.0.24",
-        "libvulkan.so.1.0.21",
-        "libvulkan.so.1.0.17",
-        "libvulkan.so.1.0.13",
-        "libvulkan.so.1.0.11",
-        "libvulkan.so.1.0.08",
-        "libvulkan.so.1.0.05",
-        "libvulkan.so.1.0.03",
-        "libvulkan.so.1",
         "libvulkan.so",
         
         
@@ -2001,7 +1976,7 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
     
     //use this for runtime resource validation
     const s8* layer_array[] = {
-        "VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_KHRONOS_validation",
 #if 0
         "VK_LAYER_LUNARG_device_simulation"
 #endif
