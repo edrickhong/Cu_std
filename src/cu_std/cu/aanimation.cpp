@@ -116,8 +116,6 @@ Vec4 _ainline ALerpAnimation(AAnimationKey* key_array,u32 key_count,f32 animatio
 Quat _ainline  ALerpAnimationQuat(AAnimationKey* key_array,u32 key_count,
                                                      f32 animationtime){
 
-#if 0
-
     if(key_count ==1){
         
         Quat ret = Vec4ToQuat(key_array[0].value);
@@ -144,40 +142,6 @@ Quat _ainline  ALerpAnimationQuat(AAnimationKey* key_array,u32 key_count,
 
     return NLerpQuat(Vec4ToQuat(current.value),Vec4ToQuat(next.value),step);
 
-#else
-    if(key_count ==1){
-        
-        Quat ret;
-        
-        ret.x = key_array[0].value.y;
-        ret.y = key_array[0].value.z;
-        ret.z = key_array[0].value.w;
-        ret.w = key_array[0].value.x;
-        
-        return ret;
-    }
-    
-    u32 frameindex = 0;
-    
-    for(u32 i = 0; i < key_count -1;i++){
-        
-        if(animationtime < key_array[i + 1].time){
-            frameindex = i;
-            break;
-        }
-        
-    }
-    
-    AAnimationKey current = key_array[frameindex];
-    AAnimationKey next =
-        key_array[(frameindex + 1) % key_count];
-    
-    
-    f32 step = (animationtime - current.time)/(next.time - current.time);
-    
-    return NLerpQuat(Quat{current.value.y,current.value.z,current.value.w,current.value.x},
-                 Quat{next.value.y,next.value.z,next.value.w,next.value.x},step);
-#endif
 }
 
 void ALinearTransformLinearSkeleton(u32 animation_index,f32 animationtime,
@@ -245,6 +209,8 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
                   ALinearBone* root,DBGPTR(Mat4) result){
     
     TIMEBLOCK(DarkViolet);
+
+#if 1
     
     AAnimationSet animation = animation_array[animation_index];
     
@@ -258,5 +224,11 @@ void ALinearBlend(f32 time_ms,u32 animation_index,AAnimationSet* animation_array
     
     ALinearTransformLinearSkeleton(animation_index,animationtime,root,
                                    IdentityMat4(),result,&result_count);
+#else
+
+    for(u32 i = 0; i < 43; i++){
+	    result[i] = IdentityMat4();
+    }
+#endif
 }
 
