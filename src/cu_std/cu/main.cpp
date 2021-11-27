@@ -8,6 +8,8 @@
 #include "mode.h"
 #include "ttype.h"
 
+#include "print.cpp"
+
 
 #include "audio_util.cpp"
 
