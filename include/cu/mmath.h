@@ -1154,5 +1154,32 @@ DualQ operator*(DualQ lhs, DualQ rhs);
 DualQ operator*(f32 lhs, DualQ rhs);
 DualQ operator*(DualQ lhs, f32 rhs);
 
+
+void _ainline Print(Mat4 matrix){
+	PrintMat4(matrix);
+}
+void _ainline Print(Mat3 matrix){
+	PrintMat3(matrix);
+}
+
+void _ainline Print(Vec4 vec){
+	PrintVec4(vec);
+}
+void _ainline Print(Vec3 vec){
+	PrintVec3(vec);
+}
+
+void _ainline Print(Vec2 vec){
+	PrintVec2(vec);
+}
+
+void _ainline Print(Quat quat){
+	PrintQuat(quat);
+}
+void _ainline Print(DualQ d){
+	PrintDualQ(d);
+}
+
+
 #endif
 
