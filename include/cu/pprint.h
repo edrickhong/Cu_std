@@ -1,6 +1,8 @@
 #pragma once
 
-#pragma message "PRINT IS BEING USED"
+
+
+#ifdef __cplusplus
 
 void PPrint(f64 a);
 void PPrint(f32 a);
@@ -23,11 +25,15 @@ void PPrintln(T a,Args... args){
 
 
 #ifdef DEBUG
+
 #define _PPrint(...) PPrint(...)
 #define _PPrintl(...) PPrintl(...)
+
 #else
+
 #define _PPrint(...)
 #define _PPrintl(...)
+
 #endif
 
 #endif
