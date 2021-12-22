@@ -150,6 +150,15 @@ typedef unsigned int ptrsize;
 #define _removesignedbit(value) (value & 0x7FFFFFFF)
 #define _addsignedbit(value) (value |  (1 << 31))
 
+
+
+#ifdef __cplusplus
+#define _imm  constexpr
+#else
+#define _imm _ainline
+#endif
+
+
 #ifdef DEBUG
 
 #define _kill(string,condition) if((condition)) {printf("%s %s %d\n",__FUNCTION__,__FILE__,__LINE__);*(int *)0 = 0;}

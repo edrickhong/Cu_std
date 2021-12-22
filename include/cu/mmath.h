@@ -1183,3 +1183,10 @@ void _ainline PPrint(DualQ d){
 
 #endif
 
+_imm u32 Max(u32 a,u32 b){
+	return a > b? a : b;
+}
+
+_imm u32 Min(u32 a,u32 b){
+	return a < b? a : b;
+}
