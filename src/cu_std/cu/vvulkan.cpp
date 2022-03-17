@@ -839,9 +839,8 @@ void VInitVulkan(){
         "vulkan-1.dll",
         "vulkan.dll",
 #else
+        "libvulkan.so.1",
         "libvulkan.so",
-        
-        
 #endif
         
     };
