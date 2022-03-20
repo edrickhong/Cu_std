@@ -171,6 +171,10 @@ s32 (*wl_display_get_fd_fptr)(wl_display*) = 0;
 
 s32 (*wl_display_dispatch_ftpr)(wl_display*) = 0;
 
+wl_proxy*
+(*wl_proxy_marshal_flags_fptr)( wl_proxy*,u32,const  wl_interface*,u32,u32, ...) = 0;
+
+
 const wl_interface* wl_display_interface_ptr = 0;
 const wl_interface* wl_registry_interface_ptr = 0;
 const wl_interface* wl_compositor_interface_ptr = 0;
@@ -933,6 +937,12 @@ void InternalLoadWaylandSymbols() {
 
 	wl_output_interface_ptr = (wl_interface*)LGetLibFunction(
 			wwindowlib_handle, "wl_output_interface");
+
+
+	//NOTE: need wayland 1.20
+	wl_proxy_marshal_flags_fptr = 
+		(wl_proxy*(*)(wl_proxy*,u32,const wl_interface*,u32,u32, ...))
+		LGetLibFunction(wwindowlib_handle,"wl_proxy_marshal_flags");
 }
 
 void InternalLoadXkbSymbols() {

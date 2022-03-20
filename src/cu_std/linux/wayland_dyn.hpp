@@ -9,6 +9,7 @@
 #endif
 
 #include "wayland-util.h"
+#include "wayland-client-core.h"
 
 
 /*
@@ -62,6 +63,10 @@ extern s32 (*wl_display_get_fd_fptr)(wl_display*);
 
 extern s32 (*wl_display_dispatch_ftpr)(wl_display*);
 
+extern struct wl_proxy*
+(*wl_proxy_marshal_flags_fptr)(struct wl_proxy*,u32,const struct wl_interface*,u32,u32, ...);
+
+
 #define wl_proxy_marshal_constructor wl_proxy_marshal_constructor_fptr
 #define wl_proxy_add_listener wl_proxy_add_listener_fptr
 #define wl_proxy_marshal wl_proxy_marshal_fptr
@@ -78,7 +83,7 @@ extern s32 (*wl_display_dispatch_ftpr)(wl_display*);
 #define wl_display_get_fd wl_display_get_fd_fptr
 #define wl_display_dispatch wl_display_dispatch_ftpr
 
-
+#define wl_proxy_marshal_flags wl_proxy_marshal_flags_fptr 
 
 extern "C" const wl_interface* wl_display_interface_ptr;
 extern "C" const wl_interface* wl_registry_interface_ptr;
