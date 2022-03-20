@@ -150,6 +150,10 @@ b32 _ainline PIsVisibleChar(s8 c){
 }
 
 constexpr ptrsize PStrLen(const s8* string){
+
+	if(!string){
+		return 0;
+	}
     
     u32 len = 0;
     
