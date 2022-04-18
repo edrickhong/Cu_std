@@ -1154,7 +1154,7 @@ void _ainline InternalDrawDecor(InternWaylandDecorator* decor, u32 width,
 	// clear color
 	for (u32 i = 0; i < (width * height); i++) {
 		u32* pixel = pixels + i;
-		*pixel = _encode_argb(255, 36, 36, 36);
+		*pixel = Encode_ARGB(255, 36, 36, 36);
 	}
 
 	u32 count = 3;
