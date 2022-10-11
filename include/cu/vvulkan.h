@@ -476,6 +476,8 @@ struct VSubmitBatch{
 
 #define _direct_block_flags (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 
+//NOTE: there is a memory flag to only allow device access (protected). should we use this??
+
 enum VMemoryBlockHintFlag{
     VBLOCK_DEVICE,
     VBLOCK_WRITE = _write_block_flags,
