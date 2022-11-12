@@ -549,8 +549,11 @@ _intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment){
 }
 
 _intern VDeviceMemoryBlock VLinearDeviceBlockAlloc(u32 size,u32 alignment){
+
     
     auto offset = TGetEntryAlignedOffsetD(&linear_block.offset,size,alignment,linear_block.size);
+
+    _kill("Not enough memory\n",(offset + size) >= linear_block.size); //FIXME: why the fuck is this not working???
     
     
     return {linear_block.memory,offset,size};
@@ -560,6 +563,7 @@ _intern VDeviceMemoryBlock VNonLinearDeviceBlockAlloc(u32 size,u32 alignment){
     
     auto offset = TGetEntryAlignedOffsetD(&non_linear_block.offset,size,alignment,non_linear_block.size);
     
+    _kill("Not enough memory\n",(offset + size) >= non_linear_block.size);
     
     return {non_linear_block.memory,offset,size};
 }
@@ -1804,7 +1808,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
     swapchain_info.queueFamilyIndexCount = 0;
     swapchain_info.pQueueFamilyIndices = 0;
     swapchain_info.preTransform = pretransform;
-    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;//VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_info.presentMode = presentmode;
     swapchain_info.clipped = VK_TRUE; //discards pixels that are obscured
     
@@ -3890,4 +3894,30 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                       VK_FALSE);
     
     return context;
+}
+
+
+
+VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
+                                         ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag){
+    
+    
+    auto context = CreateStaticBufferContext(vdevice,data_size,VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,flag);
+    
+    context.bind_no = bindingno;
+    
+    return context;
+}
+
+VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
+                                        ptrsize size,u32 ind_size,VMemoryBlockHintFlag flag){
+    
+    
+    auto context = CreateStaticBufferContext(vdevice,size,VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
+                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,flag);
+    
+    context.ind_count = size/ind_size;
+    
+    return context;
+    
 }

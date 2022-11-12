@@ -1110,7 +1110,7 @@ enum VResult{
 
 //DeviceMemory allocator
 
-VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size = _megabytes(256),u32 write_size = _megabytes(192),
+VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size = _megabytes(512),u32 write_size = _megabytes(256),
                                   u32 transferbuffer_size = _megabytes(64),
                                   u32 readwrite_size = _megabytes(64),
                                   u32 direct_size = _megabytes(32));
@@ -1168,6 +1168,13 @@ u32 data_size,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
 
 VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels = 1,VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
 
+
+
+VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
+                                         ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag);
+
+VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
+                                        ptrsize size,u32 ind_size,VMemoryBlockHintFlag flag);
 
 //TODO: remove these
 VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,
