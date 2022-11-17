@@ -2213,8 +2213,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     vkGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0],&devicefeatures);
     
     
-    const s8* extension_array[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    u32 extension_count = 0;
+    const s8* extension_array[] = {
+	    //TODO: this is only for debug
+	    VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, 
+	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+    u32 extension_count = 1;
     
     const s8* layer_array[] = {"VK_LAYER_LUNARG_standard_validation"};
     u32 layer_count = 0;
