@@ -1826,12 +1826,8 @@ b32 IntersectClosestOutLine3Sphere(Line3 line, Sphere sphere, Point3* point) {
 		return 0;
 	}
 
-	if (abs_t0 < abs_t1) {
-		*point = AddVec3((MulConstRVec3(line.dir, t0)), line.pos);
-	} else {
-		*point = AddVec3((MulConstRVec3(line.dir, t1)), line.pos);
-	}
-
+	*point = 
+		abs_t0 < abs_t1 ? AddVec3((MulConstRVec3(line.dir, t0)), line.pos) : AddVec3((MulConstRVec3(line.dir, t1)), line.pos);
 	return 1;
 }
 
