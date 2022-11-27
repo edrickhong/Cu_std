@@ -193,24 +193,29 @@ void WSetTitle(WWindowContext* windowcontext, const s8* title_string);
 
 s8 WKeyCodeToASCII(u32 keycode);
 
-u32 _ainline IsKeyPressed(KeyboardState* state, u32 keysym) {
+b32 _ainline IsKeyPressed(KeyboardState* state, u32 keysym) {
 	return state->curkeystate[keysym] && !state->prevkeystate[keysym];
 }
 
-u32 _ainline IsKeyDown(KeyboardState* state, u32 keysym) {
+b32 _ainline IsKeyDown(KeyboardState* state, u32 keysym) {
 	return state->curkeystate[keysym];
 }
 
-u32 _ainline IsKeyUp(KeyboardState* state, u32 keysym) {
+b32 _ainline IsKeyUp(KeyboardState* state, u32 keysym) {
 	return !state->curkeystate[keysym];
 }
 
-u32 _ainline IsMouseDown(MouseState* state, MouseButton mousekey) {
+b32 _ainline IsMouseDown(MouseState* state, MouseButton mousekey) {
 	return state->curstate[mousekey];
 }
 
-u32 _ainline IsMouseUp(MouseState* state, MouseButton mousekey) {
+b32 _ainline IsMouseUp(MouseState* state, MouseButton mousekey) {
 	return !state->curstate[mousekey];
+}
+
+
+b32 _ainline OnMouseUp(MouseState* state, MouseButton mousekey) {
+	return !state->curstate[mousekey] && state->prevstate[mousekey] ;
 }
 
 #ifdef __cplusplus
