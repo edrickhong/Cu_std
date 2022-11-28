@@ -148,7 +148,14 @@ extern void* vkcmdcopyimagetobuffer;
 extern void* vkgetpipelinecachedata;
 
 //vulkan 1.1
+extern void* vkenumerateinstanceversion;
 extern void* vkenumeratephysicaldevicegroups;
+extern void* vkbindbuffermemory2;
+extern void* vkbindimagememory2;
+
+extern void* vkgetbuffermemoryrequirements2;
+extern void* vkgetimagememoryrequirements2;
+extern void* vkgetimagesparsememoryrequirements2;
 
 //defines
 #define vkEnumerateInstanceExtensionProperties ((PFN_vkEnumerateInstanceExtensionProperties)(vkenumerateinstanceextensionproperties))
@@ -286,6 +293,13 @@ extern void* vkenumeratephysicaldevicegroups;
 
 //vulkan 1.1
 #define vkEnumeratePhysicalDeviceGroups ((PFN_vkEnumeratePhysicalDeviceGroups)vkenumeratephysicaldevicegroups)
+#define vkEnumerateInstanceVersion ((PFN_vkEnumerateInstanceVersion)vkenumerateinstanceversion)
+#define vkBindBufferMemory2 ((PFN_vkBindBufferMemory2)vkbindbuffermemory2)
+#define vkBindImageMemory2 ((PFN_vkBindImageMemory2)vkbindimagememory2)
+
+#define vkGetBufferMemoryRequirements2 ((PFN_vkGetBufferMemoryRequirements2)vkgetbuffermemoryrequirements2)
+#define vkGetImageMemoryRequirements2 ((PFN_vkGetImageMemoryRequirements2)vkgetimagememoryrequirements2)
+#define vkGetImageSparseMemoryRequirements2 ((PFN_vkGetImageSparseMemoryRequirements2)vkgetimagesparsememoryrequirements2)
 
 
 #ifdef DEBUG
@@ -1167,6 +1181,16 @@ const  VDeviceContext* _restrict vdevice,
 u32 data_size,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
 
 VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels = 1,VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+
+u32 _ainline VGetMaxSupportedVkVersion(){
+	u32 version = VK_MAKE_VERSION(1,0,0);
+	if(vkenumerateinstanceversion){
+		VkResult res = vkEnumerateInstanceVersion(&version);
+		_kill("",res != VK_SUCCESS);
+	}
+
+	return version;
+}
 
 
 

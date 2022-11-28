@@ -131,7 +131,13 @@ void* vkcmdcopyimagetobuffer;
 void* vkgetpipelinecachedata;
 
 //vulkan 1.1
+void* vkenumerateinstanceversion;
 void* vkenumeratephysicaldevicegroups;
+void* vkbindbuffermemory2;
+void* vkbindimagememory2;
+void* vkgetbuffermemoryrequirements2;
+void* vkgetimagememoryrequirements2;
+void* vkgetimagesparsememoryrequirements2;
 
 #ifdef _WIN32
 
@@ -641,6 +647,33 @@ void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,
 
 #endif
 
+#define _isdeprecated(var) ((void*)var == (void*)-1)
+
+//TODO: add ability to extend
+_intern VkMemoryRequirements VGetBufferMemoryRequirements(VkDevice device,VkBuffer buffer){
+	VkMemoryRequirements memreq = {};
+	if(!_isdeprecated(vkgetbuffermemoryrequirements)){
+		vkGetBufferMemoryRequirements(device,buffer,&memreq);
+	}
+	else{
+		VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2};
+		VkMemoryRequirements2 memreq2 = {
+			VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
+			0,
+			{}
+		};
+		vkGetBufferMemoryRequirements2(device,&b_info,&memreq2);
+
+		memreq = memreq2.memoryRequirements;
+	}
+
+	return memreq;
+}
+
+
+void _intern VGetImageMemoryRequirements(){
+}
+
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
     
 #if DEBUG
@@ -875,6 +908,9 @@ void VInitVulkan(){
     
     vkgetinstanceprocaddress = LGetLibFunction(vklib,"vkGetInstanceProcAddr");
     vkgetdeviceprocaddress = LGetLibFunction(vklib,"vkGetDeviceProcAddr");
+
+    // vulkan 1.1
+    vkenumerateinstanceversion = LGetLibFunction(vklib,"vkEnumerateInstanceVersion");
     
 }
 
@@ -1032,13 +1068,26 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
     _initfunc(vkCmdCopyImageToBuffer,vkcmdcopyimagetobuffer);
     
     _initfunc(vkGetPipelineCacheData,vkgetpipelinecachedata);
+
+#define _deprecate_func(var) var = (void*)-1
+
     
     //vulkan 1.1 here
-    if(VK_VERSION_MINOR(global_version_no)){
-        //TODO: deprecated 1.0 functions (set them to -1)
+    if(VK_VERSION_MINOR(global_version_no) >= 1){
+	    _dprint("%s","Loading vk 1.1 functions\n");
+	    _initfunc(vkBindBufferMemory2,vkbindbuffermemory2);
+	    _initfunc(vkBindImageMemory2,vkbindimagememory2);
+	    _initfunc(vkGetBufferMemoryRequirements2,vkgetbuffermemoryrequirements2);
+	    _initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
+	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
+
+	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these
+	    _deprecate_func(vkgetimagememoryrequirements);
+	    //_deprecate_func(vkgetbuffermemoryrequirements) // MARK: we don't use the base version of this
     }
     
 #undef _initfunc
+#undef _deprecate_func
     
 }
 
@@ -2023,17 +2072,11 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
     _kill("failed to load lib\n",!vkcreateinstance);
     
     if(VK_MAKE_VERSION(1,0,0) != api_version){
+
+	    u32 latest_version = VGetMaxSupportedVkVersion();
+       
         
-        PFN_vkEnumerateInstanceVersion EnumerateInstanceVersion_fptr =
-        
-            (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(
-            VK_NULL_HANDLE,"vkEnumerateInstanceVersion");
-        
-        if(EnumerateInstanceVersion_fptr){
-            
-            u32 latest_version = 0;
-            
-            EnumerateInstanceVersion_fptr(&latest_version);
+        if(VK_VERSION_MINOR(latest_version)){
             
             _dprint("VULKAN\nLatest supported: %d.%d.%d\nRequested: %d.%d.%d\n",VK_VERSION_MAJOR(latest_version),VK_VERSION_MINOR(latest_version),VK_VERSION_PATCH(latest_version),VK_VERSION_MAJOR(api_version),VK_VERSION_MINOR(api_version),VK_VERSION_PATCH(api_version));
             
@@ -2055,8 +2098,6 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
         else if(V_INSTANCE_FLAGS_API_VERSION_OPTIONAL & v_inst_flags){
             
             _dprint("Only 1.0 loader found. Falling back to version 1.0\n%s","");
-            
-            
             api_version = VK_MAKE_VERSION(1,0,0);
         }
         
@@ -2073,7 +2114,8 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
                                      extension_array,extension_count);
     
     global_version_no = api_version;
-    
+   
+    //TODO: maybe we should move all the global stuff and just inline it here
     InternalLoadVulkanInstanceLevelFunctions();
     
     if(!(v_inst_flags & V_INSTANCE_FLAGS_SINGLE_VKDEVICE)){
