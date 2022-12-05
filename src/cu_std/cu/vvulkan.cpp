@@ -2,6 +2,45 @@
 
 #include "wwindow.h"
 
+
+#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
+
+void ErrorString(VkResult errorCode){
+    switch (errorCode)
+    {
+#define STR(r) case VK_ ##r: printf("VK Error:%s",#r); break;
+        STR(NOT_READY);
+        STR(TIMEOUT);
+        STR(EVENT_SET);
+        STR(EVENT_RESET);
+        STR(INCOMPLETE);
+        STR(ERROR_OUT_OF_HOST_MEMORY);
+        STR(ERROR_OUT_OF_DEVICE_MEMORY);
+        STR(ERROR_INITIALIZATION_FAILED);
+        STR(ERROR_DEVICE_LOST);
+        STR(ERROR_MEMORY_MAP_FAILED);
+        STR(ERROR_LAYER_NOT_PRESENT);
+        STR(ERROR_EXTENSION_NOT_PRESENT);
+        STR(ERROR_FEATURE_NOT_PRESENT);
+        STR(ERROR_INCOMPATIBLE_DRIVER);
+        STR(ERROR_TOO_MANY_OBJECTS);
+        STR(ERROR_FORMAT_NOT_SUPPORTED);
+        STR(ERROR_SURFACE_LOST_KHR);
+        STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+        STR(SUBOPTIMAL_KHR);
+        STR(ERROR_OUT_OF_DATE_KHR);
+        STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+        STR(ERROR_VALIDATION_FAILED_EXT);
+        STR(ERROR_INVALID_SHADER_NV);
+#undef STR
+        default:
+        printf("VK Error:%s","UNKNOWN_ERROR"); break;
+    }
+}
+
+
+#include "vvulkan_dyn.hpp"
+
 /*
 
 TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
@@ -13,131 +52,6 @@ TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
 
 
 
-void* vkenumerateinstanceextensionproperties;
-void* vkenumerateinstancelayerproperties;
-void* vkcreateinstance;
-void* vkgetinstanceprocaddress;
-void* vkgetdeviceprocaddress;
-
-void* vkenumeratephysicaldevices;
-void* vkgetphysicaldeviceproperties;
-void* vkenumeratedevicelayerproperties;
-void* vkenumeratedeviceextensionproperties;
-void* vkgetphysicaldevicequeuefamilyproperties;
-void* vkgetphysicaldevicefeatures;
-void* vkcreatedevice;
-void* vkgetphysicaldeviceformatproperties;
-void* vkgetphysicaldevicememoryproperties;
-void* vkcmdpipelinebarrier;
-void* vkcreateshadermodule;
-void* vkcreatebuffer;
-void* vkgetbuffermemoryrequirements;
-void* vkmapmemory;
-void* vkunmapmemory;
-void* vkflushmappedmemoryranges;
-void* vkinvalidatemappedmemoryranges;
-void* vkbindbuffermemory;
-void* vkdestroybuffer;
-void* vkallocatememory;
-void* vkfreememory;
-void* vkcreaterenderpass;
-void* vkcmdbeginrenderpass;
-void* vkcmdendrenderpass;
-void* vkcmdnextsubpass;
-void* vkcmdexecutecommands;
-void* vkcreateimage;
-void* vkgetimagememoryrequirements;
-void* vkcreateimageview;
-void* vkdestroyimageview;
-void* vkbindimagememory;
-void* vkgetimagesubresourcelayout;
-void* vkcmdcopyimage;
-void* vkcmdblitimage;
-void* vkdestroyimage;
-void* vkcmdclearattachments;
-void* vkcmdcopybuffer;
-void* vkcmdcopybuffertoimage;
-void* vkcreatesampler;
-void* vkdestroysampler;
-void* vkcreatesemaphore;
-void* vkdestroysemaphore;
-void* vkcreatefence;
-void* vkdestroyfence;
-void* vkwaitforfences;
-void* vkresetfences;
-void* vkcreatecommandpool;
-void* vkdestroycommandpool;
-void* vkallocatecommandbuffers;
-void* vkbegincommandbuffer;
-void* vkendcommandbuffer;
-void* vkgetdevicequeue;
-void* vkqueuesubmit;
-void* vkqueuewaitidle;
-void* vkdevicewaitidle;
-void* vkcreateframebuffer;
-void* vkcreatepipelinecache;
-void* vkcreatepipelinelayout;
-void* vkcreategraphicspipelines;
-void* vkcreatecomputepipelines;
-void* vkcreatedescriptorpool;
-void* vkcreatedescriptorsetlayout;
-void* vkallocatedescriptorsets;
-void* vkupdatedescriptorsets;
-void* vkcmdbinddescriptorsets;
-void* vkcmdbindpipeline;
-void* vkcmdbindvertexbuffers;
-void* vkcmdbindindexbuffer;
-void* vkcmdsetviewport;
-void* vkcmdsetscissor;
-void* vkcmdsetlinewidth;
-void* vkcmdsetdepthbias;
-void* vkcmdpushconstants;
-void* vkcmddrawindexed;
-void* vkcmddraw;
-void* vkcmddrawindexedindirect;
-void* vkcmddrawindirect;
-void* vkcmddispatch;
-void* vkdestroypipeline;
-void* vkdestroypipelinelayout;
-void* vkdestroydescriptorsetlayout;
-void* vkdestroydevice;
-void* vkdestroyinstance;
-void* vkdestroydescriptorpool;
-void* vkfreecommandbuffers;
-void* vkdestroyrenderpass;
-void* vkdestroyframebuffer;
-void* vkdestroyshadermodule;
-void* vkdestroypipelinecache;
-void* vkcreatequerypool;
-void* vkdestroyquerypool;
-void* vkgetquerypoolresults;
-void* vkcmdbeginquery;
-void* vkcmdendquery;
-void* vkcmdresetquerypool;
-void* vkcmdcopyquerypoolresults;
-void* vkcreate_xlib_wayland_win32surfacekhr;
-void* vkdestroysurfacekhr;
-void* vkcmdfillbuffer;
-void* vkacquirenextimagekhr;
-void* vkgetfencestatus;
-void* vkcreateswapchainkhr;
-void* vkgetswapchainimageskhr;
-void* vkqueuepresentkhr;
-void* vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr;
-void* vkgetphysicaldevicesurfacesupportkhr;
-void* vkcmdclearcolorimage;
-void* vkgetphysicaldeviceimageformatproperties;
-void* vkcmdcopyimagetobuffer;
-void* vkgetpipelinecachedata;
-
-//vulkan 1.1
-void* vkenumerateinstanceversion;
-void* vkenumeratephysicaldevicegroups;
-void* vkbindbuffermemory2;
-void* vkbindimagememory2;
-void* vkgetbuffermemoryrequirements2;
-void* vkgetimagememoryrequirements2;
-void* vkgetimagesparsememoryrequirements2;
 
 #ifdef _WIN32
 
@@ -208,40 +122,6 @@ direct - direct write to gpu memory. the pool is very small and is not supported
 
 */
 
-#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
-
-void ErrorString(VkResult errorCode){
-    switch (errorCode)
-    {
-#define STR(r) case VK_ ##r: printf("VK Error:%s",#r); break;
-        STR(NOT_READY);
-        STR(TIMEOUT);
-        STR(EVENT_SET);
-        STR(EVENT_RESET);
-        STR(INCOMPLETE);
-        STR(ERROR_OUT_OF_HOST_MEMORY);
-        STR(ERROR_OUT_OF_DEVICE_MEMORY);
-        STR(ERROR_INITIALIZATION_FAILED);
-        STR(ERROR_DEVICE_LOST);
-        STR(ERROR_MEMORY_MAP_FAILED);
-        STR(ERROR_LAYER_NOT_PRESENT);
-        STR(ERROR_EXTENSION_NOT_PRESENT);
-        STR(ERROR_FEATURE_NOT_PRESENT);
-        STR(ERROR_INCOMPATIBLE_DRIVER);
-        STR(ERROR_TOO_MANY_OBJECTS);
-        STR(ERROR_FORMAT_NOT_SUPPORTED);
-        STR(ERROR_SURFACE_LOST_KHR);
-        STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-        STR(SUBOPTIMAL_KHR);
-        STR(ERROR_OUT_OF_DATE_KHR);
-        STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-        STR(ERROR_VALIDATION_FAILED_EXT);
-        STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-        default:
-        printf("VK Error:%s","UNKNOWN_ERROR"); break;
-    }
-}
 
 _global VkAllocationCallbacks* global_allocator = 0;
 
@@ -647,59 +527,8 @@ void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,
 
 #endif
 
-#define _isdeprecated(var) ((void*)var == (void*)-1)
-
-//TODO: add ability to extend
-
-VkMemoryRequirements VGetBufferMemoryRequirements1(VkDevice device,VkBuffer buffer){
-	VkMemoryRequirements memreq = {};
-	vkGetBufferMemoryRequirements(device,buffer,&memreq);
-
-	return memreq;
-}
 
 
-VkMemoryRequirements VGetBufferMemoryRequirements2(VkDevice device,VkBuffer buffer){
-	VkMemoryRequirements memreq = {};
-	VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,0,buffer};
-	VkMemoryRequirements2 memreq2 = {
-		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-		0,
-		{}
-	};
-	vkGetBufferMemoryRequirements2(device,&b_info,&memreq2);
-
-	memreq = memreq2.memoryRequirements;
-
-	return memreq;
-}
-
-
-VkMemoryRequirements VGetImageMemoryRequirements1(VkDevice device,VkImage image){
-	VkMemoryRequirements memreq = {};
-	vkGetImageMemoryRequirements(device,image,&memreq);
-
-	return memreq;
-}
-
-
-VkMemoryRequirements VGetImageMemoryRequirements2(VkDevice device,VkImage image){
-	VkMemoryRequirements memreq = {};
-	VkImageMemoryRequirementsInfo2 i_info = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,0,image};
-	VkMemoryRequirements2 memreq2 = {
-		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-		0,
-		{}
-	};
-	vkGetImageMemoryRequirements2(device,&i_info,&memreq2);
-
-	memreq = memreq2.memoryRequirements;
-
-	return memreq;
-}
-
-_intern VkMemoryRequirements (*VGetBufferMemoryRequirements)(VkDevice,VkBuffer) = 0;
-_intern VkMemoryRequirements (*VGetImageMemoryRequirements)(VkDevice,VkImage) = 0;
 
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
     
@@ -738,10 +567,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     //linear and non-linear
     {
-        VkPhysicalDeviceProperties properties = {};
-        
-        vkGetPhysicalDeviceProperties(vdevice->phys_info->physicaldevice_array[0],
-                                      &properties);
+        VkPhysicalDeviceProperties properties = VGetPhysicalDeviceProperties(vdevice->phys_info->physicaldevice_array[0]);
         
         auto non_linear_size = 
             _alignpow2((device_size >> 1),properties.limits.bufferImageGranularity);
@@ -862,265 +688,6 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
 
 //MARK: every function that uses VCreateImage/Buffer etc does not handle for shared resources
 //Look for VkSharingMode
-
-
-
-#define _instproc(fptr,inst,entrypoint)				\
-{									\
-    fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1);							\
-    }									\
-}
-
-// Macro to get a procedure address based on a vulkan device
-#define _deviceproc(fptr,dev,entrypoint)				\
-{									\
-    fptr = (void*)vkGetDeviceProcAddr(dev, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1)							\
-    }								\
-}
-
-
-
-//MARK: Implementation
-
-_global LibHandle vklib = 0;
-
-void VInitVulkan(){
-    
-    //MARK: expand this list
-    const s8* vklib_array[] = {
-        
-#ifdef _WIN32
-        "vulkan-1.dll",
-        "vulkan.dll",
-#else
-        "libvulkan.so.1",
-        "libvulkan.so",
-#endif
-        
-    };
-    
-    for(u32 i = 0; i < _arraycount(vklib_array); i++){
-        
-        vklib = LLoadLibrary(vklib_array[i]);
-        
-        if(vklib){
-            _dprint("using vkloader %s\n",vklib_array[i]);
-            break;
-        }
-        
-    }
-    
-    _kill("faild to load vulkan lib\n",!vklib);
-    
-    vkenumerateinstanceextensionproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceExtensionProperties");
-    
-    vkenumerateinstancelayerproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceLayerProperties");
-    
-    vkcreateinstance = LGetLibFunction(vklib,"vkCreateInstance");
-    
-    vkdestroyinstance = LGetLibFunction(vklib,"vkDestroyInstance");
-    
-    
-    vkgetinstanceprocaddress = LGetLibFunction(vklib,"vkGetInstanceProcAddr");
-    vkgetdeviceprocaddress = LGetLibFunction(vklib,"vkGetDeviceProcAddr");
-
-    // vulkan 1.1
-    vkenumerateinstanceversion = LGetLibFunction(vklib,"vkEnumerateInstanceVersion");
-    
-}
-
-_global VkInstance global_instance = 0;
-_global u32 global_version_no = 0;
-
-#ifdef DEBUG 
-_global VkDevice global_device = 0;
-#endif
-
-void InternalLoadVulkanInstanceLevelFunctions(){
-    
-    _instproc(vkenumeratephysicaldevices,global_instance,vkEnumeratePhysicalDevices);
-    
-    _instproc(vkgetphysicaldevicequeuefamilyproperties,global_instance,vkGetPhysicalDeviceQueueFamilyProperties);
-    
-    _instproc(vkgetphysicaldeviceproperties,global_instance,vkGetPhysicalDeviceProperties);
-    
-    _instproc(vkgetphysicaldevicememoryproperties,global_instance,vkGetPhysicalDeviceMemoryProperties);
-    
-    _instproc(vkgetphysicaldevicefeatures,global_instance,vkGetPhysicalDeviceFeatures);
-    
-    _instproc(vkcreatedevice,global_instance,vkCreateDevice);
-    
-    _instproc(vkgetphysicaldevicesurfacesupportkhr,global_instance,vkGetPhysicalDeviceSurfaceSupportKHR);
-    
-    _instproc(vkenumeratedevicelayerproperties,global_instance,vkEnumerateDeviceLayerProperties);
-    
-    _instproc(vkenumeratedeviceextensionproperties,global_instance,vkEnumerateDeviceExtensionProperties);
-    
-    _instproc(vkgetphysicaldeviceformatproperties,global_instance,vkGetPhysicalDeviceFormatProperties);
-    
-    _instproc(vkgetphysicaldeviceimageformatproperties,global_instance,vkGetPhysicalDeviceImageFormatProperties);
-    
-    _instproc(vkdestroysurfacekhr,global_instance,vkDestroySurfaceKHR);
-    
-    //vulkan 1.1 here
-    
-    if(VK_VERSION_MINOR(global_version_no)){
-        
-        //TODO: deprecate 1.0 functions (set them to -1)
-        
-        _instproc(vkenumeratephysicaldevicegroups,global_instance,vkEnumeratePhysicalDeviceGroups);
-    }
-}
-
-void InternalLoadVulkanFunctions(void* k,void* load_fptr){
-    
-    
-    _kill("",!vkenumeratephysicaldevices);
-    
-    auto load = (void* (*)(void*,const s8*))load_fptr;
-    
-#define _initfunc(func,var) var = (void*)load(k,""#func); if(!var){printf("%s %s %d :: Failed to load function %s\n",__FUNCTION__,__FILE__,__LINE__,""#func);_kill("",1);}
-    
-    
-    _initfunc(vkCmdPipelineBarrier,vkcmdpipelinebarrier);
-    _initfunc(vkCreateShaderModule,vkcreateshadermodule);
-    _initfunc(vkCreateBuffer,vkcreatebuffer);
-    _initfunc(vkGetBufferMemoryRequirements,vkgetbuffermemoryrequirements);
-    _initfunc(vkMapMemory,vkmapmemory);
-    _initfunc(vkUnmapMemory,vkunmapmemory);
-    _initfunc(vkFlushMappedMemoryRanges,vkflushmappedmemoryranges);
-    _initfunc(vkInvalidateMappedMemoryRanges,vkinvalidatemappedmemoryranges);
-    _initfunc(vkBindBufferMemory,vkbindbuffermemory);
-    _initfunc(vkDestroyBuffer,vkdestroybuffer);
-    _initfunc(vkAllocateMemory,vkallocatememory);
-    _initfunc(vkFreeMemory,vkfreememory);
-    _initfunc(vkCreateRenderPass,vkcreaterenderpass);
-    _initfunc(vkCmdBeginRenderPass,vkcmdbeginrenderpass);
-    _initfunc(vkCmdEndRenderPass,vkcmdendrenderpass);
-    _initfunc(vkCmdNextSubpass,vkcmdnextsubpass);
-    _initfunc(vkCmdExecuteCommands,vkcmdexecutecommands);
-    _initfunc(vkCreateImage,vkcreateimage);
-    _initfunc(vkGetImageMemoryRequirements,vkgetimagememoryrequirements);
-    _initfunc(vkCreateImageView,vkcreateimageview);
-    _initfunc(vkDestroyImageView,vkdestroyimageview);
-    _initfunc(vkBindImageMemory,vkbindimagememory);
-    _initfunc(vkGetImageSubresourceLayout,vkgetimagesubresourcelayout);
-    _initfunc(vkCmdCopyImage,vkcmdcopyimage);
-    _initfunc(vkCmdBlitImage,vkcmdblitimage);
-    _initfunc(vkDestroyImage,vkdestroyimage);
-    _initfunc(vkCmdClearAttachments,vkcmdclearattachments);
-    _initfunc(vkCmdCopyBuffer,vkcmdcopybuffer);
-    _initfunc(vkCmdCopyBufferToImage,vkcmdcopybuffertoimage);
-    _initfunc(vkCreateSampler,vkcreatesampler);
-    _initfunc(vkDestroySampler,vkdestroysampler);
-    _initfunc(vkCreateSemaphore,vkcreatesemaphore);
-    _initfunc(vkDestroySemaphore,vkdestroysemaphore);
-    _initfunc(vkCreateFence,vkcreatefence);
-    _initfunc(vkDestroyFence,vkdestroyfence);
-    _initfunc(vkWaitForFences,vkwaitforfences);
-    _initfunc(vkResetFences,vkresetfences);
-    _initfunc(vkCreateCommandPool,vkcreatecommandpool);
-    _initfunc(vkDestroyCommandPool,vkdestroycommandpool);
-    _initfunc(vkAllocateCommandBuffers,vkallocatecommandbuffers);
-    _initfunc(vkBeginCommandBuffer,vkbegincommandbuffer);
-    _initfunc(vkEndCommandBuffer,vkendcommandbuffer);
-    _initfunc(vkGetDeviceQueue,vkgetdevicequeue);
-    _initfunc(vkQueueSubmit,vkqueuesubmit);
-    _initfunc(vkQueueWaitIdle,vkqueuewaitidle);
-    _initfunc(vkDeviceWaitIdle,vkdevicewaitidle);
-    _initfunc(vkCreateFramebuffer,vkcreateframebuffer);
-    _initfunc(vkCreatePipelineCache,vkcreatepipelinecache);
-    _initfunc(vkCreatePipelineLayout,vkcreatepipelinelayout);
-    _initfunc(vkCreateGraphicsPipelines,vkcreategraphicspipelines);
-    _initfunc(vkCreateComputePipelines,vkcreatecomputepipelines);
-    _initfunc(vkCreateDescriptorPool,vkcreatedescriptorpool);
-    _initfunc(vkCreateDescriptorSetLayout,vkcreatedescriptorsetlayout);
-    _initfunc(vkAllocateDescriptorSets,vkallocatedescriptorsets);
-    _initfunc(vkUpdateDescriptorSets,vkupdatedescriptorsets);
-    _initfunc(vkCmdBindDescriptorSets,vkcmdbinddescriptorsets);
-    _initfunc(vkCmdBindPipeline,vkcmdbindpipeline);
-    _initfunc(vkCmdBindVertexBuffers,vkcmdbindvertexbuffers);
-    _initfunc(vkCmdBindIndexBuffer,vkcmdbindindexbuffer);
-    _initfunc(vkCmdSetViewport,vkcmdsetviewport);
-    _initfunc(vkCmdSetScissor,vkcmdsetscissor);
-    _initfunc(vkCmdSetLineWidth,vkcmdsetlinewidth);
-    _initfunc(vkCmdSetDepthBias,vkcmdsetdepthbias);
-    _initfunc(vkCmdPushConstants,vkcmdpushconstants);
-    _initfunc(vkCmdDrawIndexed,vkcmddrawindexed);
-    _initfunc(vkCmdDraw,vkcmddraw);
-    _initfunc(vkCmdDrawIndexedIndirect,vkcmddrawindexedindirect);
-    _initfunc(vkCmdDrawIndirect,vkcmddrawindirect);
-    _initfunc(vkCmdDispatch,vkcmddispatch);
-    _initfunc(vkDestroyPipeline,vkdestroypipeline);
-    _initfunc(vkDestroyPipelineLayout,vkdestroypipelinelayout);
-    _initfunc(vkDestroyDescriptorSetLayout,vkdestroydescriptorsetlayout);
-    _initfunc(vkDestroyDevice,vkdestroydevice);
-    
-    _initfunc(vkDestroyDescriptorPool,vkdestroydescriptorpool);
-    _initfunc(vkFreeCommandBuffers,vkfreecommandbuffers);
-    _initfunc(vkDestroyRenderPass,vkdestroyrenderpass);
-    _initfunc(vkDestroyFramebuffer,vkdestroyframebuffer);
-    _initfunc(vkDestroyShaderModule,vkdestroyshadermodule);
-    _initfunc(vkDestroyPipelineCache,vkdestroypipelinecache);
-    _initfunc(vkCreateQueryPool,vkcreatequerypool);
-    _initfunc(vkDestroyQueryPool,vkdestroyquerypool);
-    _initfunc(vkGetQueryPoolResults,vkgetquerypoolresults);
-    _initfunc(vkCmdBeginQuery,vkcmdbeginquery);
-    _initfunc(vkCmdEndQuery,vkcmdendquery);
-    _initfunc(vkCmdResetQueryPool,vkcmdresetquerypool);
-    _initfunc(vkCmdCopyQueryPoolResults,vkcmdcopyquerypoolresults);
-    
-    
-    _initfunc(vkCmdFillBuffer,vkcmdfillbuffer);
-    _initfunc(vkAcquireNextImageKHR,vkacquirenextimagekhr);
-    _initfunc(vkGetFenceStatus,vkgetfencestatus);
-    _initfunc(vkCreateSwapchainKHR,vkcreateswapchainkhr);
-    _initfunc(vkGetSwapchainImagesKHR,vkgetswapchainimageskhr);
-    _initfunc(vkQueuePresentKHR,vkqueuepresentkhr);
-    
-    _initfunc(vkCmdClearColorImage,vkcmdclearcolorimage);
-    
-    _initfunc(vkCmdCopyImageToBuffer,vkcmdcopyimagetobuffer);
-    
-    _initfunc(vkGetPipelineCacheData,vkgetpipelinecachedata);
-
-#define _deprecate_func(var) var = (void*)-1
-
-    
-    //vulkan 1.1 here
-    if(VK_VERSION_MINOR(global_version_no) >= 1){
-	    _dprint("%s","Loading vk 1.1 functions\n");
-	    _initfunc(vkBindBufferMemory2,vkbindbuffermemory2);
-	    _initfunc(vkBindImageMemory2,vkbindimagememory2);
-	    _initfunc(vkGetBufferMemoryRequirements2,vkgetbuffermemoryrequirements2);
-	    _initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
-	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
-
-	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??
-	    _deprecate_func(vkgetimagememoryrequirements);
-
-	    //set internal functions
-	    VGetBufferMemoryRequirements = 
-		    _isdeprecated(vkGetBufferMemoryRequirements) ? VGetBufferMemoryRequirements2 : VGetBufferMemoryRequirements1;
-
-	    VGetImageMemoryRequirements = 
-		    _isdeprecated(vkGetImageMemoryRequirements) ? VGetImageMemoryRequirements2 : VGetImageMemoryRequirements1;
-
-    }
-
-    
-#undef _initfunc
-#undef _deprecate_func
-    
-}
 
 
 VkBool32 VkDebugMessageCallback(VkDebugReportFlagsEXT flags,
@@ -1618,15 +1185,7 @@ VkImage CreateImage(VkDevice device,VkImageCreateFlags flags,
 #ifdef DEBUG
     {
         
-        VkImageFormatProperties props = {};
-        
-        vkGetPhysicalDeviceImageFormatProperties(
-            phys_device,
-            format,
-            imagetype,
-            tiling,
-            usage,
-            flags,&props);
+        VkImageFormatProperties props = VGetPhysicalDeviceImageFormatProperties(phys_device,format,imagetype,tiling,usage,flags);
         
         _kill("cannot create this image\n",extent.width > props.maxExtent.width ||
               extent.height > props.maxExtent.height || extent.depth > props.maxExtent.depth);
@@ -1907,10 +1466,8 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         
         for(u32 i = 0; i < 5; i++){
             
-            VkFormatProperties prop;
-            
-            vkGetPhysicalDeviceFormatProperties(physicaldevice,depthformat_array[i],
-                                                &prop);
+            VkFormatProperties prop = VGetPhysicalDeviceFormatProperties(physicaldevice,depthformat_array[i]);
+
             if (prop.optimalTilingFeatures &
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT){
                 swapchain.internal->depthstencil.format = depthformat_array[i];
@@ -2143,6 +1700,7 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
     InternalLoadVulkanInstanceLevelFunctions();
     
     if(!(v_inst_flags & V_INSTANCE_FLAGS_SINGLE_VKDEVICE)){
+	_dprint("%s\n","Single device not specified! Using instance to resolve Vk functions");
         InternalLoadVulkanFunctions(global_instance,(void*)vkGetInstanceProcAddr);
     }
     
@@ -2188,8 +1746,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     context.phys_info->physicaldevice_count = physdevice_count;
     
 #if DEBUG
-    VkPhysicalDeviceProperties physproperties;
-    vkGetPhysicalDeviceProperties(context.phys_info->physicaldevice_array[0],&physproperties);
+    VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(context.phys_info->physicaldevice_array[0]);
     
     _dprint("gpu:%s\n",physproperties.deviceName);
 #endif
@@ -2197,18 +1754,25 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     context.phys_info->memoryproperties =
         (VkPhysicalDeviceMemoryProperties*)alloc(sizeof(VkPhysicalDeviceMemoryProperties));
     
-    vkGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0],context.phys_info->memoryproperties);
+    *context.phys_info->memoryproperties = VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]);
+
+    //memcpy(context.phys_info->memoryproperties,&VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]),
+		    //sizeof(VkPhysicalDeviceMemoryProperties));
     
     VkDeviceQueueCreateInfo queueinfo_array[5];
     u32 queueinfo_count = 0;
     
-    VkQueueFamilyProperties queue_properties[5] = {};
+    VkQueueFamilyProperties2 queue_properties[5] = {};
     u32 queueproperties_count = 0;
+
+    for(u32 i = 0; i < _arraycount(queue_properties); i++){
+	    queue_properties[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+    }
     
-    vkGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
+    VGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
                                              &queueproperties_count,0);
     
-    vkGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
+    VGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
                                              &queueproperties_count,queue_properties);
     
     f32 queue_priority = 1.0f;
@@ -2228,12 +1792,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
         //Usually only the root queue has graphics capabilities (NV,AMD,Intel)
         if( 
-            (queue_properties[i].queueFlags  & VK_QUEUE_GRAPHICS_BIT) &&
+            (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_GRAPHICS_BIT) &&
             (createqueue_bits & VCREATEQUEUEBIT_ROOT)){
             
             global_queuefamilyinfo_array[VQUEUETYPE_ROOT] = {
                 i,
-                queue_properties[i].queueFlags,
+                queue_properties[i].queueFamilyProperties.queueFlags,
                 1 //MARK:this is the queuecount of this type. we should handle this case
             };
             
@@ -2244,12 +1808,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         else{
             
             if( 
-                (queue_properties[i].queueFlags  & VK_QUEUE_COMPUTE_BIT) &&
+                (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_COMPUTE_BIT) &&
                 (createqueue_bits & VCREATEQUEUEBIT_COMPUTE)){
                 
                 global_queuefamilyinfo_array[VQUEUETYPE_COMPUTE] = {
                     i,
-                    queue_properties[i].queueFlags,
+                    queue_properties[i].queueFamilyProperties.queueFlags,
                     1 //MARK:this is the queuecount of this type. we should handle this case
                 };
                 
@@ -2258,12 +1822,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
             }
             
             else if(
-                (queue_properties[i].queueFlags  & VK_QUEUE_TRANSFER_BIT) &&
+                (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_TRANSFER_BIT) &&
                 (createqueue_bits & VCREATEQUEUEBIT_TRANSFER)){
                 
                 global_queuefamilyinfo_array[VQUEUETYPE_TRANSFER] = {
                     i,
-                    queue_properties[i].queueFlags,
+                    queue_properties[i].queueFamilyProperties.queueFlags,
                     1 //MARK:this is the queuecount of this type. we should handle this case
                 };
                 
@@ -2275,9 +1839,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
     }
     
-    VkPhysicalDeviceFeatures devicefeatures;
-    vkGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0],&devicefeatures);
-    
+    VkPhysicalDeviceFeatures devicefeatures = VGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0]);
     
     const s8* extension_array[] = {
 	    //TODO: this is only for debug
@@ -2310,6 +1872,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
 #endif
         
+	_dprint("%s\n","Single device specified! Using device to resolve Vk functions");
         InternalLoadVulkanFunctions(context.device,(void*)vkGetDeviceProcAddr);
         
     }
@@ -3539,29 +3102,29 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
         
         auto d = device_array[i];
         
-        VkPhysicalDeviceProperties physproperties;
-        vkGetPhysicalDeviceProperties(d,&physproperties);
+        VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(d);
         
         if(physproperties.apiVersion >= global_version_no){
             
             if(window){
                 
                 u32 p_count = 0;
-                VkQueueFamilyProperties p_array[8] = {};
+                VkQueueFamilyProperties2 p_array[8] = {};
+		VInitQueueFamilyProperties(p_array,_arraycount(p_array));
                 
-                vkGetPhysicalDeviceQueueFamilyProperties(d,
+                VGetPhysicalDeviceQueueFamilyProperties(d,
                                                          &p_count,0);
                 
                 _kill("",p_count > _arraycount(p_array));
                 
-                vkGetPhysicalDeviceQueueFamilyProperties(d,
+                VGetPhysicalDeviceQueueFamilyProperties(d,
                                                          &p_count,&p_array[0]);
                 
                 u32 famindex = (u32)-1;
                 
                 for(u32 j = 0; j < p_count; j++){
                     
-                    if(p_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT){
+                    if(p_array[j].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT){
                         famindex = j;
                         break;
                     }
@@ -3684,44 +3247,6 @@ void VInvalidateMemoryRanges(VkDevice device,VMemoryRangesPtr* ranges){
     
     _vktest(vkInvalidateMappedMemoryRanges(device,ranges->count,&ranges->range_array[0]));
 }
-
-
-
-void VInitDevice(VkDevice device){
-    InternalLoadVulkanFunctions(device,(void*)vkGetDeviceProcAddr);
-}
-
-void InitInstance(VkInstance instance){
-    
-    _instproc(vkenumeratephysicaldevices,instance,vkEnumeratePhysicalDevices);
-    
-    _instproc(vkgetphysicaldevicequeuefamilyproperties,instance,vkGetPhysicalDeviceQueueFamilyProperties);
-    
-    _instproc(vkgetphysicaldeviceproperties,instance,vkGetPhysicalDeviceProperties);
-    
-    _instproc(vkgetphysicaldevicememoryproperties,instance,vkGetPhysicalDeviceMemoryProperties);
-    
-    _instproc(vkgetphysicaldevicefeatures,instance,vkGetPhysicalDeviceFeatures);
-    
-    _instproc(vkcreatedevice,instance,vkCreateDevice);
-    
-    _instproc(vkgetphysicaldevicesurfacesupportkhr,instance,vkGetPhysicalDeviceSurfaceSupportKHR);
-    
-    _instproc(vkenumeratedevicelayerproperties,instance,vkEnumerateDeviceLayerProperties);
-    
-    _instproc(vkenumeratedeviceextensionproperties,instance,vkEnumerateDeviceExtensionProperties);
-    
-    _instproc(vkgetphysicaldeviceformatproperties,instance,vkGetPhysicalDeviceFormatProperties);
-    
-    _instproc(vkgetphysicaldeviceimageformatproperties,instance,vkGetPhysicalDeviceImageFormatProperties);
-    
-    _instproc(vkdestroysurfacekhr,instance,vkDestroySurfaceKHR);
-}
-
-
-//TODO: fix the below stuff
-
-
 
 VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
                                            u32 data_size,VMemoryBlockHintFlag flag){
