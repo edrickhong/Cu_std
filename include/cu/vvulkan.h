@@ -319,12 +319,6 @@ extern void* vkgetimagesparsememoryrequirements2;
 #endif
 
 
-/* 
-
-   NOTE: This will be designed based on the metal api
-   
-*/
-
 //NOTE:Those with the Memory label can be mapped
 struct VImageMemoryContext{
     VkImage image;

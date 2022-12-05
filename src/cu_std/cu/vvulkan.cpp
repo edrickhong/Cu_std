@@ -650,29 +650,56 @@ void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,
 #define _isdeprecated(var) ((void*)var == (void*)-1)
 
 //TODO: add ability to extend
-_intern VkMemoryRequirements VGetBufferMemoryRequirements(VkDevice device,VkBuffer buffer){
-	VkMemoryRequirements memreq = {};
-	if(!_isdeprecated(vkgetbuffermemoryrequirements)){
-		vkGetBufferMemoryRequirements(device,buffer,&memreq);
-	}
-	else{
-		VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2};
-		VkMemoryRequirements2 memreq2 = {
-			VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-			0,
-			{}
-		};
-		vkGetBufferMemoryRequirements2(device,&b_info,&memreq2);
 
-		memreq = memreq2.memoryRequirements;
-	}
+VkMemoryRequirements VGetBufferMemoryRequirements1(VkDevice device,VkBuffer buffer){
+	VkMemoryRequirements memreq = {};
+	vkGetBufferMemoryRequirements(device,buffer,&memreq);
 
 	return memreq;
 }
 
 
-void _intern VGetImageMemoryRequirements(){
+VkMemoryRequirements VGetBufferMemoryRequirements2(VkDevice device,VkBuffer buffer){
+	VkMemoryRequirements memreq = {};
+	VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,0,buffer};
+	VkMemoryRequirements2 memreq2 = {
+		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
+		0,
+		{}
+	};
+	vkGetBufferMemoryRequirements2(device,&b_info,&memreq2);
+
+	memreq = memreq2.memoryRequirements;
+
+	return memreq;
 }
+
+
+VkMemoryRequirements VGetImageMemoryRequirements1(VkDevice device,VkImage image){
+	VkMemoryRequirements memreq = {};
+	vkGetImageMemoryRequirements(device,image,&memreq);
+
+	return memreq;
+}
+
+
+VkMemoryRequirements VGetImageMemoryRequirements2(VkDevice device,VkImage image){
+	VkMemoryRequirements memreq = {};
+	VkImageMemoryRequirementsInfo2 i_info = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,0,image};
+	VkMemoryRequirements2 memreq2 = {
+		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
+		0,
+		{}
+	};
+	vkGetImageMemoryRequirements2(device,&i_info,&memreq2);
+
+	memreq = memreq2.memoryRequirements;
+
+	return memreq;
+}
+
+_intern VkMemoryRequirements (*VGetBufferMemoryRequirements)(VkDevice,VkBuffer) = 0;
+_intern VkMemoryRequirements (*VGetImageMemoryRequirements)(VkDevice,VkImage) = 0;
 
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
     
@@ -1081,7 +1108,7 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 	    _initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
 	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
 
-	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these
+	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??
 	    _deprecate_func(vkgetimagememoryrequirements);
 	    //_deprecate_func(vkgetbuffermemoryrequirements) // MARK: we don't use the base version of this
     }
