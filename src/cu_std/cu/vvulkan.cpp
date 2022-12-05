@@ -838,11 +838,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                              VK_SHARING_MODE_EXCLUSIVE,0,0);
         
-        VkMemoryRequirements memoryreq = {};
-        
-        vkGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer,
-                                      &memoryreq);
-        
+        VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer);
         transferbuffer.size = memoryreq.size;
         
         auto block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
@@ -1110,8 +1106,16 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 
 	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??
 	    _deprecate_func(vkgetimagememoryrequirements);
-	    //_deprecate_func(vkgetbuffermemoryrequirements) // MARK: we don't use the base version of this
+
+	    //set internal functions
+	    VGetBufferMemoryRequirements = 
+		    _isdeprecated(vkGetBufferMemoryRequirements) ? VGetBufferMemoryRequirements2 : VGetBufferMemoryRequirements1;
+
+	    VGetImageMemoryRequirements = 
+		    _isdeprecated(vkGetImageMemoryRequirements) ? VGetImageMemoryRequirements2 : VGetImageMemoryRequirements1;
+
     }
+
     
 #undef _initfunc
 #undef _deprecate_func
@@ -1321,10 +1325,7 @@ ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
     context.buffer = 
         CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    VkMemoryRequirements memoryreq = {};
-    
-    vkGetBufferMemoryRequirements(device,context.buffer,
-                                  &memoryreq);
+    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer);
     
     context.size = memoryreq.size;
     
@@ -1367,15 +1368,13 @@ VkDeviceMemory memory,VkDeviceSize offset,u32 data_size,VkBufferUsageFlags usage
     
     VBufferContext context = {};
     
-    VkMemoryRequirements memoryreq = {};
     
     context.buffer =
         CreateBuffer(device,0,
                      data_size,usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                      VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(device,context.buffer,&memoryreq);
-    
+    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer);
     context.size = memoryreq.size;
     
 #ifdef DEBUG
@@ -1930,9 +1929,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         
         
         
-        VkMemoryRequirements memoryreq = {};
-        vkGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image,
-                                     &memoryreq);
+        VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image);
         
         auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
@@ -2851,9 +2848,7 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
     
-    VkMemoryRequirements memoryreq = {};
-    
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
     
     _kill("this resource cannot be created with the specified flag\n",flag == VBLOCK_DEVICE);
     
@@ -2903,8 +2898,7 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
     
     
-    VkMemoryRequirements memoryreq = {};
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     
@@ -3737,13 +3731,12 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
     }
     
     VBufferContext context = {};
-    VkMemoryRequirements memreq = {};
     
     context.buffer = CreateBuffer(vdevice->device,0,data_size,
                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer);
     
     VDeviceMemoryBlock block = {};
     
@@ -3784,15 +3777,13 @@ u32 data_size,VMemoryBlockHintFlag flag){
     }
     
     VBufferContext context = {};
-    VkMemoryRequirements memreq = {};
     
     context.buffer = CreateBuffer(vdevice->device,0,data_size,
                                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
-    
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer);
     
     VDeviceMemoryBlock block = {};
     
@@ -3831,7 +3822,6 @@ u32 data_size,VMemoryBlockHintFlag flag){
 VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels,VkFormat format){
     
     VTextureContext context = {};
-    VkMemoryRequirements memoryreq = {};
     
     context.image = 
         CreateImage(vdevice->device,0,
@@ -3842,7 +3832,7 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
     
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
@@ -3876,7 +3866,6 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
 VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,VkFormat format){
     
     VTextureContext handle;
-    VkMemoryRequirements memoryreq = {};
     
     handle.image = 
         CreateImage(vdevice->device,0,
@@ -3888,7 +3877,7 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
                     vdevice->phys_info->physicaldevice_array[0]);
     
     
-    vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,handle.image);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -3924,7 +3913,6 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
     auto format = VK_FORMAT_R8G8B8A8_UNORM;
     
     VTextureContext context = {};
-    VkMemoryRequirements memoryreq = {};
     
     auto pwidth = width/128;
     auto pheight = height/128;
@@ -3942,7 +3930,7 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
