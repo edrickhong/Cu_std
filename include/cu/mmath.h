@@ -67,6 +67,9 @@ typedef union Vec2 {
 	struct{
 		f32 x, y;
 	};
+	struct{
+		f32 w,h;
+	};
 	f32 container[2];
 } Vec2;
 
@@ -164,6 +167,8 @@ typedef Vec3 Color3;
 typedef Vec4 Point4;
 typedef Vec3 Point3;
 typedef Vec2 Point2;
+
+typedef Vec2 Dim2;
 
 _align(16) typedef union Mat4 {
 	f32 container[16];
@@ -580,6 +585,7 @@ Vec4 SubVec4(Vec4 lhs, Vec4 rhs);
 Vec4 MulConstLVec4(f32 lhs, Vec4 rhs);
 Vec4 MulConstRVec4(Vec4 lhs, f32 rhs);
 Vec4 DivConstRVec4(Vec4 lhs, f32 rhs);
+Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs);
 
 Vec3 AddVec3(Vec3 lhs, Vec3 rhs);
 Vec3 SubVec3(Vec3 lhs, Vec3 rhs);
@@ -1123,6 +1129,7 @@ Vec4 operator-(Vec4 lhs, Vec4 rhs);
 Vec4 operator*(f32 lhs, Vec4 rhs);
 Vec4 operator*(Vec4 lhs, f32 rhs);
 Vec4 operator/(Vec4 lhs, f32 rhs);
+Vec4 operator*(Mat4 lhs, Vec4 rhs);
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs);
 Vec3 operator-(Vec3 lhs, Vec3 rhs);

@@ -40,8 +40,9 @@ Vec3 operator*(Mat3 lhs, Vec3 rhs) {
 
 	return {x, y, z};
 }
-
+#if 0
 // MARK: This is internal for now
+// TODO: remove this pretty sure it does the same thing
 Vec4 operator*(Mat4 lhs, Vec4 rhs) {
 	Vec4 result = {};
 
@@ -57,6 +58,7 @@ Vec4 operator*(Mat4 lhs, Vec4 rhs) {
 
 	return result;
 }
+#endif
 
 void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
 			  f32* out_matrix) {
@@ -315,24 +317,7 @@ Vec4 WorldSpaceToClipSpaceVec4(Vec4 pos, Mat4 viewproj) {
 	viewproj = TransposeMat4(viewproj);
 
 #endif
-
-	auto vert = pos.simd;
-
-	auto a = _mm_mul_ps(viewproj.simd[0], vert);
-	auto b = _mm_mul_ps(viewproj.simd[1], vert);
-	auto c = _mm_mul_ps(viewproj.simd[2], vert);
-	auto d = _mm_mul_ps(viewproj.simd[3], vert);
-
-	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
-
-	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
-
-	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
-
-	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
-
-	Vec4 ret = {x, y, z, w};
-
+	auto ret = viewproj * pos;
 	return ret / ret.w;
 }
 
@@ -344,24 +329,7 @@ Vec4 ClipSpaceToWorldSpaceVec4(Vec4 pos, Mat4 viewproj) {
 	inv_viewproj = TransposeMat4(inv_viewproj);
 
 #endif
-
-	auto vert = pos.simd;
-
-	auto a = _mm_mul_ps(inv_viewproj.simd[0], vert);
-	auto b = _mm_mul_ps(inv_viewproj.simd[1], vert);
-	auto c = _mm_mul_ps(inv_viewproj.simd[2], vert);
-	auto d = _mm_mul_ps(inv_viewproj.simd[3], vert);
-
-	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
-
-	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
-
-	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
-
-	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
-
-	Vec4 ret = {x, y, z, w};
-
+	auto ret = inv_viewproj * pos;
 	return ret / ret.w;
 }
 
@@ -683,6 +651,26 @@ Vec4 DivConstRVec4(Vec4 lhs, f32 rhs) {
 	_mm_storeu_ps(&vec.x, res);
 
 	return vec;
+}
+
+
+Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs){
+	auto v = rhs.simd;
+
+	auto a = _mm_mul_ps(lhs.simd[0], v);
+	auto b = _mm_mul_ps(lhs.simd[1], v);
+	auto c = _mm_mul_ps(lhs.simd[2], v);
+	auto d = _mm_mul_ps(lhs.simd[3], v);
+
+	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
+
+	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
+
+	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
+
+	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
+
+	return {x, y, z, w};
 }
 
 // TODO: we should use simd still. just throw away the last value
@@ -2304,6 +2292,8 @@ Vec4 operator*(f32 lhs, Vec4 rhs) { return MulConstLVec4(lhs, rhs); }
 Vec4 operator*(Vec4 lhs, f32 rhs) { return rhs * lhs; }
 
 Vec4 operator/(Vec4 lhs, f32 rhs) { return DivConstRVec4(lhs, rhs); }
+
+Vec4 operator*(Mat4 lhs, Vec4 rhs){ return MulMat4Vec4(lhs,rhs); };
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs) { return AddVec3(lhs, rhs); }
 
