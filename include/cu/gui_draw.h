@@ -124,7 +124,7 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
 
 b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot);
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color);
+void GUIDrawPosMarker(GUIVec3 pos,Color4 color = White, b32 is_perspective = true);
 
 GUIVec2 GUIMouseCoordToScreenCoord();
 
@@ -142,7 +142,8 @@ void GUIDebugGetCurrentHolder();
 void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color4 x = White,Color4 y = White,Color4 z = White);
 
 
-
 void GUIGetVertexBufferAndOffset(VBufferContext** vert_buffercontext);
+
+void GUIDrawLine3D(GUIVec3 a,GUIVec3 b,Color4 color = White);
 
 //TODO: implement a color picker (https://en.wikipedia.org/wiki/HSL_and_HSV)

@@ -1,5 +1,3 @@
-
-
 #include "gui_draw.h"
 
 #include "debugtimer.h"
@@ -2508,6 +2506,20 @@ void InternalGUIDrawLine(GUIVec2 a,GUIVec2 b,Color4 color = White){
 	InternalGUIDrawLine(GUIVec3{a.x,a.y,0},GUIVec3{b.x,b.y,0},color);
 }
 
+void GUIDrawLine3D(GUIVec3 a,GUIVec3 b,Color4 color){
+	GUISetRenderMode(GUI_RENDER_LINE);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+	a = WorldSpaceToClipSpaceVec3(a,viewproj);
+	b = WorldSpaceToClipSpaceVec3(b,viewproj);
+
+	InternalGUIDrawLine(a,b,color);
+}
+
 b32 GUITranslateGizmo(GUIVec3* world_pos){
 
 	auto token = PHashString("GUI3DTranslate");
@@ -2937,7 +2949,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
 	return ret;
 }
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color){
+void GUIDrawPosMarker(GUIVec3 pos,Color4 color,b32 is_perspective){
 
 	GUISetRenderMode(GUI_RENDER_LINE);
 	GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2946,12 +2958,12 @@ void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color){
 
 	auto viewproj = gui->proj_matrix * gui->view_matrix;
 
-	auto obj_w = world_pos;
+	auto obj_w = pos;
 
-	auto a = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * 0.5f),viewproj);
-	auto b = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{-1,1,0}  * 0.5f),viewproj);
-	auto c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj);
-	auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
+	auto a = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * 0.5f),viewproj) : (obj_w + (Vec3{1,1,0} * 0.5f));
+	auto b = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{-1,1,0}  * 0.5f),viewproj) : (obj_w + (Vec3{-1,1,0}  * 0.5f));
+	auto c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj) : (obj_w + Vec3{0,1,0});
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
 
 	InternalGUIDrawLine(obj_c,a,color);
 	InternalGUIDrawLine(obj_c,b,color);
