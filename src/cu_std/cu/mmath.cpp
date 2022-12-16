@@ -74,35 +74,6 @@ void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
 	}
 }
 
-Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
-	Vec3 forward = NormalizeVec3(lookpoint - position);
-
-	Vec3 side = NormalizeVec3(CrossVec3(forward, updir));
-
-	Vec3 up = CrossVec3(side, forward);
-
-	f32 a = -1.0f * DotVec3(side, position),
-	    b = -1.0f * DotVec3(up, position), c = DotVec3(forward, position);
-
-	Mat4 matrix = IdentityMat4();
-
-	_rc4(matrix, 0, 0) = side.x;
-	_rc4(matrix, 1, 0) = side.y;
-	_rc4(matrix, 2, 0) = side.z;
-	_rc4(matrix, 3, 0) = a;
-
-	_rc4(matrix, 0, 1) = up.x;
-	_rc4(matrix, 1, 1) = up.y;
-	_rc4(matrix, 2, 1) = up.z;
-	_rc4(matrix, 3, 1) = b;
-
-	_rc4(matrix, 0, 2) = -forward.x;
-	_rc4(matrix, 1, 2) = -forward.y;
-	_rc4(matrix, 2, 2) = -forward.z;
-	_rc4(matrix, 3, 2) = c;
-
-	return matrix;
-}
 
 Vec4 InternalCompDiv(Vec4 a, Vec4 b) {
 	a.simd = _mm_div_ps(a.simd, b.simd);
@@ -1985,15 +1956,69 @@ f32 AngleQuadrant(f32 x, f32 y) {
 
 // MARK: constructors
 
+
+Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
+	Vec3 forward = NormalizeVec3(lookpoint - position);
+	Vec3 side = NormalizeVec3(CrossVec3(forward, updir));
+	Vec3 up = CrossVec3(side, forward);
+
+	f32 a = -1.0f * DotVec3(side, position),
+	    b = -1.0f * DotVec3(up, position), c = DotVec3(forward, position);
+
+	Mat4 matrix = IdentityMat4();
+
+	_rc4(matrix, 0, 0) = side.x;
+	_rc4(matrix, 1, 0) = side.y;
+	_rc4(matrix, 2, 0) = side.z;
+	_rc4(matrix, 3, 0) = a;
+
+	_rc4(matrix, 0, 1) = up.x;
+	_rc4(matrix, 1, 1) = up.y;
+	_rc4(matrix, 2, 1) = up.z;
+	_rc4(matrix, 3, 1) = b;
+
+	_rc4(matrix, 0, 2) = -forward.x;
+	_rc4(matrix, 1, 2) = -forward.y;
+	_rc4(matrix, 2, 2) = -forward.z;
+	_rc4(matrix, 3, 2) = c;
+
+	return matrix;
+}
+
+
+Mat4 _ainline ViewMatLHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
+	Vec3 forward = NormalizeVec3(lookpoint - position);
+	Vec3 side = NormalizeVec3(CrossVec3(updir,forward ));
+	Vec3 up = CrossVec3(forward, side);
+
+	f32 a = -1.0f * DotVec3(side, position),
+	    b = -1.0f * DotVec3(up, position), c = -1.0f * DotVec3(forward, position);
+
+	Mat4 matrix = IdentityMat4();
+
+	_rc4(matrix, 0, 0) = side.x;
+	_rc4(matrix, 1, 0) = side.y;
+	_rc4(matrix, 2, 0) = side.z;
+	_rc4(matrix, 3, 0) = a;
+
+	_rc4(matrix, 0, 1) = up.x;
+	_rc4(matrix, 1, 1) = up.y;
+	_rc4(matrix, 2, 1) = up.z;
+	_rc4(matrix, 3, 1) = b;
+
+	_rc4(matrix, 0, 2) = forward.x;
+	_rc4(matrix, 1, 2) = forward.y;
+	_rc4(matrix, 2, 2) = forward.z;
+	_rc4(matrix, 3, 2) = c;
+
+	return matrix;
+}
+
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir) {
-#if Z_RHS
-
+#if NDC_RHS
 	return ViewMatRHS(position, lookpoint, updir);
-
 #else
-
-#error Z_LHS not supported
-
+	return ViewMatLHS(position, lookpoint, updir);
 #endif
 }
 

@@ -54,7 +54,10 @@ Consider using _mm_hadd_ps??
 #endif
 
 #define DEPTH_ZERO_TO_ONE 1
-#define Z_RHS 1
+
+#define NDC_RHS 1
+
+
 
 #define _radians(degrees) (degrees * (_pi / 180.0f))
 #define _degrees(radians) (radians * (180.0f / _pi))

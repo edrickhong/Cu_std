@@ -1990,6 +1990,11 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
 			scissor = {{},{gui->internal_width,gui->internal_height}};
 		}
 
+#if _positive_y_up
+		viewport.y += viewport.height;
+		viewport.height *= -1;
+#endif
+
 
 		vkCmdBindPipeline(cmdbuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gui->pipeline_array[sub->rendermode]);
