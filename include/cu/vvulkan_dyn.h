@@ -137,6 +137,8 @@ extern void* vkgetphysicaldevicememoryproperties2;
 extern void* vkgetphysicaldevicequeuefamilyproperties2;
 extern void* vkgetphysicaldevicesparseimageformatproperties2;
 
+extern void* vktrimcommandpool;
+
 //defines
 #define vkEnumerateInstanceExtensionProperties ((PFN_vkEnumerateInstanceExtensionProperties)(vkenumerateinstanceextensionproperties))
 #define vkEnumerateInstanceLayerProperties ((PFN_vkEnumerateInstanceLayerProperties)(vkenumerateinstancelayerproperties))
@@ -291,6 +293,8 @@ extern void* vkgetphysicaldevicesparseimageformatproperties2;
 #define vkGetPhysicalDeviceMemoryProperties2 ((PFN_vkGetPhysicalDeviceMemoryProperties2)vkgetphysicaldevicememoryproperties2)
 #define vkGetPhysicalDeviceQueueFamilyProperties2 ((PFN_vkGetPhysicalDeviceQueueFamilyProperties2)vkgetphysicaldevicequeuefamilyproperties2)
 //#define vkGetPhysicalDeviceSparseImageFormatProperties2 ((PFN_vkGetPhysicalDeviceSparseImageFormatProperties2)vkgetphysicaldevicesparseimageformatproperties2)
+
+#define vkTrimCommandPool ((PFN_vkTrimCommandPool)vktrimcommandpool)
 
 
 

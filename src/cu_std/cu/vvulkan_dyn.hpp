@@ -137,6 +137,7 @@ void* vkgetphysicaldevicememoryproperties2;
 void* vkgetphysicaldevicequeuefamilyproperties2;
 void* vkgetphysicaldevicesparseimageformatproperties2;
 
+void* vktrimcommandpool;
 
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
@@ -574,6 +575,8 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 	    _initfunc(vkGetBufferMemoryRequirements2,vkgetbuffermemoryrequirements2);
 	    _initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
 	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
+
+	    _initfunc(vkTrimCommandPool,vktrimcommandpool);
 
 
 	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??
