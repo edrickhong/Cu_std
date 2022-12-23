@@ -94,10 +94,6 @@ b32 GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* 
 
 void GUISlider();
 
-void GUI3DTranslate(f32* x,f32* y,f32* z);
-void GUI3DScale(f32* x);
-void GUI3DRotate(f32* x,f32* y,f32* z);
-
 b32 GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
                  u32* out_entry_index,f32* max = 0,GUIDim2 dim = {0.5f,0.5f},u32* highlight_index = 0);
 

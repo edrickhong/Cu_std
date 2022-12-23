@@ -625,12 +625,17 @@ b32 GUIMouseUpL(){
 }
 
 #define _cellwidth 1.0f/95.0f
+#define _blanktexcoord 94.0f/95.0f
 
 void InternalGUIDrawRect(f32 x,f32 y,f32 width,f32 height,Color4 color){
 
-#define _blanktexcoord 94.0f/95.0f
-
+#if NDC_RHS
 	y *= -1;
+#else
+	height *= -1;
+#endif
+
+
 
 	u32 curvert = gui->vert_offset;
 
@@ -2544,9 +2549,6 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
 	auto z_c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,0,1},viewproj);
 
 	Vec2 mouse_c = GUIMouseCoordToScreenCoord();
-	mouse_c.y *= -1.0f;
-
-
 
 	InternalGUIDrawLine(obj_c,x_c,gui->axis_x_color);
 	InternalGUIDrawLine(obj_c,y_c,gui->axis_y_color);
@@ -2633,7 +2635,6 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
 	auto obj_c = Vec3ToVec2(WorldSpaceToClipSpaceVec3(world_pos,viewproj));
 
 	Vec2 mouse_c = GUIMouseCoordToScreenCoord();
-	mouse_c.y *= -1.0f;
 
 	auto mouse_dir =  mouse_c - obj_c;
 	auto mouse_ndir =  NormalizeVec2(mouse_dir);
@@ -2849,7 +2850,6 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
 	Vec3 mouse_c = {};
 	mouse_c.v2 = GUIMouseCoordToScreenCoord();
 	mouse_c.z = 0;
-	mouse_c.y *= -1.0f;
 
 	auto mouse_w = ClipSpaceToWorldSpaceVec3(mouse_c,viewproj);
 
