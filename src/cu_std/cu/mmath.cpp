@@ -2015,6 +2015,7 @@ Mat4 _ainline ViewMatLHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 }
 
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir) {
+	
 #if NDC_RHS
 	return ViewMatRHS(position, lookpoint, updir);
 #else
@@ -2022,7 +2023,8 @@ Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir) {
 #endif
 }
 
-Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+
+Mat4 _ainline ProjectionMat4RHS(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 	f32 tanhalf_fov = tanf(fov / 2.0f);
 
 	f32 a = (1.0f / (aspectratio * tanhalf_fov));
@@ -2049,6 +2051,44 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 	_rc4(matrix, 2, 3) = -1.0f;
 
 	return matrix;
+}
+
+
+Mat4 _ainline ProjectionMat4LHS(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+	f32 tanhalf_fov = tanf(fov / 2.0f);
+
+	f32 a = (1.0f / (aspectratio * tanhalf_fov));
+	f32 b = (1.0f / (tanhalf_fov));
+
+#if DEPTH_ZERO_TO_ONE
+
+	f32 c = (farz) / (farz - nearz);
+	f32 d = -(farz * nearz) / (farz - nearz);
+
+#else
+
+	f32 c = (farz + nearz) / (farz - nearz);
+	f32 d = (2.0f * farz * nearz) / (farz - nearz);
+
+#endif
+
+	Mat4 matrix = {};
+
+	_rc4(matrix, 0, 0) = a;
+	_rc4(matrix, 1, 1) = b;
+	_rc4(matrix, 2, 2) = c;
+	_rc4(matrix, 3, 2) = d;
+	_rc4(matrix, 2, 3) = 1.0f;
+
+	return matrix;
+}
+
+Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+#if NDC_RHS 
+	return ProjectionMat4RHS(fov, aspectratio, nearz, farz);
+#else
+	return ProjectionMat4LHS(fov, aspectratio, nearz, farz);
+#endif
 }
 
 Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale) {

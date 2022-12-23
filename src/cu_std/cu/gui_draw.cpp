@@ -695,6 +695,8 @@ void InternalGUIDrawLine(GUIVec3 a,GUIVec3 b,Color4 color = White){
 	_kill("gui vertex overflow", curvert > _reserve_count);
 }
 
+//TODO: move all this into the math library
+
 _ainline
 void InternalPixelDimToNormalizedDim(f32 r_w,f32 r_h,f32 p_w,f32 p_h,
 		f32* w,f32* h){
@@ -732,12 +734,9 @@ void InternalNormalizedCoordToPixelCoord(f32 r_w,f32 r_h,f32 n_x,f32 n_y,
 _ainline
 void InternalPixelCoordToNormalizedCoord(f32 r_w,f32 r_h,f32 p_x,f32 p_y,
 		f32* x,f32* y){
-
-	auto h_width = r_w/2.0f;
-	auto h_height = r_h/2.0f;
-
-	*x = (p_x - h_width)/h_width;
-	*y = (h_height - p_y)/h_height;
+	auto v = PixelCoordToNDC({p_x,p_y},{r_w,r_h});
+	*x = v.x;
+	*y = v.y;
 }
 
 
@@ -1990,16 +1989,14 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
 			scissor = {{},{gui->internal_width,gui->internal_height}};
 		}
 
-#if _positive_y_up
-		viewport.y += viewport.height;
-		viewport.height *= -1;
-#endif
-
 
 		vkCmdBindPipeline(cmdbuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gui->pipeline_array[sub->rendermode]);
 
-		vkCmdSetViewport(cmdbuffer,0,1,&viewport);
+
+		VViewport viewports[] = {VViewport(viewport)};
+
+		VCmdSetViewport(cmdbuffer,viewports,_arraycount(viewports));
 		vkCmdSetScissor(cmdbuffer,0,1,&scissor);
 
 

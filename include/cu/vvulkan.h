@@ -699,9 +699,46 @@ VGraphicsPipelineSpecObj VMakeGraphicsPipelineSpecObj(const  VDeviceContext* vde
 void VCreateGraphicsPipelineArray(const  VDeviceContext* _restrict vdevice,VGraphicsPipelineSpecObj* spec_array,u32 spec_count,VkPipeline* pipeline_array,VkPipelineCache cache = 0);
 
 
+VkViewport _ainline VMakeViewport(f32 x,f32 y,f32 w,f32 h,f32 min_z = 0.0f,f32 max_z = 1.0f){
+#if _positive_y_up
+	return {x,y + h,w,h * -1,min_z,max_z};
+#else
+	return {x,y,w,h,min_z,max_z};
+#endif
+}
+
+
+VkViewport _ainline VMakeViewport(VkViewport viewport){
+#if _positive_y_up
+	viewport.y += viewport.height;
+	viewport.height *= -1;
+	return viewport;
+#else
+	return viewport;
+#endif
+}
+
+#ifdef __cplusplus
+struct VViewport{
+	VkViewport viewport = {};
+
+	VViewport(f32 x,f32 y, f32 w, f32 h, f32 min_z = 0,f32 max_z = 0){
+		this->viewport = VMakeViewport(x,y,w,h,min_z,max_z);
+	}
+
+
+	VViewport(VkViewport vp){
+		this->viewport = VMakeViewport(vp);
+	}
+};
+#else
+typedef VkViewport VViewport;
+#endif
+
+
 
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
-                                           VkViewport* viewport,u32 viewport_count,VkRect2D* scissor,
+                                           VViewport* viewport,u32 viewport_count,VkRect2D* scissor,
                                            u32 scissor_count);
 
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
@@ -918,9 +955,9 @@ void _ainline VInitQueueFamilyProperties(VkQueueFamilyProperties2* array,u32 cou
 	}
 }
 
-
-
-
+void _ainline VCmdSetViewport(VkCommandBuffer cmdbuffer,VViewport* viewports,u32 count,u32 offset = 0){
+	vkCmdSetViewport(cmdbuffer,offset,count,(VkViewport*)viewports);
+}
 
 VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
                                          ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag);

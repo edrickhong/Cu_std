@@ -55,9 +55,7 @@ Consider using _mm_hadd_ps??
 
 #define DEPTH_ZERO_TO_ONE 1
 
-#define NDC_RHS 1
-
-
+#define NDC_RHS 0
 
 #define _radians(degrees) (degrees * (_pi / 180.0f))
 #define _degrees(radians) (radians * (180.0f / _pi))
@@ -1101,6 +1099,20 @@ Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere);
 // MARK: deconstructors
 
 void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle);
+
+
+Vec3 _ainline PixelCoordToNDC(Vec3 p,Dim2 dim){
+	auto x = (2.0f * p.x)/dim.w - 1.0f;
+	auto y = (1.0f - (2.0f * p.y) / dim.h);
+	auto z = p.z;
+
+
+#if NDC_RHS
+	y *= -1;
+#endif
+
+	return {x,y,z};
+}
 
 
 #ifdef __cplusplus

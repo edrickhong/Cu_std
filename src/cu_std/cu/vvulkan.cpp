@@ -2571,17 +2571,10 @@ void VCreateComputePipelineArray(const  VDeviceContext* _restrict vdevice,
 
 
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
-		VkViewport* viewport,u32 viewport_count,VkRect2D* scissor,
+		VViewport* viewport,u32 viewport_count,VkRect2D* scissor,
 		u32 scissor_count){
 
-	for(u32 i = 0; i < viewport_count; i++){
-		spec->viewport_array[i] = viewport[i];
-#if _positive_y_up
-		spec->viewport_array[i].y += spec->viewport_array[i].height;
-		spec->viewport_array[i].height *= -1;
-#endif
-	}
-
+	memcpy(&spec->viewport_array[0],viewport,sizeof(VkViewport) * viewport_count);
 	memcpy(&spec->scissor_array[0],scissor,sizeof(VkRect2D) * scissor_count);
 
 	spec->viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -2593,7 +2586,7 @@ void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
                                            u16 width,u16 height){
     
-    VkViewport viewport = {0.0f,0.0f,(f32)width,(f32)height,0.0f,1.0f};
+    auto viewport = VViewport(0,0,width,height);
     VkRect2D scissor = {{},width,height};
     
     VSetFixedViewportGraphicsPipelineSpec(spec,&viewport,1,&scissor,1);
