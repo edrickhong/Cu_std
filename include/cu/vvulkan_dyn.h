@@ -139,6 +139,8 @@ extern void* vkgetphysicaldevicesparseimageformatproperties2;
 
 extern void* vktrimcommandpool;
 
+extern void* vkgetdescriptorlayoutsupport;
+
 //defines
 #define vkEnumerateInstanceExtensionProperties ((PFN_vkEnumerateInstanceExtensionProperties)(vkenumerateinstanceextensionproperties))
 #define vkEnumerateInstanceLayerProperties ((PFN_vkEnumerateInstanceLayerProperties)(vkenumerateinstancelayerproperties))
@@ -295,6 +297,7 @@ extern void* vktrimcommandpool;
 //#define vkGetPhysicalDeviceSparseImageFormatProperties2 ((PFN_vkGetPhysicalDeviceSparseImageFormatProperties2)vkgetphysicaldevicesparseimageformatproperties2)
 
 #define vkTrimCommandPool ((PFN_vkTrimCommandPool)vktrimcommandpool)
+#define vkGetDescriptorLayoutSupport ((PFN_vkGetDescriptorLayoutSupport)vkgetdescriptorlayoutsupport)
 
 
 

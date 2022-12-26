@@ -523,7 +523,7 @@ void VFreeMemory(const  VDeviceContext* _restrict vdevice,VkDeviceMemory memory)
 
 
 VkDeviceMemory  
-VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index);
+VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index,void* next = 0);
 
 u32 VGetMemoryTypeIndex(VkPhysicalDeviceMemoryProperties properties,
                         u32 typebits,u32 flags);
@@ -958,6 +958,9 @@ void _ainline VInitQueueFamilyProperties(VkQueueFamilyProperties2* array,u32 cou
 void _ainline VCmdSetViewport(VkCommandBuffer cmdbuffer,VViewport* viewports,u32 count,u32 offset = 0){
 	vkCmdSetViewport(cmdbuffer,offset,count,(VkViewport*)viewports);
 }
+
+void* VChainVKStruct(void** info_array,u32 count);
+
 
 VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
                                          ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag);

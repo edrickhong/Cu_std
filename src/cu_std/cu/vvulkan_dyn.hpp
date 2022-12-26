@@ -139,6 +139,8 @@ void* vkgetphysicaldevicesparseimageformatproperties2;
 
 void* vktrimcommandpool;
 
+void* vkgetdescriptorlayoutsupport;
+
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
     fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
@@ -266,8 +268,8 @@ void _ainline VGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice device,u3
 	}
 }
 
-
-VkMemoryRequirements VGetBufferMemoryRequirements1(VkDevice device,VkBuffer buffer){
+// NOTE: Memory req
+VkMemoryRequirements VGetBufferMemoryRequirements1(VkDevice device,VkBuffer buffer,void* m_next,void* info_next){
 	VkMemoryRequirements memreq = {};
 	vkGetBufferMemoryRequirements(device,buffer,&memreq);
 
@@ -275,12 +277,12 @@ VkMemoryRequirements VGetBufferMemoryRequirements1(VkDevice device,VkBuffer buff
 }
 
 
-VkMemoryRequirements VGetBufferMemoryRequirements2(VkDevice device,VkBuffer buffer){
+VkMemoryRequirements VGetBufferMemoryRequirements2(VkDevice device,VkBuffer buffer,void* m_next,void* info_next){
 	VkMemoryRequirements memreq = {};
-	VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,0,buffer};
+	VkBufferMemoryRequirementsInfo2 b_info = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,info_next,buffer};
 	VkMemoryRequirements2 memreq2 = {
 		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-		0,
+		m_next,
 		{}
 	};
 	vkGetBufferMemoryRequirements2(device,&b_info,&memreq2);
@@ -291,7 +293,7 @@ VkMemoryRequirements VGetBufferMemoryRequirements2(VkDevice device,VkBuffer buff
 }
 
 
-VkMemoryRequirements VGetImageMemoryRequirements1(VkDevice device,VkImage image){
+VkMemoryRequirements VGetImageMemoryRequirements1(VkDevice device,VkImage image,void* m_next,void* info_next){
 	VkMemoryRequirements memreq = {};
 	vkGetImageMemoryRequirements(device,image,&memreq);
 
@@ -299,12 +301,12 @@ VkMemoryRequirements VGetImageMemoryRequirements1(VkDevice device,VkImage image)
 }
 
 
-VkMemoryRequirements VGetImageMemoryRequirements2(VkDevice device,VkImage image){
+VkMemoryRequirements VGetImageMemoryRequirements2(VkDevice device,VkImage image,void* m_next,void* info_next){
 	VkMemoryRequirements memreq = {};
-	VkImageMemoryRequirementsInfo2 i_info = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,0,image};
+	VkImageMemoryRequirementsInfo2 i_info = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,info_next,image};
 	VkMemoryRequirements2 memreq2 = {
 		VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-		0,
+		m_next,
 		{}
 	};
 	vkGetImageMemoryRequirements2(device,&i_info,&memreq2);
@@ -327,8 +329,9 @@ _global VkDevice global_device = 0;
 #endif
 
 
-_intern VkMemoryRequirements (*VGetBufferMemoryRequirements)(VkDevice,VkBuffer) = 0;
-_intern VkMemoryRequirements (*VGetImageMemoryRequirements)(VkDevice,VkImage) = 0;
+_intern VkMemoryRequirements (*VGetBufferMemoryRequirements)(VkDevice,VkBuffer,void*,void*) = 0;
+_intern VkMemoryRequirements (*VGetImageMemoryRequirements)(VkDevice,VkImage,void*,void*) = 0;
+
 VkPhysicalDeviceProperties (*VGetPhysicalDeviceProperties)(VkPhysicalDevice) = 0;
 _intern VkPhysicalDeviceFeatures (*VGetPhysicalDeviceFeatures)(VkPhysicalDevice) = 0;
 _intern VkFormatProperties (*VGetPhysicalDeviceFormatProperties)(VkPhysicalDevice,VkFormat) = 0;
@@ -577,6 +580,7 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
 
 	    _initfunc(vkTrimCommandPool,vktrimcommandpool);
+	    _initfunc(vkGetDescriptorLayoutSupport,vkgetdescriptorlayoutsupport);
 
 
 	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??

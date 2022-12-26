@@ -2,6 +2,8 @@
 
 #include "wwindow.h"
 
+//TODO: make use of dedicated allocation
+
 
 #define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
 
@@ -51,6 +53,72 @@ TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
 */
 
 
+
+
+template <typename T>
+u32 GetArgSize(T t){
+	return sizeof(t);
+}
+
+template <typename T, typename... Args>
+u32 GetArgSize(T t,Args... args){
+	return sizeof(t) + GetArgSize(args...);
+}
+
+
+template <typename T, typename... Args>
+u32 GetArgCount(T t,Args... args){
+	return sizeof...(args) + 1;
+}
+
+
+template <typename T, typename... Args>
+void FillChain(s8* buffer,s8* mem,u32* offset,T t){
+	*offset = mem - buffer;
+	memcpy(mem,&t,sizeof(t));
+}
+
+
+template <typename T, typename... Args>
+void FillChain(s8* buffer,s8* mem,u32* offset,T t,Args... args){
+	*offset = mem - buffer;
+	memcpy(mem,&t,sizeof(t));
+
+	offset ++;
+	mem += sizeof(t);
+
+	FillChain(buffer,mem,offset,args...);
+}
+
+
+struct Chain{
+	s8* buffer;
+	u32* offsets;
+	u32 count = 0;
+
+	s8* operator[](u32 index){
+		_kill("",index >= count);
+		return buffer + offsets[index];
+	}
+};
+
+
+void* VChainVKStruct(Chain chain){
+	struct VKStruct{
+		VkStructureType type;
+		void* next;
+	};
+
+	for(u32 i = 0; i < chain.count; i++){
+		auto a = (VKStruct*)(chain[i]);
+		auto b = i + 1 < chain.count ? chain[i + 1] : 0;
+
+		a->next = b;
+	}
+	return chain[0];
+}
+
+#define _make_chain(tuple, ...)  auto tuple = Chain{(s8*)alloca(GetArgSize(__VA_ARGS__)),(u32*)alloca(GetArgCount(__VA_ARGS__) * sizeof(u32)),GetArgCount(__VA_ARGS__)}; FillChain(tuple.buffer,tuple.buffer,tuple.offsets,__VA_ARGS__)
 
 
 #ifdef _WIN32
@@ -528,6 +596,60 @@ void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,
 #endif
 
 
+//NOTE: requires 1.1
+VkMemoryDedicatedAllocateInfo VMakeDedicatedAllocInfo(VkBuffer buffer){
+	return {
+		VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+			0,
+			0,
+			buffer
+	};
+}
+
+
+VkMemoryDedicatedAllocateInfo VMakeDedicatedAllocInfo(VkImage image){
+	return {
+		VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+			0,
+			image,
+			0
+	};
+}
+
+VkMemoryRequirements VMakeDedicatedMemReq(){
+	return {VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS};
+}
+
+VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkBuffer buffer){
+	VDeviceMemoryBlock block = {};
+	auto ded_info = VMakeDedicatedAllocInfo(buffer);
+	auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	block.memory = VRawDeviceAlloc(vdevice->device,alloc_size,type,&ded_info);
+	block.size = alloc_size;
+
+#if DEBUG
+	block.type = type;
+#endif
+
+	return block;
+}
+
+
+VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkImage image){
+	VDeviceMemoryBlock block = {};
+	auto ded_info = VMakeDedicatedAllocInfo(image);
+	auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	block.memory = VRawDeviceAlloc(vdevice->device,alloc_size,type,&ded_info);
+	block.size = alloc_size;
+
+#if DEBUG
+	block.type = type;
+#endif
+
+	return block;
+}
 
 
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
@@ -554,6 +676,7 @@ void _ainline VBindImageMemoryBlock(const VDeviceContext* _restrict vdevice,VkIm
     
     _vktest(vkBindImageMemory(vdevice->device,image,block.memory,block.offset));
 }
+
 
 VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size,u32 write_size,u32 transferbuffer_size,u32 readwrite_size,
                                   u32 direct_size){
@@ -663,13 +786,18 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         transferbuffer.buffer = CreateBuffer(vdevice->device,0,transferbuffer_size,VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                              VK_SHARING_MODE_EXCLUSIVE,0,0);
+
+	_make_chain(chain,VMakeDedicatedMemReq());
         
-        VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer);
+        VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer,VChainVKStruct(chain),0);
         transferbuffer.size = memoryreq.size;
-        
-        auto block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
-        
-        
+
+	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
+	auto block = (ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation) ? 
+		VDedicatedBlockAlloc(vdevice,transferbuffer.size,transferbuffer.buffer) : 
+		VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),
+					memoryreq.memoryTypeBits,_write_block_flags);
+
         transferbuffer.offset = block.offset;
         transferbuffer.alloc_offset = block.offset;
         
@@ -768,7 +896,7 @@ PFN_vkDestroyDebugReportCallbackEXT CreateVkDebug(VkInstance instance){
 
 //Unmanaged
 VkDeviceMemory  
-VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
+VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index,void* next){
     
 #ifdef DEBUG
     
@@ -782,7 +910,7 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     
     VkMemoryAllocateInfo info = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        0,
+        next,
         alloc_size,
         memorytype_index
     };
@@ -792,7 +920,8 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     return memory;
 }
 
-_global VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32) = VRawDeviceAlloc;
+
+_global VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32,void*) = VRawDeviceAlloc;
 
 VkSampler CreateSampler(VkDevice device,VkSamplerCreateFlags flags,
                         VkFilter mag_filter,VkFilter min_filter,
@@ -892,7 +1021,7 @@ ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
     context.buffer = 
         CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer);
+    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,0,0);
     
     context.size = memoryreq.size;
     
@@ -941,7 +1070,7 @@ VkDeviceMemory memory,VkDeviceSize offset,u32 data_size,VkBufferUsageFlags usage
                      data_size,usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                      VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer);
+    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,0,0);
     context.size = memoryreq.size;
     
 #ifdef DEBUG
@@ -1486,7 +1615,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         
         
         
-        VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image);
+        VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image,0,0);
         
         auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
@@ -1597,7 +1726,7 @@ void VSetDriverAllocator(VkAllocationCallbacks allocator){
     *global_allocator = allocator;
 }
 
-void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32)){
+void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32,void*)){
     deviceallocator = allocator;
 }
 
@@ -2411,7 +2540,7 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
     
-    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image,0,0);
     
     _kill("this resource cannot be created with the specified flag\n",flag == VBLOCK_DEVICE);
     
@@ -2461,7 +2590,7 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
     
     
-    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image,0,0);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     
@@ -3260,7 +3389,7 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer);
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
     VDeviceMemoryBlock block = {};
     
@@ -3307,7 +3436,7 @@ u32 data_size,VMemoryBlockHintFlag flag){
                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer);
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
     VDeviceMemoryBlock block = {};
     
@@ -3356,7 +3485,7 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image,0,0);
     
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
@@ -3401,7 +3530,7 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
                     vdevice->phys_info->physicaldevice_array[0]);
     
     
-    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,handle.image);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,handle.image,0,0);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -3454,7 +3583,7 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image);
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image,0,0);
     
     auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -3505,4 +3634,20 @@ VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice
     
     return context;
     
+}
+
+
+void* VChainVKStruct(void** info_array,u32 count){
+	struct VKStruct{
+		VkStructureType type;
+		void* next;
+	};
+
+	for(u32 i = 0; i < count; i++){
+		auto a = (VKStruct*)(info_array[i]);
+		auto b = i + 1 < count ? info_array[i + 1] : 0;
+
+		a->next = b;
+	}
+	return info_array[0];
 }
