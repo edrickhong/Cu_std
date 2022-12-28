@@ -23,11 +23,11 @@ struct InternalWindowData {
 			Colormap x11_colormap;
 		};
 
-		struct {
 #ifndef NO_WAYLAND_EXTENSIONS
+		struct {
 			xdg_surface* wayland_xdg_surface;
-#endif
 		};
+#endif
 	};
 };
 
