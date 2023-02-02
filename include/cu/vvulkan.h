@@ -216,10 +216,10 @@ struct VSubmitBatch{
 //NOTE: there is a memory flag to only allow device access (protected). should we use this??
 
 enum VMemoryBlockHintFlag{
-    VBLOCK_DEVICE,
-    VBLOCK_WRITE = _write_block_flags,
-    VBLOCK_READWRITE = _readwrite_block_flags,
-    VBLOCK_DIRECT = _direct_block_flags,
+    VBLOCK_DEVICE, //device access only. device read/write-able
+    VBLOCK_WRITE = _write_block_flags, //host writeable device readable
+    VBLOCK_READWRITE = _readwrite_block_flags, //host read/write-able device read/write-able
+    VBLOCK_DIRECT = _direct_block_flags, //host read/write-able device read/write-able
 };
 
 

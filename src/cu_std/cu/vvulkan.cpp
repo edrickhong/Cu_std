@@ -173,10 +173,8 @@ struct VDeviceMemoryBlock{
     u32 size;
     
 #ifdef DEBUG
-    u32 type;
-    
-    u64* res;
-    
+    u32 type; //describes block properties
+    u64* res;  // what resource is bound to this block
 #endif
 };
 
@@ -216,9 +214,20 @@ VkBuffer CreateBuffer(VkDevice device,VkBufferCreateFlags flags,
     return buffer;
 }
 
+/*
+ * These are memory blocks on the device. Linear blocks are for linear resources like buffers while the latter is for
+ * non-linear resources like images. These blocks cannot be mapped. Both are device read/write-able
+ * */
+
 _global VDeviceMemoryBlock linear_block = {};
 _global VDeviceMemoryBlock non_linear_block = {};
 
+/*
+ * The following are memory blocks that can be mapped. The first is a block that can be written but not read by the host and the 
+ * next a block suitable for both reading and writing from the host respectively. The direct block is a region of memory that 
+ * resides on the device that can be directly accessed by the host for reads and writes. All blocks are device readable. 
+ * Device writes should be reserved for the last two block types.
+ * */
 _global VDeviceMemoryBlock write_block = {};
 _global VDeviceMemoryBlock readwrite_block = {};
 _global VDeviceMemoryBlock direct_block = {};
