@@ -1003,6 +1003,45 @@ VkBuffer VRawCreateBuffer(VkDevice device,
     
 }
 
+_intern VDeviceMemoryBlock InternBlockAlloc(const VDeviceContext* vdevice,const VBufferContext context,VMemoryBlockHintFlag flag){
+
+
+	auto memoryproperties = *(vdevice->phys_info->memoryproperties);
+	auto device = vdevice->device;
+
+	_make_chain(chain,VMakeDedicatedMemReq());
+	VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,VChainVKStruct(chain),0);
+
+	VDeviceMemoryBlock block = {};
+	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
+
+
+	if(ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation){
+		block = VDedicatedBlockAlloc(vdevice,memoryreq.size,context.buffer);
+	}
+
+	else if(flag == VBLOCK_DEVICE){
+
+		block = VLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	}
+
+	else if(flag == VBLOCK_READWRITE){
+		block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
+	}
+
+	else if(flag == VBLOCK_WRITE){
+
+		block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
+	}
+
+	else{
+
+		block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
+	}
+
+	return block;
+}
+
 _intern VBufferContext CreateStaticBufferContext(
 const  VDeviceContext* _restrict vdevice,
 ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
@@ -1015,40 +1054,15 @@ ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
     
     auto device = vdevice->device;
     
-    VkPhysicalDeviceMemoryProperties 
-        memoryproperties = *(vdevice->phys_info->memoryproperties);
     
     context.buffer = 
         CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,0,0);
-    
-    context.size = memoryreq.size;
-    
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
-    }
+
+    auto block = InternBlockAlloc(vdevice,context,flag);
+    context.size = block.size;
+    context.mapid = block.offset;
     
     VBindBufferMemoryBlock(vdevice,context.buffer,block);
-    
-    context.mapid = block.offset;
     
     return context;
 }
@@ -3391,31 +3405,12 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
     
     VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
-    }
+    VDeviceMemoryBlock block = InternBlockAlloc(vdevice,context,flag);
+    context.size = block.size;
+    context.mapid = block.offset;
     
     VBindBufferMemoryBlock(vdevice,context.buffer,block);
     
-    context.size = memreq.size;
-    context.mapid = block.offset;
     
     return context;
 }
@@ -3438,32 +3433,12 @@ u32 data_size,VMemoryBlockHintFlag flag){
     
     VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
-    }
-    
-    VBindBufferMemoryBlock(vdevice,context.buffer,block);
-    
+    VDeviceMemoryBlock block = InternBlockAlloc(vdevice,context,flag);
     context.size = memreq.size;
     context.mapid = block.offset;
-    
+
+    VBindBufferMemoryBlock(vdevice,context.buffer,block);
+
     return context;
 }
 
