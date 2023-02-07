@@ -962,13 +962,14 @@ void _ainline VCmdSetViewport(VkCommandBuffer cmdbuffer,VViewport* viewports,u32
 void* VChainVKStruct(void** info_array,u32 count);
 
 
+//TODO: remove these
 VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
                                          ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag);
 
 VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
                                         ptrsize size,u32 ind_size,VMemoryBlockHintFlag flag);
 
-//TODO: remove these
+//TODO: should we move these out to somewhere else??
 VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,
                                     u32 height,VkFormat format);
 
@@ -978,3 +979,6 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
 void VLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
 
 void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
+
+//1.1
+

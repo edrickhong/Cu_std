@@ -141,6 +141,10 @@ void* vktrimcommandpool;
 
 void* vkgetdescriptorlayoutsupport;
 
+void* vkdestroydescriptorupdatetemplate;
+void* vkcreatedescriptorupdatetemplate;
+void* vkupdatedescriptorsetwithtemplate;
+
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
     fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
@@ -583,7 +587,12 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 	    _initfunc(vkGetDescriptorLayoutSupport,vkgetdescriptorlayoutsupport);
 
 
-	    _deprecate_func(vkgetbuffermemoryrequirements);//TODO: should we just alias these??
+	    _initfunc(vkDestroyDescriptorUpdateTemplate,vkdestroydescriptorupdatetemplate);
+	    _initfunc(vkCreateDescriptorUpdateTemplate,vkcreatedescriptorupdatetemplate);
+	    _initfunc(vkUpdateDescriptorSetWithTemplate,vkupdatedescriptorsetwithtemplate);
+
+
+	    _deprecate_func(vkgetbuffermemoryrequirements);//MARK: should we just alias these??
 	    _deprecate_func(vkgetimagememoryrequirements);
 	    _deprecate_func(vkgetimagesparsememoryrequirements);
 	   

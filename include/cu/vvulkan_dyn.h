@@ -141,6 +141,10 @@ extern void* vktrimcommandpool;
 
 extern void* vkgetdescriptorlayoutsupport;
 
+extern void* vkdestroydescriptorupdatetemplate;
+extern void* vkcreatedescriptorupdatetemplate;
+extern void* vkupdatedescriptorsetwithtemplate;
+
 //defines
 #define vkEnumerateInstanceExtensionProperties ((PFN_vkEnumerateInstanceExtensionProperties)(vkenumerateinstanceextensionproperties))
 #define vkEnumerateInstanceLayerProperties ((PFN_vkEnumerateInstanceLayerProperties)(vkenumerateinstancelayerproperties))
@@ -298,6 +302,11 @@ extern void* vkgetdescriptorlayoutsupport;
 
 #define vkTrimCommandPool ((PFN_vkTrimCommandPool)vktrimcommandpool)
 #define vkGetDescriptorLayoutSupport ((PFN_vkGetDescriptorLayoutSupport)vkgetdescriptorlayoutsupport)
+
+#define vkDestroyDescriptorUpdateTemplate ((PFN_vkDestroyDescriptorUpdateTemplate)vkdestroydescriptorupdatetemplate)
+#define vkCreateDescriptorUpdateTemplate ((PFN_vkCreateDescriptorUpdateTemplate)vkcreatedescriptorupdatetemplate)
+#define vkUpdateDescriptorSetWithTemplate ((vkUpdateDescriptorSetWithTemplate)vkupdatedescriptorsetwithtemplate)
+
 
 
 
