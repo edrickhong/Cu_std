@@ -306,11 +306,8 @@ struct VPhysicalDevice_Index{
     u32 index;
 };
 
-struct VPhysicalDeviceGroups{};
-
 void VEnumeratePhysicalDevices(VkPhysicalDevice * array,u32* count,WWindowContext* window = 0);
 
-void VEnumeratePhysicalDeviceGroups(VPhysicalDeviceGroups* array,u32* count,WWindowContext* window = 0);
 
 VkFence VCreateFence(VDeviceContext* _in_ vdevice,VkFenceCreateFlags flags);
 
@@ -939,15 +936,6 @@ u32 data_size,VMemoryBlockHintFlag flag = VBLOCK_WRITE);
 
 VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels = 1,VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
 
-u32 _ainline VGetMaxSupportedVkVersion(){
-	u32 version = VK_MAKE_VERSION(1,0,0);
-	if(vkenumerateinstanceversion){
-		VkResult res = vkEnumerateInstanceVersion(&version);
-		_kill("",res != VK_SUCCESS);
-	}
-
-	return version;
-}
 
 void _ainline VInitQueueFamilyProperties(VkQueueFamilyProperties2* array,u32 count){
 	for(u32 i = 0; i < count; i++){
@@ -981,4 +969,14 @@ void VLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkD
 void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,VkDeviceSize* _restrict offset);
 
 //1.1
+u32 _ainline VGetMaxSupportedVkVersion(){
+	u32 version = VK_MAKE_VERSION(1,0,0);
+	if(vkenumerateinstanceversion){
+		VkResult res = vkEnumerateInstanceVersion(&version);
+		_kill("",res != VK_SUCCESS);
+	}
 
+	return version;
+}
+
+void VEnumeratePhysicalDeviceGroups(VkPhysicalDeviceGroupProperties* array,u32* count,WWindowContext* window = 0);

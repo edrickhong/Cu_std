@@ -1193,7 +1193,7 @@ VkInstance CreateInstance(const s8* _restrict name,u32 api_version,
 }
 
 
-VkDevice CreateDevice(VkPhysicalDevice physicaldevice,
+VkDevice CreateDevice(VkPhysicalDevice* array,u32 count,
                       VkDeviceQueueCreateInfo* queueinfo_array,
                       ptrsize queueinfo_count,
                       const s8** layer_array,ptrsize layer_count,
@@ -1215,9 +1215,15 @@ VkDevice CreateDevice(VkPhysicalDevice physicaldevice,
     device_info.enabledLayerCount = layer_count;
     
     device_info.pEnabledFeatures = devicefeatures;
+
+    VkDeviceGroupDeviceCreateInfo group_info = {};
+    group_info.sType = VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO;
+    group_info.pPhysicalDevices = array;
+    group_info.physicalDeviceCount = count;
+
+    device_info.pNext = &group_info;
     
-    
-    _vktest(vkCreateDevice(physicaldevice,&device_info,global_allocator,&device));
+    _vktest(vkCreateDevice(array[0],&device_info,global_allocator,&device));
     
     return device;
 }
@@ -2021,8 +2027,8 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     }
     
     context.device =
-        CreateDevice(context.phys_info->physicaldevice_array[0],queueinfo_array,queueinfo_count,layer_array,
-                     layer_count,extension_array,extension_count,&devicefeatures); 
+        CreateDevice(context.phys_info->physicaldevice_array,context.phys_info->physicaldevice_count,queueinfo_array,
+			queueinfo_count,layer_array,layer_count,extension_array,extension_count,&devicefeatures); 
     
     if(!vkcreategraphicspipelines){
         
@@ -3634,4 +3640,14 @@ void* VChainVKStruct(void** info_array,u32 count){
 		a->next = b;
 	}
 	return info_array[0];
+}
+
+//TODO: check if device is capable of presenting
+void VEnumeratePhysicalDeviceGroups(VkPhysicalDeviceGroupProperties* array,u32* count,WWindowContext* window){
+	if(array){
+		for(u32 i = 0; i < *count; i++){
+			array[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
+		}
+	}
+	_vktest(vkEnumeratePhysicalDeviceGroups(global_instance,count,array));
 }
