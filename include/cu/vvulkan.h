@@ -141,7 +141,7 @@ struct VDeviceContext{
     struct PhysDeviceInfo{
         
         VkPhysicalDevice physicaldevice_array[8];
-        VkPhysicalDeviceMemoryProperties* memoryproperties;
+        VkPhysicalDeviceMemoryProperties* memoryproperties_array;
         u32 physicaldevice_count;
     };
     PhysDeviceInfo* phys_info;
@@ -280,6 +280,12 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
 
 VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array = 0,u32 physdevice_count = 1,u32 vdevice_flags = V_VDEVICECONTEXT_FLAGS_ENABLE_RENDER_TO_WINDOW,
                                     u32 createqueue_bits = VCREATEQUEUEBIT_ALL);
+
+
+_ainline VDeviceContext VCreateDeviceContext(VkPhysicalDeviceGroupProperties group,u32 vdevice_flags = V_VDEVICECONTEXT_FLAGS_ENABLE_RENDER_TO_WINDOW,
+                                    u32 createqueue_bits = VCREATEQUEUEBIT_ALL){
+	return VCreateDeviceContext(group.physicalDevices,group.physicalDeviceCount,vdevice_flags,createqueue_bits);
+}
 
 VkQueue VGetQueue(const VDeviceContext* _in_ vdevice,VQueueType type);
 

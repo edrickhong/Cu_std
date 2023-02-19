@@ -1918,13 +1918,15 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     _dprint("gpu:%s\n",physproperties.deviceName);
 #endif
     
-    context.phys_info->memoryproperties =
-        (VkPhysicalDeviceMemoryProperties*)alloc(sizeof(VkPhysicalDeviceMemoryProperties));
-    
-    *context.phys_info->memoryproperties = VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]);
+    context.phys_info->memoryproperties_array =
+        (VkPhysicalDeviceMemoryProperties*)alloc(sizeof(VkPhysicalDeviceMemoryProperties) * physdevice_count);
 
-    //memcpy(context.phys_info->memoryproperties,&VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]),
-		    //sizeof(VkPhysicalDeviceMemoryProperties));
+    for(u32 i = 0; i < physdevice_count; i++){
+	    *context.phys_info->memoryproperties_array[i] = 
+		    VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[i]);
+    }
+    
+
     
     VkDeviceQueueCreateInfo queueinfo_array[5];
     u32 queueinfo_count = 0;
