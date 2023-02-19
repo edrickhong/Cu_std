@@ -3252,114 +3252,113 @@ void VGetPipelineCacheData(const VDeviceContext* _in_ vdevice,VkPipelineCache ca
     _vktest(vkGetPipelineCacheData(vdevice->device,cache,(size_t*)init_size,init_data));
 }
 
+b32 _intern InternIsPresentable(VkPhysicalDevice d,WWindowContext* window){
+
+	u32 p_count = 0;
+	VkQueueFamilyProperties2 p_array[8] = {};
+	VInitQueueFamilyProperties(p_array,_arraycount(p_array));
+
+	VGetPhysicalDeviceQueueFamilyProperties(d,&p_count,0);
+	_kill("",p_count > _arraycount(p_array));
+	VGetPhysicalDeviceQueueFamilyProperties(d,&p_count,&p_array[0]);
+
+	u32 famindex = (u32)-1;
+
+	//get queue family index of graphics queue
+	{
+		for(u32 j = 0; j < p_count; j++){
+
+			if(p_array[j].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+				famindex = j;
+				break;
+			}
+		}
+
+	}
+	if(famindex == (u32)-1){
+		return false;
+	}
+
+
+	//get presentation support function
+	b32 present_support = false;
+	{
+#ifdef _WIN32
+
+		_instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,global_instance,vkGetPhysicalDeviceWin32PresentationSupportKHR);
+
+		present_support = vkGetPhysicalDeviceWin32PresentationSupportKHR(d,famindex);
+#else
+
+		present_support = 0;
+
+		if(window->data->type == _WAYLAND_WINDOW){
+
+			_instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,
+					global_instance,
+					vkGetPhysicalDeviceWaylandPresentationSupportKHR
+				 );
+
+			present_support = vkGetPhysicalDeviceWaylandPresentationSupportKHR(
+					d,famindex,(wl_display*)WGetWindowConnection());
+		}
+
+		else{
+			_instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,
+					global_instance,
+					vkGetPhysicalDeviceXlibPresentationSupportKHR
+				 );
+
+
+			present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)WGetWindowConnection(),window->data->x11_visualid);
+
+
+		}
+#endif
+	}
+
+	return present_support;
+}
 
 void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext* window){
-    
-    u32 c = 0;
-    
-    VkPhysicalDevice device_array[16];
-    u32 device_count = 0;
-    
-    _vktest(vkEnumeratePhysicalDevices(global_instance,&device_count,0));
-    
-    _kill("too many devices\n",device_count > _arraycount(device_array));
-    
-    _vktest(vkEnumeratePhysicalDevices(global_instance,&device_count,device_array));
-    
-    for(u32 i = 0; i < device_count; i++){
-        
-        auto d = device_array[i];
-        
-        VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(d);
-        
-        if(physproperties.apiVersion >= global_version_no){
-            
-            if(window){
-                
-                u32 p_count = 0;
-                VkQueueFamilyProperties2 p_array[8] = {};
-		VInitQueueFamilyProperties(p_array,_arraycount(p_array));
-                
-                VGetPhysicalDeviceQueueFamilyProperties(d,
-                                                         &p_count,0);
-                
-                _kill("",p_count > _arraycount(p_array));
-                
-                VGetPhysicalDeviceQueueFamilyProperties(d,
-                                                         &p_count,&p_array[0]);
-                
-                u32 famindex = (u32)-1;
-                
-                for(u32 j = 0; j < p_count; j++){
-                    
-                    if(p_array[j].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT){
-                        famindex = j;
-                        break;
-                    }
-                }
-                
-                if(famindex == (u32)-1){
-                    continue;
-                }
-                
-#ifdef _WIN32
-                
-                _instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,global_instance,vkGetPhysicalDeviceWin32PresentationSupportKHR);
-                
-                auto present_support = vkGetPhysicalDeviceWin32PresentationSupportKHR(d,famindex);
-#else
-                
-                VkBool32 present_support = 0;
-                
-                if(window->data->type == _WAYLAND_WINDOW){
-                    
-                    _instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,
-                              global_instance,
-                              vkGetPhysicalDeviceWaylandPresentationSupportKHR
-                              );
-                    
-                    present_support = vkGetPhysicalDeviceWaylandPresentationSupportKHR(
-                        d,famindex,(wl_display*)WGetWindowConnection());
-                }
-                
-                else{
-                    _instproc(vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr,
-                              global_instance,
-                              vkGetPhysicalDeviceXlibPresentationSupportKHR
-                              );
-                    
-                    
-                    present_support = vkGetPhysicalDeviceXlibPresentationSupportKHR(d,famindex,(Display*)WGetWindowConnection(),window->data->x11_visualid);
-                    
-                    
-                }
-#endif
-                if(present_support){
-                    
-                    if(array){
-                        array[c] = d;
-                    }
-                    
-                    c++;
-                }
-                
-            }
-            
-            else {
-                
-                if(array){
-                    array[c] = d;
-                }
-                
-                c++;
-            }
-            
-            
-        }
-    }
-    
-    *count = c;
-    
+
+	u32 c = 0;
+
+	VkPhysicalDevice device_array[16] = {};
+	u32 device_count = 0;
+
+	_vktest(vkEnumeratePhysicalDevices(global_instance,&device_count,0));
+
+	_kill("too many devices\n",device_count > _arraycount(device_array));
+
+	_vktest(vkEnumeratePhysicalDevices(global_instance,&device_count,device_array));
+
+	for(u32 i = 0; i < device_count; i++){
+
+		auto d = device_array[i];
+
+		VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(d);
+
+		//FIXME: this is not the right way to do api comparison
+		if(physproperties.apiVersion >= global_version_no){
+
+			if(window && !InternIsPresentable(d,window)){
+				continue;
+			}
+
+
+			if(array){
+				array[c] = d;
+				c++;
+			}
+
+
+
+		}
+	}
+
+	*count = c;
+
 }
 
 void VMapMemory(VkDevice device,VkDeviceMemory memory,
@@ -3642,12 +3641,44 @@ void* VChainVKStruct(void** info_array,u32 count){
 	return info_array[0];
 }
 
-//TODO: check if device is capable of presenting
 void VEnumeratePhysicalDeviceGroups(VkPhysicalDeviceGroupProperties* array,u32* count,WWindowContext* window){
-	if(array){
-		for(u32 i = 0; i < *count; i++){
-			array[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
+
+	u32 c = 0;
+
+	VkPhysicalDeviceGroupProperties device_array[16] = {};
+	u32 device_count = 0;
+
+	_vktest(vkEnumeratePhysicalDeviceGroups(global_instance,&device_count,0));
+
+	for(u32 i = 0; i < device_count; i++){
+		device_array[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
+	}
+
+	_kill("too many devices\n",device_count > _arraycount(device_array));
+
+	_vktest(vkEnumeratePhysicalDeviceGroups(global_instance,&device_count,device_array));
+
+	for(u32 j = 0; j < device_count; j++){
+		auto g = device_array[j];
+
+		for(u32 i = 0; i < g.physicalDeviceCount; i++){
+			auto d = g.physicalDevices[i];
+			VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(d);
+
+			if(physproperties.apiVersion >= global_version_no){
+
+				if(window && !InternIsPresentable(d,window)){
+					continue;
+				}
+
+				if(array){
+					array[c] = g;
+					c++;
+				}
+				break;
+			}
 		}
 	}
-	_vktest(vkEnumeratePhysicalDeviceGroups(global_instance,count,array));
+
+	*count = c; 
 }
