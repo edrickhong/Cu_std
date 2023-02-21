@@ -986,3 +986,10 @@ u32 _ainline VGetMaxSupportedVkVersion(){
 }
 
 void VEnumeratePhysicalDeviceGroups(VkPhysicalDeviceGroupProperties* array,u32* count,WWindowContext* window = 0);
+
+void _ainline VGetNextImage(VDeviceContext* _restrict device,VSwapchainContext* _restrict swap,
+		VkSemaphore sem,VkFence fence,u32* next,u64 timeout = 0xFFFFFFFFFFFFFFFF,u32 mask = 1,void* pnext = 0){
+
+	auto res = VAcquireNextImage(device->device,swap->swap,timeout,sem,fence,next,mask,pnext);
+	_kill("",res != VK_SUCCESS);
+}

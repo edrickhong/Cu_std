@@ -1,149 +1,151 @@
 
-void* vkenumerateinstanceextensionproperties;
-void* vkenumerateinstancelayerproperties;
-void* vkcreateinstance;
-void* vkgetinstanceprocaddress;
-void* vkgetdeviceprocaddress;
+void* vkenumerateinstanceextensionproperties = 0;
+void* vkenumerateinstancelayerproperties = 0;
+void* vkcreateinstance = 0;
+void* vkgetinstanceprocaddress = 0;
+void* vkgetdeviceprocaddress = 0;
 
-void* vkenumeratephysicaldevices;
-void* vkgetphysicaldeviceproperties;
-void* vkenumeratedevicelayerproperties;
-void* vkenumeratedeviceextensionproperties;
-void* vkgetphysicaldevicequeuefamilyproperties;
-void* vkgetphysicaldevicefeatures;
-void* vkcreatedevice;
-void* vkgetphysicaldeviceformatproperties;
-void* vkgetphysicaldevicememoryproperties;
-void* vkcmdpipelinebarrier;
-void* vkcreateshadermodule;
-void* vkcreatebuffer;
-void* vkgetbuffermemoryrequirements;
-void* vkmapmemory;
-void* vkunmapmemory;
-void* vkflushmappedmemoryranges;
-void* vkinvalidatemappedmemoryranges;
-void* vkbindbuffermemory;
-void* vkdestroybuffer;
-void* vkallocatememory;
-void* vkfreememory;
-void* vkcreaterenderpass;
-void* vkcmdbeginrenderpass;
-void* vkcmdendrenderpass;
-void* vkcmdnextsubpass;
-void* vkcmdexecutecommands;
-void* vkcreateimage;
-void* vkgetimagememoryrequirements;
-void* vkcreateimageview;
-void* vkdestroyimageview;
-void* vkbindimagememory;
-void* vkgetimagesubresourcelayout;
-void* vkcmdcopyimage;
-void* vkcmdblitimage;
-void* vkdestroyimage;
-void* vkcmdclearattachments;
-void* vkcmdcopybuffer;
-void* vkcmdcopybuffertoimage;
-void* vkcreatesampler;
-void* vkdestroysampler;
-void* vkcreatesemaphore;
-void* vkdestroysemaphore;
-void* vkcreatefence;
-void* vkdestroyfence;
-void* vkwaitforfences;
-void* vkresetfences;
-void* vkcreatecommandpool;
-void* vkdestroycommandpool;
-void* vkallocatecommandbuffers;
-void* vkbegincommandbuffer;
-void* vkendcommandbuffer;
-void* vkgetdevicequeue;
-void* vkqueuesubmit;
-void* vkqueuewaitidle;
-void* vkdevicewaitidle;
-void* vkcreateframebuffer;
-void* vkcreatepipelinecache;
-void* vkcreatepipelinelayout;
-void* vkcreategraphicspipelines;
-void* vkcreatecomputepipelines;
-void* vkcreatedescriptorpool;
-void* vkcreatedescriptorsetlayout;
-void* vkallocatedescriptorsets;
-void* vkupdatedescriptorsets;
-void* vkcmdbinddescriptorsets;
-void* vkcmdbindpipeline;
-void* vkcmdbindvertexbuffers;
-void* vkcmdbindindexbuffer;
-void* vkcmdsetviewport;
-void* vkcmdsetscissor;
-void* vkcmdsetlinewidth;
-void* vkcmdsetdepthbias;
-void* vkcmdpushconstants;
-void* vkcmddrawindexed;
-void* vkcmddraw;
-void* vkcmddrawindexedindirect;
-void* vkcmddrawindirect;
-void* vkcmddispatch;
-void* vkdestroypipeline;
-void* vkdestroypipelinelayout;
-void* vkdestroydescriptorsetlayout;
-void* vkdestroydevice;
-void* vkdestroyinstance;
-void* vkdestroydescriptorpool;
-void* vkfreecommandbuffers;
-void* vkdestroyrenderpass;
-void* vkdestroyframebuffer;
-void* vkdestroyshadermodule;
-void* vkdestroypipelinecache;
-void* vkcreatequerypool;
-void* vkdestroyquerypool;
-void* vkgetquerypoolresults;
-void* vkcmdbeginquery;
-void* vkcmdendquery;
-void* vkcmdresetquerypool;
-void* vkcmdcopyquerypoolresults;
-void* vkcreate_xlib_wayland_win32surfacekhr;
-void* vkdestroysurfacekhr;
-void* vkcmdfillbuffer;
-void* vkacquirenextimagekhr;
-void* vkgetfencestatus;
-void* vkcreateswapchainkhr;
-void* vkgetswapchainimageskhr;
-void* vkqueuepresentkhr;
-void* vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr;
-void* vkgetphysicaldevicesurfacesupportkhr;
-void* vkcmdclearcolorimage;
-void* vkgetphysicaldeviceimageformatproperties;
-void* vkcmdcopyimagetobuffer;
-void* vkgetpipelinecachedata;
-void* vkgetimagesparsememoryrequirements;
-void* vkgetphysicaldevicesparseimageformatproperties;
+void* vkenumeratephysicaldevices = 0;
+void* vkgetphysicaldeviceproperties = 0;
+void* vkenumeratedevicelayerproperties = 0;
+void* vkenumeratedeviceextensionproperties = 0;
+void* vkgetphysicaldevicequeuefamilyproperties = 0;
+void* vkgetphysicaldevicefeatures = 0;
+void* vkcreatedevice = 0;
+void* vkgetphysicaldeviceformatproperties = 0;
+void* vkgetphysicaldevicememoryproperties = 0;
+void* vkcmdpipelinebarrier = 0;
+void* vkcreateshadermodule = 0;
+void* vkcreatebuffer = 0;
+void* vkgetbuffermemoryrequirements = 0;
+void* vkmapmemory = 0;
+void* vkunmapmemory = 0;
+void* vkflushmappedmemoryranges = 0;
+void* vkinvalidatemappedmemoryranges = 0;
+void* vkbindbuffermemory = 0;
+void* vkdestroybuffer = 0;
+void* vkallocatememory = 0;
+void* vkfreememory = 0;
+void* vkcreaterenderpass = 0;
+void* vkcmdbeginrenderpass = 0;
+void* vkcmdendrenderpass = 0;
+void* vkcmdnextsubpass = 0;
+void* vkcmdexecutecommands = 0;
+void* vkcreateimage = 0;
+void* vkgetimagememoryrequirements = 0;
+void* vkcreateimageview = 0;
+void* vkdestroyimageview = 0;
+void* vkbindimagememory = 0;
+void* vkgetimagesubresourcelayout = 0;
+void* vkcmdcopyimage = 0;
+void* vkcmdblitimage = 0;
+void* vkdestroyimage = 0;
+void* vkcmdclearattachments = 0;
+void* vkcmdcopybuffer = 0;
+void* vkcmdcopybuffertoimage = 0;
+void* vkcreatesampler = 0;
+void* vkdestroysampler = 0;
+void* vkcreatesemaphore = 0;
+void* vkdestroysemaphore = 0;
+void* vkcreatefence = 0;
+void* vkdestroyfence = 0;
+void* vkwaitforfences = 0;
+void* vkresetfences = 0;
+void* vkcreatecommandpool = 0;
+void* vkdestroycommandpool = 0;
+void* vkallocatecommandbuffers = 0;
+void* vkbegincommandbuffer = 0;
+void* vkendcommandbuffer = 0;
+void* vkgetdevicequeue = 0;
+void* vkqueuesubmit = 0;
+void* vkqueuewaitidle = 0;
+void* vkdevicewaitidle = 0;
+void* vkcreateframebuffer = 0;
+void* vkcreatepipelinecache = 0;
+void* vkcreatepipelinelayout = 0;
+void* vkcreategraphicspipelines = 0;
+void* vkcreatecomputepipelines = 0;
+void* vkcreatedescriptorpool = 0;
+void* vkcreatedescriptorsetlayout = 0;
+void* vkallocatedescriptorsets = 0;
+void* vkupdatedescriptorsets = 0;
+void* vkcmdbinddescriptorsets = 0;
+void* vkcmdbindpipeline = 0;
+void* vkcmdbindvertexbuffers = 0;
+void* vkcmdbindindexbuffer = 0;
+void* vkcmdsetviewport = 0;
+void* vkcmdsetscissor = 0;
+void* vkcmdsetlinewidth = 0;
+void* vkcmdsetdepthbias = 0;
+void* vkcmdpushconstants = 0;
+void* vkcmddrawindexed = 0;
+void* vkcmddraw = 0;
+void* vkcmddrawindexedindirect = 0;
+void* vkcmddrawindirect = 0;
+void* vkcmddispatch = 0;
+void* vkdestroypipeline = 0;
+void* vkdestroypipelinelayout = 0;
+void* vkdestroydescriptorsetlayout = 0;
+void* vkdestroydevice = 0;
+void* vkdestroyinstance = 0;
+void* vkdestroydescriptorpool = 0;
+void* vkfreecommandbuffers = 0;
+void* vkdestroyrenderpass = 0;
+void* vkdestroyframebuffer = 0;
+void* vkdestroyshadermodule = 0;
+void* vkdestroypipelinecache = 0;
+void* vkcreatequerypool = 0;
+void* vkdestroyquerypool = 0;
+void* vkgetquerypoolresults = 0;
+void* vkcmdbeginquery = 0;
+void* vkcmdendquery = 0;
+void* vkcmdresetquerypool = 0;
+void* vkcmdcopyquerypoolresults = 0;
+void* vkcreate_xlib_wayland_win32surfacekhr = 0;
+void* vkdestroysurfacekhr = 0;
+void* vkcmdfillbuffer = 0;
+void* vkacquirenextimagekhr = 0;
+void* vkgetfencestatus = 0;
+void* vkcreateswapchainkhr = 0;
+void* vkgetswapchainimageskhr = 0;
+void* vkqueuepresentkhr = 0;
+void* vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr = 0;
+void* vkgetphysicaldevicesurfacesupportkhr = 0;
+void* vkcmdclearcolorimage = 0;
+void* vkgetphysicaldeviceimageformatproperties = 0;
+void* vkcmdcopyimagetobuffer = 0;
+void* vkgetpipelinecachedata = 0;
+void* vkgetimagesparsememoryrequirements = 0;
+void* vkgetphysicaldevicesparseimageformatproperties = 0;
 
 //vulkan 1.1
-void* vkenumerateinstanceversion;
-void* vkenumeratephysicaldevicegroups;
+void* vkenumerateinstanceversion = 0;
+void* vkenumeratephysicaldevicegroups = 0;
 
-void* vkbindbuffermemory2;
-void* vkbindimagememory2;
+void* vkbindbuffermemory2 = 0;
+void* vkbindimagememory2 = 0;
 
-void* vkgetbuffermemoryrequirements2;
-void* vkgetimagememoryrequirements2;
-void* vkgetimagesparsememoryrequirements2;
+void* vkgetbuffermemoryrequirements2 = 0;
+void* vkgetimagememoryrequirements2 = 0;
+void* vkgetimagesparsememoryrequirements2 = 0;
 
-void* vkgetphysicaldeviceproperties2;
-void* vkgetphysicaldevicefeatures2;
-void* vkgetphysicaldeviceformatproperties2;
-void* vkgetphysicaldeviceimageformatproperties2;
-void* vkgetphysicaldevicememoryproperties2;
-void* vkgetphysicaldevicequeuefamilyproperties2;
-void* vkgetphysicaldevicesparseimageformatproperties2;
+void* vkgetphysicaldeviceproperties2 = 0;
+void* vkgetphysicaldevicefeatures2 = 0;
+void* vkgetphysicaldeviceformatproperties2 = 0;
+void* vkgetphysicaldeviceimageformatproperties2 = 0;
+void* vkgetphysicaldevicememoryproperties2 = 0;
+void* vkgetphysicaldevicequeuefamilyproperties2 = 0;
+void* vkgetphysicaldevicesparseimageformatproperties2 = 0;
 
-void* vktrimcommandpool;
+void* vktrimcommandpool = 0;
 
-void* vkgetdescriptorlayoutsupport;
+void* vkgetdescriptorlayoutsupport = 0;
 
-void* vkdestroydescriptorupdatetemplate;
-void* vkcreatedescriptorupdatetemplate;
-void* vkupdatedescriptorsetwithtemplate;
+void* vkdestroydescriptorupdatetemplate = 0;
+void* vkcreatedescriptorupdatetemplate = 0;
+void* vkupdatedescriptorsetwithtemplate = 0;
+
+void* vkacquirenextimage2khr = 0;
 
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
@@ -320,6 +322,27 @@ VkMemoryRequirements VGetImageMemoryRequirements2(VkDevice device,VkImage image,
 	return memreq;
 }
 
+
+VkResult VAcquireNextImage1(VkDevice device,VkSwapchainKHR swap,u64 timeout,VkSemaphore sem,VkFence fence,u32* next,u32 mask,
+		void* pnext){
+	return vkAcquireNextImageKHR(device,swap,timeout,sem,fence,next);
+}
+
+
+VkResult VAcquireNextImage2(VkDevice device,VkSwapchainKHR swap,u64 timeout,VkSemaphore sem,VkFence fence,u32* next,u32 mask,
+		void* pnext){
+	VkAcquireNextImageInfoKHR info = {
+		VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
+		pnext,
+		swap,
+		timeout,
+		sem,
+		fence,
+		mask
+	};
+	return vkAcquireNextImage2KHR(device,&info,next);
+}
+
 //MARK: Implementation
 
 _global LibHandle vklib = 0;
@@ -337,6 +360,7 @@ _intern VkMemoryRequirements (*VGetBufferMemoryRequirements)(VkDevice,VkBuffer,v
 _intern VkMemoryRequirements (*VGetImageMemoryRequirements)(VkDevice,VkImage,void*,void*) = 0;
 
 VkPhysicalDeviceProperties (*VGetPhysicalDeviceProperties)(VkPhysicalDevice) = 0;
+VkResult (*VAcquireNextImage)(VkDevice,VkSwapchainKHR,u64,VkSemaphore,VkFence,u32*,u32,void*) = 0;
 _intern VkPhysicalDeviceFeatures (*VGetPhysicalDeviceFeatures)(VkPhysicalDevice) = 0;
 _intern VkFormatProperties (*VGetPhysicalDeviceFormatProperties)(VkPhysicalDevice,VkFormat) = 0;
 _intern VkImageFormatProperties (*VGetPhysicalDeviceImageFormatProperties)(VkPhysicalDevice,VkFormat,VkImageType,VkImageTiling,VkImageUsageFlags,VkImageCreateFlags) = 0;
@@ -603,6 +627,12 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 
 	    VGetImageMemoryRequirements = 
 		    _isdeprecated(vkGetImageMemoryRequirements) ? VGetImageMemoryRequirements2 : VGetImageMemoryRequirements1;
+
+	    _initfunc(vkAcquireNextImage2KHR,vkacquirenextimage2khr);
+	    _deprecate_func(vkacquirenextimagekhr);
+
+	    VAcquireNextImage = _isdeprecated(vkAcquireNextImageKHR) ? VAcquireNextImage2 : VAcquireNextImage1;
+
     }
 }
 

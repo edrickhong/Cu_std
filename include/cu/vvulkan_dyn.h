@@ -144,6 +144,7 @@ extern void* vkgetdescriptorlayoutsupport;
 extern void* vkdestroydescriptorupdatetemplate;
 extern void* vkcreatedescriptorupdatetemplate;
 extern void* vkupdatedescriptorsetwithtemplate;
+extern void* vkacquirenextimage2khr;
 
 //defines
 #define vkEnumerateInstanceExtensionProperties ((PFN_vkEnumerateInstanceExtensionProperties)(vkenumerateinstanceextensionproperties))
@@ -305,9 +306,11 @@ extern void* vkupdatedescriptorsetwithtemplate;
 
 #define vkDestroyDescriptorUpdateTemplate ((PFN_vkDestroyDescriptorUpdateTemplate)vkdestroydescriptorupdatetemplate)
 #define vkCreateDescriptorUpdateTemplate ((PFN_vkCreateDescriptorUpdateTemplate)vkcreatedescriptorupdatetemplate)
-#define vkUpdateDescriptorSetWithTemplate ((vkUpdateDescriptorSetWithTemplate)vkupdatedescriptorsetwithtemplate)
+#define vkUpdateDescriptorSetWithTemplate ((PFN_vkUpdateDescriptorSetWithTemplate)vkupdatedescriptorsetwithtemplate)
+#define vkAcquireNextImage2KHR ((PFN_vkAcquireNextImage2KHR)vkacquirenextimage2khr)
 
 
 
 
 extern VkPhysicalDeviceProperties (*VGetPhysicalDeviceProperties)(VkPhysicalDevice);
+extern VkResult (*VAcquireNextImage)(VkDevice,VkSwapchainKHR,u64,VkSemaphore,VkFence,u32*,u32,void*);
