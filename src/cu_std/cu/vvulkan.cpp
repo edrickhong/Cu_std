@@ -629,10 +629,12 @@ VkMemoryRequirements VMakeDedicatedMemReq(){
 	return {VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS};
 }
 
+//TODO: all allocations have to be specific to a gpu now not global
+
 VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkBuffer buffer){
 	VDeviceMemoryBlock block = {};
 	auto ded_info = VMakeDedicatedAllocInfo(buffer);
-	auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	auto type = VGetMemoryTypeIndex(vdevice->phys_info->memoryproperties_array[0],VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	block.memory = VRawDeviceAlloc(vdevice->device,alloc_size,type,&ded_info);
 	block.size = alloc_size;
@@ -661,7 +663,7 @@ VDeviceMemoryBlock VDedicatedBlockAlloc(VkDevice device,VkPhysicalDeviceMemoryPr
 
 
 VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkImage image){
-	return VDedicatedBlockAlloc(vdevice->device,*vdevice->phys_info->memoryproperties,alloc_size,image);
+	return VDedicatedBlockAlloc(vdevice->device,vdevice->phys_info->memoryproperties_array[0],alloc_size,image);
 }
 
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
@@ -710,7 +712,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         
         
         
-        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto type = VGetMemoryTypeIndex(vdevice->phys_info->memoryproperties_array[0],VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
         non_linear_block.memory = VRawDeviceAlloc(vdevice->device,device_size,type);
         non_linear_block.offset = 0;
@@ -732,7 +734,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     //write
     {
-        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_write_block_flags);
+        auto type = VGetMemoryTypeIndex(vdevice->phys_info->memoryproperties_array[0],_write_block_flags);
         
         write_block.memory = VRawDeviceAlloc(vdevice->device,write_size,type);
         write_block.offset = 0;
@@ -748,7 +750,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     //readwrite
     {
-        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_readwrite_block_flags);
+        auto type = VGetMemoryTypeIndex(vdevice->phys_info->memoryproperties_array[0],_readwrite_block_flags);
         
         readwrite_block.memory = VRawDeviceAlloc(vdevice->device,readwrite_size,type);
         readwrite_block.offset = 0;
@@ -764,7 +766,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     //direct
     {
-        auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,_direct_block_flags);
+        auto type = VGetMemoryTypeIndex(vdevice->phys_info->memoryproperties_array[0],_direct_block_flags);
         
         if(type != (u32)-1){
             
@@ -807,7 +809,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
 	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
 	auto block = (ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation) ? 
 		VDedicatedBlockAlloc(vdevice,transferbuffer.size,transferbuffer.buffer) : 
-		VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),
+		VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,vdevice->phys_info->memoryproperties_array[0],
 					memoryreq.memoryTypeBits,_write_block_flags);
 
         transferbuffer.offset = block.offset;
@@ -1018,7 +1020,7 @@ VkBuffer VRawCreateBuffer(VkDevice device,
 _intern VDeviceMemoryBlock InternBlockAlloc(const VDeviceContext* vdevice,const VBufferContext context,VMemoryBlockHintFlag flag){
 
 
-	auto memoryproperties = *(vdevice->phys_info->memoryproperties);
+	auto memoryproperties = vdevice->phys_info->memoryproperties_array[0];
 	auto device = vdevice->device;
 
 	_make_chain(chain,VMakeDedicatedMemReq());
@@ -1037,15 +1039,15 @@ _intern VDeviceMemoryBlock InternBlockAlloc(const VDeviceContext* vdevice,const 
 	}
 
 	else if(flag == VBLOCK_READWRITE){
-		block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
+		block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,_readwrite_block_flags);
 	}
 
 	else if(flag == VBLOCK_WRITE){
-		block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
+		block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,_write_block_flags);
 	}
 
 	else{
-		block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
+		block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,_direct_block_flags);
 	}
 
 	return block;
@@ -1922,7 +1924,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         (VkPhysicalDeviceMemoryProperties*)alloc(sizeof(VkPhysicalDeviceMemoryProperties) * physdevice_count);
 
     for(u32 i = 0; i < physdevice_count; i++){
-	    *context.phys_info->memoryproperties_array[i] = 
+	    context.phys_info->memoryproperties_array[i] = 
 		    VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[i]);
     }
     
@@ -2099,7 +2101,7 @@ VSwapchainContext VCreateSwapchainContext(const VDeviceContext* _restrict vdevic
     
     VSwapchainContext context =
         CreateSwapchain(global_instance,vdevice->phys_info->physicaldevice_array[0],vdevice->device,
-                        *(vdevice->phys_info->memoryproperties),surface,width,
+                        vdevice->phys_info->memoryproperties_array[0],surface,width,
                         height,swapcount,oldswapchain,sync_type);
     
     context.internal->surface = surface;
@@ -2588,23 +2590,24 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
     _kill("this resource cannot be created with the specified flag\n",flag == VBLOCK_DEVICE);
     
     VDeviceMemoryBlock block = {};
+    auto memoryproperties = vdevice->phys_info->memoryproperties_array[0];
 
     if(ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation){
-	    block = VDedicatedBlockAlloc(vdevice->device,*(vdevice->phys_info->memoryproperties),memoryreq.size,context.image);
+	    block = VDedicatedBlockAlloc(vdevice->device,memoryproperties,memoryreq.size,context.image);
     }
     
     else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,memory_property);
     }
     
     else if(flag == VBLOCK_WRITE){
         
-        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,memory_property);
     }
     
     else{
         
-        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,memory_property);
     }
     
     VBindImageMemoryBlock(vdevice,context.image,block);
@@ -2634,7 +2637,7 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
 
-    auto block = InternImageBlockAlloc(vdevice->device,context.image,*vdevice->phys_info->memoryproperties);
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,vdevice->phys_info->memoryproperties_array[0]);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3487,7 +3490,7 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    auto block = InternImageBlockAlloc(vdevice->device,context.image,*vdevice->phys_info->memoryproperties);
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,vdevice->phys_info->memoryproperties_array[0]);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3527,7 +3530,7 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
 
-    auto block = InternImageBlockAlloc(vdevice->device,handle.image,*(vdevice->phys_info->memoryproperties));
+    auto block = InternImageBlockAlloc(vdevice->device,handle.image,vdevice->phys_info->memoryproperties_array[0]);
     
     VBindImageMemoryBlock(vdevice,handle.image,block);
     
@@ -3577,7 +3580,7 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
 
-    auto block = InternImageBlockAlloc(vdevice->device,context.image,*(vdevice->phys_info->memoryproperties));
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,vdevice->phys_info->memoryproperties_array[0]);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
