@@ -149,21 +149,21 @@ void* vkacquirenextimage2khr = 0;
 
 #define _instproc(fptr,inst,entrypoint)				\
 {									\
-    fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1);							\
-    }									\
+	fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
+	if (!fptr)								\
+	{									\
+		_kill("failed to get function\n",1);							\
+	}									\
 }
 
 // Macro to get a procedure address based on a vulkan device
 #define _deviceproc(fptr,dev,entrypoint)				\
 {									\
-    fptr = (void*)vkGetDeviceProcAddr(dev, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1)							\
-    }								\
+	fptr = (void*)vkGetDeviceProcAddr(dev, ""#entrypoint); \
+	if (!fptr)								\
+	{									\
+		_kill("failed to get function\n",1)							\
+	}								\
 }
 
 #define _isdeprecated(var) ((void*)var == (void*)-1)
@@ -368,272 +368,272 @@ _intern VkPhysicalDeviceMemoryProperties (*VGetPhysicalDeviceMemoryProperties)(V
 
 
 void VInitVulkan(){
-    
-    //MARK: expand this list
-    const s8* vklib_array[] = {
-        
+
+	//MARK: expand this list
+	const s8* vklib_array[] = {
+
 #ifdef _WIN32
-        "vulkan-1.dll",
-        "vulkan.dll",
+		"vulkan-1.dll",
+		"vulkan.dll",
 #else
-        "libvulkan.so.1",
-        "libvulkan.so",
+		"libvulkan.so.1",
+		"libvulkan.so",
 #endif
-        
-    };
-    
-    for(u32 i = 0; i < _arraycount(vklib_array); i++){
-        
-        vklib = LLoadLibrary(vklib_array[i]);
-        
-        if(vklib){
-            _dprint("using vkloader %s\n",vklib_array[i]);
-            break;
-        }
-        
-    }
-    
-    _kill("faild to load vulkan lib\n",!vklib);
+
+	};
+
+	for(u32 i = 0; i < _arraycount(vklib_array); i++){
+
+		vklib = LLoadLibrary(vklib_array[i]);
+
+		if(vklib){
+			_dprint("using vkloader %s\n",vklib_array[i]);
+			break;
+		}
+
+	}
+
+	_kill("faild to load vulkan lib\n",!vklib);
 
 
-    vkgetinstanceprocaddress = LGetLibFunction(vklib,"vkGetInstanceProcAddr");
-    vkgetdeviceprocaddress = LGetLibFunction(vklib,"vkGetDeviceProcAddr");
-    
-    vkenumerateinstanceextensionproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceExtensionProperties");
-    
-    vkenumerateinstancelayerproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceLayerProperties");
-    
-    vkcreateinstance = LGetLibFunction(vklib,"vkCreateInstance");
-    
-    vkdestroyinstance = LGetLibFunction(vklib,"vkDestroyInstance");
-    
-    
+	vkgetinstanceprocaddress = LGetLibFunction(vklib,"vkGetInstanceProcAddr");
+	vkgetdeviceprocaddress = LGetLibFunction(vklib,"vkGetDeviceProcAddr");
 
-    // vulkan 1.1
-    vkenumerateinstanceversion = LGetLibFunction(vklib,"vkEnumerateInstanceVersion");
-    
+	vkenumerateinstanceextensionproperties =
+		LGetLibFunction(vklib,"vkEnumerateInstanceExtensionProperties");
+
+	vkenumerateinstancelayerproperties =
+		LGetLibFunction(vklib,"vkEnumerateInstanceLayerProperties");
+
+	vkcreateinstance = LGetLibFunction(vklib,"vkCreateInstance");
+
+	vkdestroyinstance = LGetLibFunction(vklib,"vkDestroyInstance");
+
+
+
+	// vulkan 1.1
+	vkenumerateinstanceversion = LGetLibFunction(vklib,"vkEnumerateInstanceVersion");
+
 }
 
 
 void InternalLoadVulkanInstanceLevelFunctions(){
-    
-    _instproc(vkenumeratephysicaldevices,global_instance,vkEnumeratePhysicalDevices);
-    
-    
-    _instproc(vkcreatedevice,global_instance,vkCreateDevice);
-    
-    _instproc(vkgetphysicaldevicesurfacesupportkhr,global_instance,vkGetPhysicalDeviceSurfaceSupportKHR);
-    
-    _instproc(vkenumeratedevicelayerproperties,global_instance,vkEnumerateDeviceLayerProperties);
-    
-    _instproc(vkenumeratedeviceextensionproperties,global_instance,vkEnumerateDeviceExtensionProperties);
-    
-    
-    _instproc(vkdestroysurfacekhr,global_instance,vkDestroySurfaceKHR);
+
+	_instproc(vkenumeratephysicaldevices,global_instance,vkEnumeratePhysicalDevices);
 
 
-    _instproc(vkgetphysicaldevicequeuefamilyproperties,global_instance,vkGetPhysicalDeviceQueueFamilyProperties);
-    _instproc(vkgetphysicaldeviceproperties,global_instance,vkGetPhysicalDeviceProperties);
-    _instproc(vkgetphysicaldevicememoryproperties,global_instance,vkGetPhysicalDeviceMemoryProperties);
-    _instproc(vkgetphysicaldevicefeatures,global_instance,vkGetPhysicalDeviceFeatures);
-    _instproc(vkgetphysicaldeviceformatproperties,global_instance,vkGetPhysicalDeviceFormatProperties);
-    _instproc(vkgetphysicaldeviceimageformatproperties,global_instance,vkGetPhysicalDeviceImageFormatProperties);
-    
-    //vulkan 1.1 here
-    
-    if(VK_VERSION_MINOR(global_version_no) >= 1){
-        
-        //TODO: deprecate 1.0 functions (set them to -1)
-        
-	    _instproc(vkenumeratephysicaldevicegroups,global_instance,vkEnumeratePhysicalDeviceGroups);
-	    _instproc(vkgetphysicaldeviceproperties2,global_instance,vkGetPhysicalDeviceProperties2);
-	    _instproc(vkgetphysicaldevicefeatures2,global_instance,vkGetPhysicalDeviceFeatures2 );
-	    _instproc(vkgetphysicaldeviceformatproperties2,global_instance,vkGetPhysicalDeviceFormatProperties2 );
-	    _instproc(vkgetphysicaldeviceimageformatproperties2,global_instance,vkGetPhysicalDeviceImageFormatProperties2 );
-	    _instproc(vkgetphysicaldevicememoryproperties2,global_instance,vkGetPhysicalDeviceMemoryProperties2 );
-	    _instproc(vkgetphysicaldevicequeuefamilyproperties2,global_instance,vkGetPhysicalDeviceQueueFamilyProperties2 );
-	    _instproc(vkgetphysicaldevicesparseimageformatproperties2,global_instance,vkGetPhysicalDeviceSparseImageFormatProperties2 );
+	_instproc(vkcreatedevice,global_instance,vkCreateDevice);
 
-	    _deprecate_func(vkgetphysicaldeviceproperties);
-	    _deprecate_func(vkgetphysicaldevicefeatures);
-	    _deprecate_func(vkgetphysicaldeviceformatproperties);
-	    _deprecate_func(vkgetphysicaldeviceimageformatproperties);
-	    _deprecate_func(vkgetphysicaldevicememoryproperties);
-	    _deprecate_func(vkgetphysicaldevicequeuefamilyproperties);
-	    _deprecate_func(vkgetphysicaldevicesparseimageformatproperties);
+	_instproc(vkgetphysicaldevicesurfacesupportkhr,global_instance,vkGetPhysicalDeviceSurfaceSupportKHR);
 
-	    VGetPhysicalDeviceProperties = 
-		    _isdeprecated(vkGetPhysicalDeviceProperties) ? VGetPhysicalDeviceProperties2 : VGetPhysicalDeviceProperties1;
+	_instproc(vkenumeratedevicelayerproperties,global_instance,vkEnumerateDeviceLayerProperties);
 
-	    VGetPhysicalDeviceFeatures = 
-		    _isdeprecated(vkGetPhysicalDeviceFeatures) ? VGetPhysicalDeviceFeatures2 : VGetPhysicalDeviceFeatures1;
+	_instproc(vkenumeratedeviceextensionproperties,global_instance,vkEnumerateDeviceExtensionProperties);
 
-	    VGetPhysicalDeviceFormatProperties = 
-		    _isdeprecated(vkGetPhysicalDeviceFormatProperties) ? VGetPhysicalDeviceFormatProperties2 : VGetPhysicalDeviceFormatProperties1;
 
-	    VGetPhysicalDeviceImageFormatProperties = 
-		    _isdeprecated(vkGetPhysicalDeviceImageFormatProperties) ? VGetPhysicalDeviceImageFormatProperties2 : VGetPhysicalDeviceImageFormatProperties1;
+	_instproc(vkdestroysurfacekhr,global_instance,vkDestroySurfaceKHR);
 
-	    VGetPhysicalDeviceMemoryProperties = 
-		    _isdeprecated(vkGetPhysicalDeviceMemoryProperties) ? VGetPhysicalDeviceMemoryProperties2 : VGetPhysicalDeviceMemoryProperties1;
 
-    }
+	_instproc(vkgetphysicaldevicequeuefamilyproperties,global_instance,vkGetPhysicalDeviceQueueFamilyProperties);
+	_instproc(vkgetphysicaldeviceproperties,global_instance,vkGetPhysicalDeviceProperties);
+	_instproc(vkgetphysicaldevicememoryproperties,global_instance,vkGetPhysicalDeviceMemoryProperties);
+	_instproc(vkgetphysicaldevicefeatures,global_instance,vkGetPhysicalDeviceFeatures);
+	_instproc(vkgetphysicaldeviceformatproperties,global_instance,vkGetPhysicalDeviceFormatProperties);
+	_instproc(vkgetphysicaldeviceimageformatproperties,global_instance,vkGetPhysicalDeviceImageFormatProperties);
+
+	//vulkan 1.1 here
+
+	if(VK_VERSION_MINOR(global_version_no) >= 1){
+
+		//TODO: deprecate 1.0 functions (set them to -1)
+
+		_instproc(vkenumeratephysicaldevicegroups,global_instance,vkEnumeratePhysicalDeviceGroups);
+		_instproc(vkgetphysicaldeviceproperties2,global_instance,vkGetPhysicalDeviceProperties2);
+		_instproc(vkgetphysicaldevicefeatures2,global_instance,vkGetPhysicalDeviceFeatures2 );
+		_instproc(vkgetphysicaldeviceformatproperties2,global_instance,vkGetPhysicalDeviceFormatProperties2 );
+		_instproc(vkgetphysicaldeviceimageformatproperties2,global_instance,vkGetPhysicalDeviceImageFormatProperties2 );
+		_instproc(vkgetphysicaldevicememoryproperties2,global_instance,vkGetPhysicalDeviceMemoryProperties2 );
+		_instproc(vkgetphysicaldevicequeuefamilyproperties2,global_instance,vkGetPhysicalDeviceQueueFamilyProperties2 );
+		_instproc(vkgetphysicaldevicesparseimageformatproperties2,global_instance,vkGetPhysicalDeviceSparseImageFormatProperties2 );
+
+		_deprecate_func(vkgetphysicaldeviceproperties);
+		_deprecate_func(vkgetphysicaldevicefeatures);
+		_deprecate_func(vkgetphysicaldeviceformatproperties);
+		_deprecate_func(vkgetphysicaldeviceimageformatproperties);
+		_deprecate_func(vkgetphysicaldevicememoryproperties);
+		_deprecate_func(vkgetphysicaldevicequeuefamilyproperties);
+		_deprecate_func(vkgetphysicaldevicesparseimageformatproperties);
+
+		VGetPhysicalDeviceProperties = 
+			_isdeprecated(vkGetPhysicalDeviceProperties) ? VGetPhysicalDeviceProperties2 : VGetPhysicalDeviceProperties1;
+
+		VGetPhysicalDeviceFeatures = 
+			_isdeprecated(vkGetPhysicalDeviceFeatures) ? VGetPhysicalDeviceFeatures2 : VGetPhysicalDeviceFeatures1;
+
+		VGetPhysicalDeviceFormatProperties = 
+			_isdeprecated(vkGetPhysicalDeviceFormatProperties) ? VGetPhysicalDeviceFormatProperties2 : VGetPhysicalDeviceFormatProperties1;
+
+		VGetPhysicalDeviceImageFormatProperties = 
+			_isdeprecated(vkGetPhysicalDeviceImageFormatProperties) ? VGetPhysicalDeviceImageFormatProperties2 : VGetPhysicalDeviceImageFormatProperties1;
+
+		VGetPhysicalDeviceMemoryProperties = 
+			_isdeprecated(vkGetPhysicalDeviceMemoryProperties) ? VGetPhysicalDeviceMemoryProperties2 : VGetPhysicalDeviceMemoryProperties1;
+
+	}
 }
 
 void InternalLoadVulkanFunctions(void* k,void* load_fptr){
-    
-    
-    _kill("",!vkenumeratephysicaldevices);
-    
-    auto load = (void* (*)(void*,const s8*))load_fptr;
-    
+
+
+
+	_kill("",!vkenumeratephysicaldevices);
+
+	auto load = (void* (*)(void*,const s8*))load_fptr;
+
 #define _initfunc(func,var) var = (void*)load(k,""#func); if(!var){printf("%s %s %d :: Failed to load function %s\n",__FUNCTION__,__FILE__,__LINE__,""#func);_kill("",1);}
-    
-    
-    _initfunc(vkCmdPipelineBarrier,vkcmdpipelinebarrier);
-    _initfunc(vkCreateShaderModule,vkcreateshadermodule);
-    _initfunc(vkCreateBuffer,vkcreatebuffer);
-    _initfunc(vkGetBufferMemoryRequirements,vkgetbuffermemoryrequirements);
-    _initfunc(vkMapMemory,vkmapmemory);
-    _initfunc(vkUnmapMemory,vkunmapmemory);
-    _initfunc(vkFlushMappedMemoryRanges,vkflushmappedmemoryranges);
-    _initfunc(vkInvalidateMappedMemoryRanges,vkinvalidatemappedmemoryranges);
-    _initfunc(vkBindBufferMemory,vkbindbuffermemory);
-    _initfunc(vkDestroyBuffer,vkdestroybuffer);
-    _initfunc(vkAllocateMemory,vkallocatememory);
-    _initfunc(vkFreeMemory,vkfreememory);
-    _initfunc(vkCreateRenderPass,vkcreaterenderpass);
-    _initfunc(vkCmdBeginRenderPass,vkcmdbeginrenderpass);
-    _initfunc(vkCmdEndRenderPass,vkcmdendrenderpass);
-    _initfunc(vkCmdNextSubpass,vkcmdnextsubpass);
-    _initfunc(vkCmdExecuteCommands,vkcmdexecutecommands);
-    _initfunc(vkCreateImage,vkcreateimage);
-    _initfunc(vkGetImageMemoryRequirements,vkgetimagememoryrequirements);
-    _initfunc(vkCreateImageView,vkcreateimageview);
-    _initfunc(vkDestroyImageView,vkdestroyimageview);
-    _initfunc(vkBindImageMemory,vkbindimagememory);
-    _initfunc(vkGetImageSubresourceLayout,vkgetimagesubresourcelayout);
-    _initfunc(vkCmdCopyImage,vkcmdcopyimage);
-    _initfunc(vkCmdBlitImage,vkcmdblitimage);
-    _initfunc(vkDestroyImage,vkdestroyimage);
-    _initfunc(vkCmdClearAttachments,vkcmdclearattachments);
-    _initfunc(vkCmdCopyBuffer,vkcmdcopybuffer);
-    _initfunc(vkCmdCopyBufferToImage,vkcmdcopybuffertoimage);
-    _initfunc(vkCreateSampler,vkcreatesampler);
-    _initfunc(vkDestroySampler,vkdestroysampler);
-    _initfunc(vkCreateSemaphore,vkcreatesemaphore);
-    _initfunc(vkDestroySemaphore,vkdestroysemaphore);
-    _initfunc(vkCreateFence,vkcreatefence);
-    _initfunc(vkDestroyFence,vkdestroyfence);
-    _initfunc(vkWaitForFences,vkwaitforfences);
-    _initfunc(vkResetFences,vkresetfences);
-    _initfunc(vkCreateCommandPool,vkcreatecommandpool);
-    _initfunc(vkDestroyCommandPool,vkdestroycommandpool);
-    _initfunc(vkAllocateCommandBuffers,vkallocatecommandbuffers);
-    _initfunc(vkBeginCommandBuffer,vkbegincommandbuffer);
-    _initfunc(vkEndCommandBuffer,vkendcommandbuffer);
-    _initfunc(vkGetDeviceQueue,vkgetdevicequeue);
-    _initfunc(vkQueueSubmit,vkqueuesubmit);
-    _initfunc(vkQueueWaitIdle,vkqueuewaitidle);
-    _initfunc(vkDeviceWaitIdle,vkdevicewaitidle);
-    _initfunc(vkCreateFramebuffer,vkcreateframebuffer);
-    _initfunc(vkCreatePipelineCache,vkcreatepipelinecache);
-    _initfunc(vkCreatePipelineLayout,vkcreatepipelinelayout);
-    _initfunc(vkCreateGraphicsPipelines,vkcreategraphicspipelines);
-    _initfunc(vkCreateComputePipelines,vkcreatecomputepipelines);
-    _initfunc(vkCreateDescriptorPool,vkcreatedescriptorpool);
-    _initfunc(vkCreateDescriptorSetLayout,vkcreatedescriptorsetlayout);
-    _initfunc(vkAllocateDescriptorSets,vkallocatedescriptorsets);
-    _initfunc(vkUpdateDescriptorSets,vkupdatedescriptorsets);
-    _initfunc(vkCmdBindDescriptorSets,vkcmdbinddescriptorsets);
-    _initfunc(vkCmdBindPipeline,vkcmdbindpipeline);
-    _initfunc(vkCmdBindVertexBuffers,vkcmdbindvertexbuffers);
-    _initfunc(vkCmdBindIndexBuffer,vkcmdbindindexbuffer);
-    _initfunc(vkCmdSetViewport,vkcmdsetviewport);
-    _initfunc(vkCmdSetScissor,vkcmdsetscissor);
-    _initfunc(vkCmdSetLineWidth,vkcmdsetlinewidth);
-    _initfunc(vkCmdSetDepthBias,vkcmdsetdepthbias);
-    _initfunc(vkCmdPushConstants,vkcmdpushconstants);
-    _initfunc(vkCmdDrawIndexed,vkcmddrawindexed);
-    _initfunc(vkCmdDraw,vkcmddraw);
-    _initfunc(vkCmdDrawIndexedIndirect,vkcmddrawindexedindirect);
-    _initfunc(vkCmdDrawIndirect,vkcmddrawindirect);
-    _initfunc(vkCmdDispatch,vkcmddispatch);
-    _initfunc(vkDestroyPipeline,vkdestroypipeline);
-    _initfunc(vkDestroyPipelineLayout,vkdestroypipelinelayout);
-    _initfunc(vkDestroyDescriptorSetLayout,vkdestroydescriptorsetlayout);
-    _initfunc(vkDestroyDevice,vkdestroydevice);
-    
-    _initfunc(vkDestroyDescriptorPool,vkdestroydescriptorpool);
-    _initfunc(vkFreeCommandBuffers,vkfreecommandbuffers);
-    _initfunc(vkDestroyRenderPass,vkdestroyrenderpass);
-    _initfunc(vkDestroyFramebuffer,vkdestroyframebuffer);
-    _initfunc(vkDestroyShaderModule,vkdestroyshadermodule);
-    _initfunc(vkDestroyPipelineCache,vkdestroypipelinecache);
-    _initfunc(vkCreateQueryPool,vkcreatequerypool);
-    _initfunc(vkDestroyQueryPool,vkdestroyquerypool);
-    _initfunc(vkGetQueryPoolResults,vkgetquerypoolresults);
-    _initfunc(vkCmdBeginQuery,vkcmdbeginquery);
-    _initfunc(vkCmdEndQuery,vkcmdendquery);
-    _initfunc(vkCmdResetQueryPool,vkcmdresetquerypool);
-    _initfunc(vkCmdCopyQueryPoolResults,vkcmdcopyquerypoolresults);
-    
-    
-    _initfunc(vkCmdFillBuffer,vkcmdfillbuffer);
-    _initfunc(vkAcquireNextImageKHR,vkacquirenextimagekhr);
-    _initfunc(vkGetFenceStatus,vkgetfencestatus);
-    _initfunc(vkCreateSwapchainKHR,vkcreateswapchainkhr);
-    _initfunc(vkGetSwapchainImagesKHR,vkgetswapchainimageskhr);
-    _initfunc(vkQueuePresentKHR,vkqueuepresentkhr);
-    
-    _initfunc(vkCmdClearColorImage,vkcmdclearcolorimage);
-    
-    _initfunc(vkCmdCopyImageToBuffer,vkcmdcopyimagetobuffer);
-    
-    _initfunc(vkGetPipelineCacheData,vkgetpipelinecachedata);
-
-    _initfunc(vkGetImageSparseMemoryRequirements,vkgetimagesparsememoryrequirements);
 
 
-    
-    //vulkan 1.1 here
-    if(VK_VERSION_MINOR(global_version_no) >= 1){
-	    _dprint("%s","Loading vk 1.1 functions\n");
-	    _initfunc(vkBindBufferMemory2,vkbindbuffermemory2);
-	    _initfunc(vkBindImageMemory2,vkbindimagememory2);
-	    _initfunc(vkGetBufferMemoryRequirements2,vkgetbuffermemoryrequirements2);
-	    _initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
-	    _initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
+	_initfunc(vkCmdPipelineBarrier,vkcmdpipelinebarrier);
+	_initfunc(vkCreateShaderModule,vkcreateshadermodule);
+	_initfunc(vkCreateBuffer,vkcreatebuffer);
+	_initfunc(vkGetBufferMemoryRequirements,vkgetbuffermemoryrequirements);
+	_initfunc(vkMapMemory,vkmapmemory);
+	_initfunc(vkUnmapMemory,vkunmapmemory);
+	_initfunc(vkFlushMappedMemoryRanges,vkflushmappedmemoryranges);
+	_initfunc(vkInvalidateMappedMemoryRanges,vkinvalidatemappedmemoryranges);
+	_initfunc(vkBindBufferMemory,vkbindbuffermemory);
+	_initfunc(vkDestroyBuffer,vkdestroybuffer);
+	_initfunc(vkAllocateMemory,vkallocatememory);
+	_initfunc(vkFreeMemory,vkfreememory);
+	_initfunc(vkCreateRenderPass,vkcreaterenderpass);
+	_initfunc(vkCmdBeginRenderPass,vkcmdbeginrenderpass);
+	_initfunc(vkCmdEndRenderPass,vkcmdendrenderpass);
+	_initfunc(vkCmdNextSubpass,vkcmdnextsubpass);
+	_initfunc(vkCmdExecuteCommands,vkcmdexecutecommands);
+	_initfunc(vkCreateImage,vkcreateimage);
+	_initfunc(vkGetImageMemoryRequirements,vkgetimagememoryrequirements);
+	_initfunc(vkCreateImageView,vkcreateimageview);
+	_initfunc(vkDestroyImageView,vkdestroyimageview);
+	_initfunc(vkBindImageMemory,vkbindimagememory);
+	_initfunc(vkGetImageSubresourceLayout,vkgetimagesubresourcelayout);
+	_initfunc(vkCmdCopyImage,vkcmdcopyimage);
+	_initfunc(vkCmdBlitImage,vkcmdblitimage);
+	_initfunc(vkDestroyImage,vkdestroyimage);
+	_initfunc(vkCmdClearAttachments,vkcmdclearattachments);
+	_initfunc(vkCmdCopyBuffer,vkcmdcopybuffer);
+	_initfunc(vkCmdCopyBufferToImage,vkcmdcopybuffertoimage);
+	_initfunc(vkCreateSampler,vkcreatesampler);
+	_initfunc(vkDestroySampler,vkdestroysampler);
+	_initfunc(vkCreateSemaphore,vkcreatesemaphore);
+	_initfunc(vkDestroySemaphore,vkdestroysemaphore);
+	_initfunc(vkCreateFence,vkcreatefence);
+	_initfunc(vkDestroyFence,vkdestroyfence);
+	_initfunc(vkWaitForFences,vkwaitforfences);
+	_initfunc(vkResetFences,vkresetfences);
+	_initfunc(vkCreateCommandPool,vkcreatecommandpool);
+	_initfunc(vkDestroyCommandPool,vkdestroycommandpool);
+	_initfunc(vkAllocateCommandBuffers,vkallocatecommandbuffers);
+	_initfunc(vkBeginCommandBuffer,vkbegincommandbuffer);
+	_initfunc(vkEndCommandBuffer,vkendcommandbuffer);
+	_initfunc(vkGetDeviceQueue,vkgetdevicequeue);
+	_initfunc(vkQueueSubmit,vkqueuesubmit);
+	_initfunc(vkQueueWaitIdle,vkqueuewaitidle);
+	_initfunc(vkDeviceWaitIdle,vkdevicewaitidle);
+	_initfunc(vkCreateFramebuffer,vkcreateframebuffer);
+	_initfunc(vkCreatePipelineCache,vkcreatepipelinecache);
+	_initfunc(vkCreatePipelineLayout,vkcreatepipelinelayout);
+	_initfunc(vkCreateGraphicsPipelines,vkcreategraphicspipelines);
+	_initfunc(vkCreateComputePipelines,vkcreatecomputepipelines);
+	_initfunc(vkCreateDescriptorPool,vkcreatedescriptorpool);
+	_initfunc(vkCreateDescriptorSetLayout,vkcreatedescriptorsetlayout);
+	_initfunc(vkAllocateDescriptorSets,vkallocatedescriptorsets);
+	_initfunc(vkUpdateDescriptorSets,vkupdatedescriptorsets);
+	_initfunc(vkCmdBindDescriptorSets,vkcmdbinddescriptorsets);
+	_initfunc(vkCmdBindPipeline,vkcmdbindpipeline);
+	_initfunc(vkCmdBindVertexBuffers,vkcmdbindvertexbuffers);
+	_initfunc(vkCmdBindIndexBuffer,vkcmdbindindexbuffer);
+	_initfunc(vkCmdSetViewport,vkcmdsetviewport);
+	_initfunc(vkCmdSetScissor,vkcmdsetscissor);
+	_initfunc(vkCmdSetLineWidth,vkcmdsetlinewidth);
+	_initfunc(vkCmdSetDepthBias,vkcmdsetdepthbias);
+	_initfunc(vkCmdPushConstants,vkcmdpushconstants);
+	_initfunc(vkCmdDrawIndexed,vkcmddrawindexed);
+	_initfunc(vkCmdDraw,vkcmddraw);
+	_initfunc(vkCmdDrawIndexedIndirect,vkcmddrawindexedindirect);
+	_initfunc(vkCmdDrawIndirect,vkcmddrawindirect);
+	_initfunc(vkCmdDispatch,vkcmddispatch);
+	_initfunc(vkDestroyPipeline,vkdestroypipeline);
+	_initfunc(vkDestroyPipelineLayout,vkdestroypipelinelayout);
+	_initfunc(vkDestroyDescriptorSetLayout,vkdestroydescriptorsetlayout);
+	_initfunc(vkDestroyDevice,vkdestroydevice);
 
-	    _initfunc(vkTrimCommandPool,vktrimcommandpool);
-	    _initfunc(vkGetDescriptorLayoutSupport,vkgetdescriptorlayoutsupport);
+	_initfunc(vkDestroyDescriptorPool,vkdestroydescriptorpool);
+	_initfunc(vkFreeCommandBuffers,vkfreecommandbuffers);
+	_initfunc(vkDestroyRenderPass,vkdestroyrenderpass);
+	_initfunc(vkDestroyFramebuffer,vkdestroyframebuffer);
+	_initfunc(vkDestroyShaderModule,vkdestroyshadermodule);
+	_initfunc(vkDestroyPipelineCache,vkdestroypipelinecache);
+	_initfunc(vkCreateQueryPool,vkcreatequerypool);
+	_initfunc(vkDestroyQueryPool,vkdestroyquerypool);
+	_initfunc(vkGetQueryPoolResults,vkgetquerypoolresults);
+	_initfunc(vkCmdBeginQuery,vkcmdbeginquery);
+	_initfunc(vkCmdEndQuery,vkcmdendquery);
+	_initfunc(vkCmdResetQueryPool,vkcmdresetquerypool);
+	_initfunc(vkCmdCopyQueryPoolResults,vkcmdcopyquerypoolresults);
 
 
-	    _initfunc(vkDestroyDescriptorUpdateTemplate,vkdestroydescriptorupdatetemplate);
-	    _initfunc(vkCreateDescriptorUpdateTemplate,vkcreatedescriptorupdatetemplate);
-	    _initfunc(vkUpdateDescriptorSetWithTemplate,vkupdatedescriptorsetwithtemplate);
+	_initfunc(vkCmdFillBuffer,vkcmdfillbuffer);
+	_initfunc(vkAcquireNextImageKHR,vkacquirenextimagekhr);
+	_initfunc(vkGetFenceStatus,vkgetfencestatus);
+	_initfunc(vkCreateSwapchainKHR,vkcreateswapchainkhr);
+	_initfunc(vkGetSwapchainImagesKHR,vkgetswapchainimageskhr);
+	_initfunc(vkQueuePresentKHR,vkqueuepresentkhr);
+
+	_initfunc(vkCmdClearColorImage,vkcmdclearcolorimage);
+
+	_initfunc(vkCmdCopyImageToBuffer,vkcmdcopyimagetobuffer);
+
+	_initfunc(vkGetPipelineCacheData,vkgetpipelinecachedata);
+
+	_initfunc(vkGetImageSparseMemoryRequirements,vkgetimagesparsememoryrequirements);
 
 
-	    _deprecate_func(vkgetbuffermemoryrequirements);//MARK: should we just alias these??
-	    _deprecate_func(vkgetimagememoryrequirements);
-	    _deprecate_func(vkgetimagesparsememoryrequirements);
-	   
 
-	    //set internal functions
-	    VGetBufferMemoryRequirements = 
-		    _isdeprecated(vkGetBufferMemoryRequirements) ? VGetBufferMemoryRequirements2 : VGetBufferMemoryRequirements1;
+	//vulkan 1.1 here
+	if(VK_VERSION_MINOR(global_version_no) >= 1){
+		_dprint("%s","Loading vk 1.1 functions\n");
+		_initfunc(vkBindBufferMemory2,vkbindbuffermemory2);
+		_initfunc(vkBindImageMemory2,vkbindimagememory2);
+		_initfunc(vkGetBufferMemoryRequirements2,vkgetbuffermemoryrequirements2);
+		_initfunc(vkGetImageMemoryRequirements2,vkgetimagememoryrequirements2);
+		_initfunc(vkGetImageSparseMemoryRequirements2,vkgetimagesparsememoryrequirements2);
 
-	    VGetImageMemoryRequirements = 
-		    _isdeprecated(vkGetImageMemoryRequirements) ? VGetImageMemoryRequirements2 : VGetImageMemoryRequirements1;
+		_initfunc(vkTrimCommandPool,vktrimcommandpool);
+		_initfunc(vkGetDescriptorSetLayoutSupport,vkgetdescriptorlayoutsupport);
 
-	    _initfunc(vkAcquireNextImage2KHR,vkacquirenextimage2khr);
-	    _deprecate_func(vkacquirenextimagekhr);
+		_initfunc(vkDestroyDescriptorUpdateTemplate,vkdestroydescriptorupdatetemplate);
+		_initfunc(vkCreateDescriptorUpdateTemplate,vkcreatedescriptorupdatetemplate);
+		_initfunc(vkUpdateDescriptorSetWithTemplate,vkupdatedescriptorsetwithtemplate);
 
-	    VAcquireNextImage = _isdeprecated(vkAcquireNextImageKHR) ? VAcquireNextImage2 : VAcquireNextImage1;
 
-    }
+		_deprecate_func(vkgetbuffermemoryrequirements);//MARK: should we just alias these??
+		_deprecate_func(vkgetimagememoryrequirements);
+		_deprecate_func(vkgetimagesparsememoryrequirements);
+
+
+		//set internal functions
+		VGetBufferMemoryRequirements = 
+			_isdeprecated(vkGetBufferMemoryRequirements) ? VGetBufferMemoryRequirements2 : VGetBufferMemoryRequirements1;
+
+		VGetImageMemoryRequirements = 
+			_isdeprecated(vkGetImageMemoryRequirements) ? VGetImageMemoryRequirements2 : VGetImageMemoryRequirements1;
+
+		_initfunc(vkAcquireNextImage2KHR,vkacquirenextimage2khr);
+		_deprecate_func(vkacquirenextimagekhr);
+
+		VAcquireNextImage = _isdeprecated(vkAcquireNextImageKHR) ? VAcquireNextImage2 : VAcquireNextImage1;
+
+	}
 }
 
 
