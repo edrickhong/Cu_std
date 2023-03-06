@@ -2972,6 +2972,48 @@ void GUIDrawPosMarker(GUIVec3 pos,Color4 color,b32 is_perspective){
 	InternalGUIDrawLine(obj_c,c,color);
 }
 
+
+void GUIDrawPosMarkerX(GUIVec3 pos,Color4 color,b32 is_perspective){
+
+	f32 scale = 0.1f;
+
+	GUISetRenderMode(GUI_RENDER_LINE);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+
+	auto obj_w = pos;
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
+
+	auto dir_a = (is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * scale),viewproj) : (obj_w + (Vec3{1,1,0} * scale))) - obj_c;
+	auto dir_b =(is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,-1,0} * scale),viewproj) : (obj_w + (Vec3{1,-1,0} * scale))) - obj_c;
+
+
+	InternalGUIDrawLine(obj_c - dir_a,obj_c + dir_a,color);
+	InternalGUIDrawLine(obj_c - dir_b,obj_c + dir_b,color);
+}
+
+
+void GUIDrawPosRect(GUIVec3 pos,Color4 color,b32 is_perspective){
+
+	f32 scale = 0.4;
+
+	GUISetRenderMode(GUI_RENDER_SOLID);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+
+	auto obj_w = pos;
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
+	auto w = MagnitudeVec3((is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,0,0} * scale),viewproj) : (obj_w + (Vec3{1,1,0} * scale))) - obj_c);
+
+	InternalGUIDrawRect(obj_c.x,obj_c.y,w,w,color);
+}
+
 #ifdef DEBUG
 
 void GUIDebugGetCurrentHolder(){
