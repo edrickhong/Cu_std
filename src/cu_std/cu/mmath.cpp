@@ -644,6 +644,10 @@ Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs){
 	return {x, y, z, w};
 }
 
+b32 CmpVec4(Vec4 lhs, Vec4 rhs){
+	return (lhs.x - rhs.x + lhs.y - rhs.y + lhs.z - rhs.z + lhs.w - rhs.w) < _f32_error_offset;
+}
+
 // TODO: we should use simd still. just throw away the last value
 Vec3 AddVec3(Vec3 lhs, Vec3 rhs) {
 	lhs.x += rhs.x;
@@ -2359,6 +2363,8 @@ Vec4 operator*(Vec4 lhs, f32 rhs) { return rhs * lhs; }
 Vec4 operator/(Vec4 lhs, f32 rhs) { return DivConstRVec4(lhs, rhs); }
 
 Vec4 operator*(Mat4 lhs, Vec4 rhs){ return MulMat4Vec4(lhs,rhs); };
+
+b32 operator==(Vec4 lhs, Vec4 rhs){return CmpVec4(lhs,rhs);}
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs) { return AddVec3(lhs, rhs); }
 

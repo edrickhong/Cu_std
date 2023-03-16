@@ -587,6 +587,7 @@ Vec4 MulConstLVec4(f32 lhs, Vec4 rhs);
 Vec4 MulConstRVec4(Vec4 lhs, f32 rhs);
 Vec4 DivConstRVec4(Vec4 lhs, f32 rhs);
 Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs);
+b32 CmpVec4(Vec4 lhs, Vec4 rhs);
 
 Vec3 AddVec3(Vec3 lhs, Vec3 rhs);
 Vec3 SubVec3(Vec3 lhs, Vec3 rhs);
@@ -1145,6 +1146,7 @@ Vec4 operator*(f32 lhs, Vec4 rhs);
 Vec4 operator*(Vec4 lhs, f32 rhs);
 Vec4 operator/(Vec4 lhs, f32 rhs);
 Vec4 operator*(Mat4 lhs, Vec4 rhs);
+b32 operator==(Vec4 lhs, Vec4 rhs);
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs);
 Vec3 operator-(Vec3 lhs, Vec3 rhs);
