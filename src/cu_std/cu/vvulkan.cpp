@@ -1067,7 +1067,7 @@ void InternalLoadVulkanFunctions(void* k,void* load_fptr){
 
 VkBool32 VkDebugMessageCallback(VkDebugReportFlagsEXT flags,
                                 VkDebugReportObjectTypeEXT objType,
-                                uint64_t srcObject,u32 location,u32 msgCode,
+                                uint64_t srcObject,size_t location,s32 msgCode,
                                 const s8* pLayerPrefix,
                                 const s8* pMsg,
                                 void* pUserData){
@@ -1078,7 +1078,7 @@ VkBool32 VkDebugMessageCallback(VkDebugReportFlagsEXT flags,
     
 #else
     
-    auto to_ignore = msgCode != 61 && msgCode != 8 && msgCode != (u32)-1;
+    auto to_ignore = msgCode != 61 && msgCode != 8 && msgCode != -1;
     
 #endif
     

@@ -16,6 +16,10 @@ if(UNIX)
   set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(DBUS REQUIRED dbus-1)
+  pkg_check_modules(WAYLAND REQUIRED wayland-client)
+
   if(DEBUG)
 
     # set(CLANG_DEBUG "-fsanitize=address,memory,undefined,safe-stack,thread")
@@ -35,11 +39,14 @@ if(UNIX)
 
   set(PLATFORM_INCLUDES
       "${CU_STD_DIR}/include/cu/linux"
-      "/usr/include/dbus-1.0/"
-      "/usr/lib/x86_64-linux-gnu/dbus-1.0/include/" #ubuntu dbus-arch-deps.h location
-      "/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
-      "/usr/lib64/dbus-1.0/include/"
+      ${DBUS_INCLUDE_DIRS}
+      #"/usr/include/dbus-1.0/"
+      #"/usr/lib/x86_64-linux-gnu/dbus-1.0/include/" #ubuntu dbus-arch-deps.h location
+      #"/usr/lib/dbus-1.0/include/" #fedora dbus-arch-deps.h location
+      #"/usr/lib64/dbus-1.0/include/"
      )
+
+     message(STATUS "DBUS_INCLUDE_DIRS = ${DBUS_INCLUDE_DIRS}")
 
   enable_language(ASM)
 

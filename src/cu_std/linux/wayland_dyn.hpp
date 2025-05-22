@@ -31,6 +31,8 @@ struct wl_keyboard;
 struct wl_surface;
 
 
+extern wl_proxy* (*wl_proxy_marshal_flags_fptr)(struct wl_proxy*,u32,const wl_interface*,u32,u32, ...);
+
 extern wl_proxy* (*wl_proxy_marshal_constructor_fptr)(wl_proxy*,u32,const wl_interface*,...);
 
 extern s32 (*wl_proxy_add_listener_fptr)(wl_proxy*,void (**)(void), void*);
@@ -77,6 +79,8 @@ extern s32 (*wl_display_dispatch_ftpr)(wl_display*);
 #define wl_display_read_events wl_display_read_events_fptr
 #define wl_display_get_fd wl_display_get_fd_fptr
 #define wl_display_dispatch wl_display_dispatch_ftpr
+#define wl_proxy_marshal_flags wl_proxy_marshal_flags_fptr
+
 
 
 
@@ -120,9 +124,14 @@ extern "C" const wl_interface* wl_output_interface_ptr;
 #define wl_output_interface *wl_output_interface_ptr
 
 
+#define WL_MARSHAL_FLAG_DESTROY (1 << 0)
+
+
 #define WAYLAND_CLIENT_CORE_H
 #define WAYLAND_CLIENT_H
 #include "wayland-client-protocol.h"
+
+#undef WL_MARSHAL_FLAG_DESTROY
 
 #ifndef NO_WAYLAND_EXTENSIONS
 extern "C" {

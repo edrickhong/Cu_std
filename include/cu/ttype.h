@@ -167,7 +167,7 @@ typedef unsigned int ptrsize;
 
 #endif
 
-typedef union {
+typedef union m32 {
 	u32 u;
 	s32 i;
 	f32 f;
@@ -196,7 +196,7 @@ typedef union {
 
 } m32;
 
-typedef struct {
+typedef struct m64{
 	union {
 		u64 u;
 		s64 i;
