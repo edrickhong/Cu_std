@@ -131,7 +131,6 @@ extern "C" const wl_interface* wl_output_interface_ptr;
 #define WAYLAND_CLIENT_H
 #include "wayland-client-protocol.h"
 
-#undef WL_MARSHAL_FLAG_DESTROY
 
 #ifndef NO_WAYLAND_EXTENSIONS
 extern "C" {
@@ -139,3 +138,4 @@ extern "C" {
 #include "generated/xdg-shell.c"
 }
 #endif
+#undef WL_MARSHAL_FLAG_DESTROY

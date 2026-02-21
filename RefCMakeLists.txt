@@ -2,7 +2,7 @@ option(IS_INDEPENDENT "" ON)
 
 if(IS_INDEPENDENT)
 
-  cmake_minimum_required(VERSION 3.9)
+  cmake_minimum_required(VERSION 3.10)
   project(cu_std)
 
   message(STATUS "CU_STD STAND ALONE")
