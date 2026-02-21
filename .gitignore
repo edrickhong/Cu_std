@@ -1,6 +1,7 @@
 rsrc/*
 bin/*
 Make/
+build/
 CMakeLists.txt
 FIXME.txt
 MARK.txt
