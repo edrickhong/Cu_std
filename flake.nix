@@ -8,7 +8,7 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
   in {
-    devShells.${system}.default = pkgs.mkShell {
+    devShells.${system}.default = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) {
       packages = with pkgs; [
         clang
         cmake
@@ -29,6 +29,14 @@
         libX11
 	libxkbcommon
       ];
+
+      CC = "${pkgs.clang}/bin/clang";
+      CXX = "${pkgs.clang}/bin/clang++";
+
+      shellHook = ''
+      PS1="(dev) \u@\h:\w$ "
+      echo ">>> cu_std dev shell: CC=$CC CXX=$CXX"
+      '';
     };
   };
 }
