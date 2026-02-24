@@ -1103,16 +1103,16 @@ void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle);
 
 
 Vec3 _ainline PixelCoordToNDC(Vec3 p,Dim2 dim){
-	auto x = (2.0f * p.x)/dim.w - 1.0f;
-	auto y = (1.0f - (2.0f * p.y) / dim.h);
-	auto z = p.z;
+	f32 x = (2.0f * p.x)/dim.w - 1.0f;
+	f32 y = (1.0f - (2.0f * p.y) / dim.h);
+	f32 z = p.z;
 
 
 #if NDC_RHS
 	y *= -1;
 #endif
 
-	return {x,y,z};
+	return (Vec3){x,y,z};
 }
 
 
