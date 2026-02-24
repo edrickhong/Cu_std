@@ -94,10 +94,6 @@ b32 GUIComboBox(const s8* label,const s8** options_array,u32 options_count,u32* 
 
 void GUISlider();
 
-void GUI3DTranslate(f32* x,f32* y,f32* z);
-void GUI3DScale(f32* x);
-void GUI3DRotate(f32* x,f32* y,f32* z);
-
 b32 GUIHistogram(const s8* label_x,const s8* label_y,GUIVec2* data_array,u32 data_count,
                  u32* out_entry_index,f32* max = 0,GUIDim2 dim = {0.5f,0.5f},u32* highlight_index = 0);
 
@@ -124,7 +120,11 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale);
 
 b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot);
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color);
+void GUIDrawPosMarker(GUIVec3 pos,Color4 color = White, b32 is_perspective = true);
+
+void GUIDrawPosMarkerX(GUIVec3 pos,Color4 color = White, b32 is_perspective = true);
+
+void GUIDrawPosRect(GUIVec3 pos,Color4 color = White, b32 is_perspective = true);
 
 GUIVec2 GUIMouseCoordToScreenCoord();
 
@@ -142,7 +142,9 @@ void GUIDebugGetCurrentHolder();
 void GUIDrawAxisSphere(Vec3 obj_w,f32 radius,Color4 x = White,Color4 y = White,Color4 z = White);
 
 
-
 void GUIGetVertexBufferAndOffset(VBufferContext** vert_buffercontext);
+
+void GUIDrawLine3D(GUIVec3 a,GUIVec3 b,Color4 color = White);
+
 
 //TODO: implement a color picker (https://en.wikipedia.org/wiki/HSL_and_HSV)

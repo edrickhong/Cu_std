@@ -41,3 +41,12 @@ void _ainline SleepMS(f32 time){
     
     nanosleep(&time1,0);
 }
+
+u32 _ainline TimeSpecAsInt(TimeSpec s){
+	union {
+		TimeSpec spec;
+		u32 i;
+	} out = {s};
+
+	return out.i;
+}

@@ -40,8 +40,9 @@ Vec3 operator*(Mat3 lhs, Vec3 rhs) {
 
 	return {x, y, z};
 }
-
+#if 0
 // MARK: This is internal for now
+// TODO: remove this pretty sure it does the same thing
 Vec4 operator*(Mat4 lhs, Vec4 rhs) {
 	Vec4 result = {};
 
@@ -57,6 +58,7 @@ Vec4 operator*(Mat4 lhs, Vec4 rhs) {
 
 	return result;
 }
+#endif
 
 void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
 			  f32* out_matrix) {
@@ -72,35 +74,6 @@ void _ainline GetMinorMat(f32* in_matrix, u32 n, u32 k_x, u32 k_y,
 	}
 }
 
-Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
-	Vec3 forward = NormalizeVec3(lookpoint - position);
-
-	Vec3 side = NormalizeVec3(CrossVec3(forward, updir));
-
-	Vec3 up = CrossVec3(side, forward);
-
-	f32 a = -1.0f * DotVec3(side, position),
-	    b = -1.0f * DotVec3(up, position), c = DotVec3(forward, position);
-
-	Mat4 matrix = IdentityMat4();
-
-	_rc4(matrix, 0, 0) = side.x;
-	_rc4(matrix, 1, 0) = side.y;
-	_rc4(matrix, 2, 0) = side.z;
-	_rc4(matrix, 3, 0) = a;
-
-	_rc4(matrix, 0, 1) = up.x;
-	_rc4(matrix, 1, 1) = up.y;
-	_rc4(matrix, 2, 1) = up.z;
-	_rc4(matrix, 3, 1) = b;
-
-	_rc4(matrix, 0, 2) = -forward.x;
-	_rc4(matrix, 1, 2) = -forward.y;
-	_rc4(matrix, 2, 2) = -forward.z;
-	_rc4(matrix, 3, 2) = c;
-
-	return matrix;
-}
 
 Vec4 InternalCompDiv(Vec4 a, Vec4 b) {
 	a.simd = _mm_div_ps(a.simd, b.simd);
@@ -315,24 +288,7 @@ Vec4 WorldSpaceToClipSpaceVec4(Vec4 pos, Mat4 viewproj) {
 	viewproj = TransposeMat4(viewproj);
 
 #endif
-
-	auto vert = pos.simd;
-
-	auto a = _mm_mul_ps(viewproj.simd[0], vert);
-	auto b = _mm_mul_ps(viewproj.simd[1], vert);
-	auto c = _mm_mul_ps(viewproj.simd[2], vert);
-	auto d = _mm_mul_ps(viewproj.simd[3], vert);
-
-	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
-
-	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
-
-	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
-
-	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
-
-	Vec4 ret = {x, y, z, w};
-
+	auto ret = viewproj * pos;
 	return ret / ret.w;
 }
 
@@ -344,24 +300,7 @@ Vec4 ClipSpaceToWorldSpaceVec4(Vec4 pos, Mat4 viewproj) {
 	inv_viewproj = TransposeMat4(inv_viewproj);
 
 #endif
-
-	auto vert = pos.simd;
-
-	auto a = _mm_mul_ps(inv_viewproj.simd[0], vert);
-	auto b = _mm_mul_ps(inv_viewproj.simd[1], vert);
-	auto c = _mm_mul_ps(inv_viewproj.simd[2], vert);
-	auto d = _mm_mul_ps(inv_viewproj.simd[3], vert);
-
-	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
-
-	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
-
-	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
-
-	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
-
-	Vec4 ret = {x, y, z, w};
-
+	auto ret = inv_viewproj * pos;
 	return ret / ret.w;
 }
 
@@ -683,6 +622,30 @@ Vec4 DivConstRVec4(Vec4 lhs, f32 rhs) {
 	_mm_storeu_ps(&vec.x, res);
 
 	return vec;
+}
+
+
+Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs){
+	auto v = rhs.simd;
+
+	auto a = _mm_mul_ps(lhs.simd[0], v);
+	auto b = _mm_mul_ps(lhs.simd[1], v);
+	auto c = _mm_mul_ps(lhs.simd[2], v);
+	auto d = _mm_mul_ps(lhs.simd[3], v);
+
+	f32 x = ((f32*)&a)[0] + ((f32*)&a)[1] + ((f32*)&a)[2] + ((f32*)&a)[3];
+
+	f32 y = ((f32*)&b)[0] + ((f32*)&b)[1] + ((f32*)&b)[2] + ((f32*)&b)[3];
+
+	f32 z = ((f32*)&c)[0] + ((f32*)&c)[1] + ((f32*)&c)[2] + ((f32*)&c)[3];
+
+	f32 w = ((f32*)&d)[0] + ((f32*)&d)[1] + ((f32*)&d)[2] + ((f32*)&d)[3];
+
+	return {x, y, z, w};
+}
+
+b32 CmpVec4(Vec4 lhs, Vec4 rhs){
+	return (lhs.x - rhs.x + lhs.y - rhs.y + lhs.z - rhs.z + lhs.w - rhs.w) < _f32_error_offset;
 }
 
 // TODO: we should use simd still. just throw away the last value
@@ -1997,19 +1960,75 @@ f32 AngleQuadrant(f32 x, f32 y) {
 
 // MARK: constructors
 
+
+Mat4 _ainline ViewMatRHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
+	Vec3 forward = NormalizeVec3(lookpoint - position);
+	Vec3 side = NormalizeVec3(CrossVec3(forward, updir));
+	Vec3 up = CrossVec3(side, forward);
+
+	f32 a = -1.0f * DotVec3(side, position),
+	    b = -1.0f * DotVec3(up, position), c = DotVec3(forward, position);
+
+	Mat4 matrix = IdentityMat4();
+
+	_rc4(matrix, 0, 0) = side.x;
+	_rc4(matrix, 1, 0) = side.y;
+	_rc4(matrix, 2, 0) = side.z;
+	_rc4(matrix, 3, 0) = a;
+
+	_rc4(matrix, 0, 1) = up.x;
+	_rc4(matrix, 1, 1) = up.y;
+	_rc4(matrix, 2, 1) = up.z;
+	_rc4(matrix, 3, 1) = b;
+
+	_rc4(matrix, 0, 2) = -forward.x;
+	_rc4(matrix, 1, 2) = -forward.y;
+	_rc4(matrix, 2, 2) = -forward.z;
+	_rc4(matrix, 3, 2) = c;
+
+	return matrix;
+}
+
+
+Mat4 _ainline ViewMatLHS(Vec3 position, Vec3 lookpoint, Vec3 updir) {
+	Vec3 forward = NormalizeVec3(lookpoint - position);
+	Vec3 side = NormalizeVec3(CrossVec3(updir,forward ));
+	Vec3 up = CrossVec3(forward, side);
+
+	f32 a = -1.0f * DotVec3(side, position),
+	    b = -1.0f * DotVec3(up, position), c = -1.0f * DotVec3(forward, position);
+
+	Mat4 matrix = IdentityMat4();
+
+	_rc4(matrix, 0, 0) = side.x;
+	_rc4(matrix, 1, 0) = side.y;
+	_rc4(matrix, 2, 0) = side.z;
+	_rc4(matrix, 3, 0) = a;
+
+	_rc4(matrix, 0, 1) = up.x;
+	_rc4(matrix, 1, 1) = up.y;
+	_rc4(matrix, 2, 1) = up.z;
+	_rc4(matrix, 3, 1) = b;
+
+	_rc4(matrix, 0, 2) = forward.x;
+	_rc4(matrix, 1, 2) = forward.y;
+	_rc4(matrix, 2, 2) = forward.z;
+	_rc4(matrix, 3, 2) = c;
+
+	return matrix;
+}
+
 Mat4 ViewMat4(Vec3 position, Vec3 lookpoint, Vec3 updir) {
-#if Z_RHS
-
+	
+#if NDC_RHS
 	return ViewMatRHS(position, lookpoint, updir);
-
 #else
-
-#error Z_LHS not supported
-
+	return ViewMatLHS(position, lookpoint, updir);
 #endif
 }
 
-Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+
+Mat4 _ainline ProjectionMat4RHS(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 	f32 tanhalf_fov = tanf(fov / 2.0f);
 
 	f32 a = (1.0f / (aspectratio * tanhalf_fov));
@@ -2036,6 +2055,44 @@ Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
 	_rc4(matrix, 2, 3) = -1.0f;
 
 	return matrix;
+}
+
+
+Mat4 _ainline ProjectionMat4LHS(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+	f32 tanhalf_fov = tanf(fov / 2.0f);
+
+	f32 a = (1.0f / (aspectratio * tanhalf_fov));
+	f32 b = (1.0f / (tanhalf_fov));
+
+#if DEPTH_ZERO_TO_ONE
+
+	f32 c = (farz) / (farz - nearz);
+	f32 d = -(farz * nearz) / (farz - nearz);
+
+#else
+
+	f32 c = (farz + nearz) / (farz - nearz);
+	f32 d = (2.0f * farz * nearz) / (farz - nearz);
+
+#endif
+
+	Mat4 matrix = {};
+
+	_rc4(matrix, 0, 0) = a;
+	_rc4(matrix, 1, 1) = b;
+	_rc4(matrix, 2, 2) = c;
+	_rc4(matrix, 3, 2) = d;
+	_rc4(matrix, 2, 3) = 1.0f;
+
+	return matrix;
+}
+
+Mat4 ProjectionMat4(f32 fov, f32 aspectratio, f32 nearz, f32 farz) {
+#if NDC_RHS 
+	return ProjectionMat4RHS(fov, aspectratio, nearz, farz);
+#else
+	return ProjectionMat4LHS(fov, aspectratio, nearz, farz);
+#endif
 }
 
 Mat4 WorldMat4M(Mat4 position, Mat4 rotation, Mat4 scale) {
@@ -2304,6 +2361,10 @@ Vec4 operator*(f32 lhs, Vec4 rhs) { return MulConstLVec4(lhs, rhs); }
 Vec4 operator*(Vec4 lhs, f32 rhs) { return rhs * lhs; }
 
 Vec4 operator/(Vec4 lhs, f32 rhs) { return DivConstRVec4(lhs, rhs); }
+
+Vec4 operator*(Mat4 lhs, Vec4 rhs){ return MulMat4Vec4(lhs,rhs); };
+
+b32 operator==(Vec4 lhs, Vec4 rhs){return CmpVec4(lhs,rhs);}
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs) { return AddVec3(lhs, rhs); }
 

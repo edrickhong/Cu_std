@@ -263,14 +263,6 @@ void _ainline ClearPtrTop16Bits(void** ptr) {
 	v.u ^= 0xFFFF000000000000;
 
 	*ptr = v.ptr;
-
-
-
-
-
-
-
-
 }
 
 void _ainline WritePtrTop16Bits(void** ptr, u16 value) {
@@ -305,6 +297,7 @@ _ainline void* MaskPtrTop16Bits(void* ptr) {
 #ifdef CPP_PASS
 #define REFDOC(...) REFDOC(...)
 #else
-#define REFDOC(...)
+#define  REFDOC(...)
 #endif
 
+#define _positive_y_up 1

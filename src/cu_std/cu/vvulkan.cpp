@@ -2,6 +2,47 @@
 
 #include "wwindow.h"
 
+//TODO: make use of dedicated allocation
+
+
+#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
+
+void ErrorString(VkResult errorCode){
+    switch (errorCode)
+    {
+#define STR(r) case VK_ ##r: printf("VK Error:%s",#r); break;
+        STR(NOT_READY);
+        STR(TIMEOUT);
+        STR(EVENT_SET);
+        STR(EVENT_RESET);
+        STR(INCOMPLETE);
+        STR(ERROR_OUT_OF_HOST_MEMORY);
+        STR(ERROR_OUT_OF_DEVICE_MEMORY);
+        STR(ERROR_INITIALIZATION_FAILED);
+        STR(ERROR_DEVICE_LOST);
+        STR(ERROR_MEMORY_MAP_FAILED);
+        STR(ERROR_LAYER_NOT_PRESENT);
+        STR(ERROR_EXTENSION_NOT_PRESENT);
+        STR(ERROR_FEATURE_NOT_PRESENT);
+        STR(ERROR_INCOMPATIBLE_DRIVER);
+        STR(ERROR_TOO_MANY_OBJECTS);
+        STR(ERROR_FORMAT_NOT_SUPPORTED);
+        STR(ERROR_SURFACE_LOST_KHR);
+        STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+        STR(SUBOPTIMAL_KHR);
+        STR(ERROR_OUT_OF_DATE_KHR);
+        STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+        STR(ERROR_VALIDATION_FAILED_EXT);
+        STR(ERROR_INVALID_SHADER_NV);
+#undef STR
+        default:
+        printf("VK Error:%s","UNKNOWN_ERROR"); break;
+    }
+}
+
+
+#include "vvulkan_dyn.hpp"
+
 /*
 
 TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
@@ -13,125 +54,72 @@ TODO:support VK_SAMPLE_COUNT_X. now we only exclusively support 1
 
 
 
-void* vkenumerateinstanceextensionproperties;
-void* vkenumerateinstancelayerproperties;
-void* vkcreateinstance;
-void* vkgetinstanceprocaddress;
-void* vkgetdeviceprocaddress;
 
-void* vkenumeratephysicaldevices;
-void* vkgetphysicaldeviceproperties;
-void* vkenumeratedevicelayerproperties;
-void* vkenumeratedeviceextensionproperties;
-void* vkgetphysicaldevicequeuefamilyproperties;
-void* vkgetphysicaldevicefeatures;
-void* vkcreatedevice;
-void* vkgetphysicaldeviceformatproperties;
-void* vkgetphysicaldevicememoryproperties;
-void* vkcmdpipelinebarrier;
-void* vkcreateshadermodule;
-void* vkcreatebuffer;
-void* vkgetbuffermemoryrequirements;
-void* vkmapmemory;
-void* vkunmapmemory;
-void* vkflushmappedmemoryranges;
-void* vkinvalidatemappedmemoryranges;
-void* vkbindbuffermemory;
-void* vkdestroybuffer;
-void* vkallocatememory;
-void* vkfreememory;
-void* vkcreaterenderpass;
-void* vkcmdbeginrenderpass;
-void* vkcmdendrenderpass;
-void* vkcmdnextsubpass;
-void* vkcmdexecutecommands;
-void* vkcreateimage;
-void* vkgetimagememoryrequirements;
-void* vkcreateimageview;
-void* vkdestroyimageview;
-void* vkbindimagememory;
-void* vkgetimagesubresourcelayout;
-void* vkcmdcopyimage;
-void* vkcmdblitimage;
-void* vkdestroyimage;
-void* vkcmdclearattachments;
-void* vkcmdcopybuffer;
-void* vkcmdcopybuffertoimage;
-void* vkcreatesampler;
-void* vkdestroysampler;
-void* vkcreatesemaphore;
-void* vkdestroysemaphore;
-void* vkcreatefence;
-void* vkdestroyfence;
-void* vkwaitforfences;
-void* vkresetfences;
-void* vkcreatecommandpool;
-void* vkdestroycommandpool;
-void* vkallocatecommandbuffers;
-void* vkbegincommandbuffer;
-void* vkendcommandbuffer;
-void* vkgetdevicequeue;
-void* vkqueuesubmit;
-void* vkqueuewaitidle;
-void* vkdevicewaitidle;
-void* vkcreateframebuffer;
-void* vkcreatepipelinecache;
-void* vkcreatepipelinelayout;
-void* vkcreategraphicspipelines;
-void* vkcreatecomputepipelines;
-void* vkcreatedescriptorpool;
-void* vkcreatedescriptorsetlayout;
-void* vkallocatedescriptorsets;
-void* vkupdatedescriptorsets;
-void* vkcmdbinddescriptorsets;
-void* vkcmdbindpipeline;
-void* vkcmdbindvertexbuffers;
-void* vkcmdbindindexbuffer;
-void* vkcmdsetviewport;
-void* vkcmdsetscissor;
-void* vkcmdsetlinewidth;
-void* vkcmdsetdepthbias;
-void* vkcmdpushconstants;
-void* vkcmddrawindexed;
-void* vkcmddraw;
-void* vkcmddrawindexedindirect;
-void* vkcmddrawindirect;
-void* vkcmddispatch;
-void* vkdestroypipeline;
-void* vkdestroypipelinelayout;
-void* vkdestroydescriptorsetlayout;
-void* vkdestroydevice;
-void* vkdestroyinstance;
-void* vkdestroydescriptorpool;
-void* vkfreecommandbuffers;
-void* vkdestroyrenderpass;
-void* vkdestroyframebuffer;
-void* vkdestroyshadermodule;
-void* vkdestroypipelinecache;
-void* vkcreatequerypool;
-void* vkdestroyquerypool;
-void* vkgetquerypoolresults;
-void* vkcmdbeginquery;
-void* vkcmdendquery;
-void* vkcmdresetquerypool;
-void* vkcmdcopyquerypoolresults;
-void* vkcreate_xlib_wayland_win32surfacekhr;
-void* vkdestroysurfacekhr;
-void* vkcmdfillbuffer;
-void* vkacquirenextimagekhr;
-void* vkgetfencestatus;
-void* vkcreateswapchainkhr;
-void* vkgetswapchainimageskhr;
-void* vkqueuepresentkhr;
-void* vkgetphysicaldevice_xlib_wayland_win32_presentationsupportkhr;
-void* vkgetphysicaldevicesurfacesupportkhr;
-void* vkcmdclearcolorimage;
-void* vkgetphysicaldeviceimageformatproperties;
-void* vkcmdcopyimagetobuffer;
-void* vkgetpipelinecachedata;
+template <typename T>
+u32 GetArgSize(T t){
+	return sizeof(t);
+}
 
-//vulkan 1.1
-void* vkenumeratephysicaldevicegroups;
+template <typename T, typename... Args>
+u32 GetArgSize(T t,Args... args){
+	return sizeof(t) + GetArgSize(args...);
+}
+
+
+template <typename T, typename... Args>
+u32 GetArgCount(T t,Args... args){
+	return sizeof...(args) + 1;
+}
+
+
+template <typename T, typename... Args>
+void FillChain(s8* buffer,s8* mem,u32* offset,T t){
+	*offset = mem - buffer;
+	memcpy(mem,&t,sizeof(t));
+}
+
+
+template <typename T, typename... Args>
+void FillChain(s8* buffer,s8* mem,u32* offset,T t,Args... args){
+	*offset = mem - buffer;
+	memcpy(mem,&t,sizeof(t));
+
+	offset ++;
+	mem += sizeof(t);
+
+	FillChain(buffer,mem,offset,args...);
+}
+
+
+struct Chain{
+	s8* buffer;
+	u32* offsets;
+	u32 count = 0;
+
+	s8* operator[](u32 index){
+		_kill("",index >= count);
+		return buffer + offsets[index];
+	}
+};
+
+
+void* VChainVKStruct(Chain chain){
+	struct VKStruct{
+		VkStructureType type;
+		void* next;
+	};
+
+	for(u32 i = 0; i < chain.count; i++){
+		auto a = (VKStruct*)(chain[i]);
+		auto b = i + 1 < chain.count ? chain[i + 1] : 0;
+
+		a->next = b;
+	}
+	return chain[0];
+}
+
+#define _make_chain(tuple, ...)  auto tuple = Chain{(s8*)alloca(GetArgSize(__VA_ARGS__)),(u32*)alloca(GetArgCount(__VA_ARGS__) * sizeof(u32)),GetArgCount(__VA_ARGS__)}; FillChain(tuple.buffer,tuple.buffer,tuple.offsets,__VA_ARGS__)
+
 
 #ifdef _WIN32
 
@@ -185,10 +173,8 @@ struct VDeviceMemoryBlock{
     u32 size;
     
 #ifdef DEBUG
-    u32 type;
-    
-    u64* res;
-    
+    u32 type; //describes block properties
+    u64* res;  // what resource is bound to this block
 #endif
 };
 
@@ -202,40 +188,6 @@ direct - direct write to gpu memory. the pool is very small and is not supported
 
 */
 
-#define _vktest(condition) {VkResult result = condition;if((result != VK_SUCCESS)) {ErrorString(condition);_kill("",1);}}
-
-void ErrorString(VkResult errorCode){
-    switch (errorCode)
-    {
-#define STR(r) case VK_ ##r: printf("VK Error:%s",#r); break;
-        STR(NOT_READY);
-        STR(TIMEOUT);
-        STR(EVENT_SET);
-        STR(EVENT_RESET);
-        STR(INCOMPLETE);
-        STR(ERROR_OUT_OF_HOST_MEMORY);
-        STR(ERROR_OUT_OF_DEVICE_MEMORY);
-        STR(ERROR_INITIALIZATION_FAILED);
-        STR(ERROR_DEVICE_LOST);
-        STR(ERROR_MEMORY_MAP_FAILED);
-        STR(ERROR_LAYER_NOT_PRESENT);
-        STR(ERROR_EXTENSION_NOT_PRESENT);
-        STR(ERROR_FEATURE_NOT_PRESENT);
-        STR(ERROR_INCOMPATIBLE_DRIVER);
-        STR(ERROR_TOO_MANY_OBJECTS);
-        STR(ERROR_FORMAT_NOT_SUPPORTED);
-        STR(ERROR_SURFACE_LOST_KHR);
-        STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-        STR(SUBOPTIMAL_KHR);
-        STR(ERROR_OUT_OF_DATE_KHR);
-        STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-        STR(ERROR_VALIDATION_FAILED_EXT);
-        STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-        default:
-        printf("VK Error:%s","UNKNOWN_ERROR"); break;
-    }
-}
 
 _global VkAllocationCallbacks* global_allocator = 0;
 
@@ -262,9 +214,20 @@ VkBuffer CreateBuffer(VkDevice device,VkBufferCreateFlags flags,
     return buffer;
 }
 
+/*
+ * These are memory blocks on the device. Linear blocks are for linear resources like buffers while the latter is for
+ * non-linear resources like images. These blocks cannot be mapped. Both are device read/write-able
+ * */
+
 _global VDeviceMemoryBlock linear_block = {};
 _global VDeviceMemoryBlock non_linear_block = {};
 
+/*
+ * The following are memory blocks that can be mapped. The first is a block that can be written but not read by the host and the 
+ * next a block suitable for both reading and writing from the host respectively. The direct block is a region of memory that 
+ * resides on the device that can be directly accessed by the host for reads and writes. All blocks are device readable. 
+ * Device writes should be reserved for the last two block types.
+ * */
 _global VDeviceMemoryBlock write_block = {};
 _global VDeviceMemoryBlock readwrite_block = {};
 _global VDeviceMemoryBlock direct_block = {};
@@ -641,6 +604,66 @@ void VNonLinearDeviceMemoryBlockAlloc(u32 size,VkDeviceMemory* _restrict memory,
 
 #endif
 
+
+//NOTE: requires 1.1
+VkMemoryDedicatedAllocateInfo VMakeDedicatedAllocInfo(VkBuffer buffer){
+	return {
+		VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+			0,
+			0,
+			buffer
+	};
+}
+
+
+VkMemoryDedicatedAllocateInfo VMakeDedicatedAllocInfo(VkImage image){
+	return {
+		VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+			0,
+			image,
+			0
+	};
+}
+
+VkMemoryRequirements VMakeDedicatedMemReq(){
+	return {VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS};
+}
+
+VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkBuffer buffer){
+	VDeviceMemoryBlock block = {};
+	auto ded_info = VMakeDedicatedAllocInfo(buffer);
+	auto type = VGetMemoryTypeIndex(*vdevice->phys_info->memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	block.memory = VRawDeviceAlloc(vdevice->device,alloc_size,type,&ded_info);
+	block.size = alloc_size;
+
+#if DEBUG
+	block.type = type;
+#endif
+
+	return block;
+}
+
+VDeviceMemoryBlock VDedicatedBlockAlloc(VkDevice device,VkPhysicalDeviceMemoryProperties memoryproperties,VkDeviceSize alloc_size,VkImage image){
+	VDeviceMemoryBlock block = {};
+	auto ded_info = VMakeDedicatedAllocInfo(image);
+	auto type = VGetMemoryTypeIndex(memoryproperties,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	block.memory = VRawDeviceAlloc(device,alloc_size,type,&ded_info);
+	block.size = alloc_size;
+
+#if DEBUG
+	block.type = type;
+#endif
+
+	return block;
+}
+
+
+VDeviceMemoryBlock VDedicatedBlockAlloc(const VDeviceContext* vdevice,VkDeviceSize alloc_size,VkImage image){
+	return VDedicatedBlockAlloc(vdevice->device,*vdevice->phys_info->memoryproperties,alloc_size,image);
+}
+
 void _ainline VBindBufferMemoryBlock(const VDeviceContext* _restrict vdevice,VkBuffer buffer,VDeviceMemoryBlock block){
     
 #if DEBUG
@@ -666,6 +689,7 @@ void _ainline VBindImageMemoryBlock(const VDeviceContext* _restrict vdevice,VkIm
     _vktest(vkBindImageMemory(vdevice->device,image,block.memory,block.offset));
 }
 
+
 VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 device_size,u32 write_size,u32 transferbuffer_size,u32 readwrite_size,
                                   u32 direct_size){
     
@@ -678,10 +702,7 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
     
     //linear and non-linear
     {
-        VkPhysicalDeviceProperties properties = {};
-        
-        vkGetPhysicalDeviceProperties(vdevice->phys_info->physicaldevice_array[0],
-                                      &properties);
+        VkPhysicalDeviceProperties properties = VGetPhysicalDeviceProperties(vdevice->phys_info->physicaldevice_array[0]);
         
         auto non_linear_size = 
             _alignpow2((device_size >> 1),properties.limits.bufferImageGranularity);
@@ -777,17 +798,18 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
         transferbuffer.buffer = CreateBuffer(vdevice->device,0,transferbuffer_size,VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                              VK_SHARING_MODE_EXCLUSIVE,0,0);
+
+	_make_chain(chain,VMakeDedicatedMemReq());
         
-        VkMemoryRequirements memoryreq = {};
-        
-        vkGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer,
-                                      &memoryreq);
-        
+        VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(vdevice->device,transferbuffer.buffer,VChainVKStruct(chain),0);
         transferbuffer.size = memoryreq.size;
-        
-        auto block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
-        
-        
+
+	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
+	auto block = (ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation) ? 
+		VDedicatedBlockAlloc(vdevice,transferbuffer.size,transferbuffer.buffer) : 
+		VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),
+					memoryreq.memoryTypeBits,_write_block_flags);
+
         transferbuffer.offset = block.offset;
         transferbuffer.alloc_offset = block.offset;
         
@@ -806,241 +828,6 @@ VResult VInitDeviceBlockAllocator(const VDeviceContext* _restrict vdevice,u32 de
 
 //MARK: every function that uses VCreateImage/Buffer etc does not handle for shared resources
 //Look for VkSharingMode
-
-
-
-#define _instproc(fptr,inst,entrypoint)				\
-{									\
-    fptr = (void*)vkGetInstanceProcAddr(inst, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1);							\
-    }									\
-}
-
-// Macro to get a procedure address based on a vulkan device
-#define _deviceproc(fptr,dev,entrypoint)				\
-{									\
-    fptr = (void*)vkGetDeviceProcAddr(dev, ""#entrypoint); \
-    if (!fptr)								\
-    {									\
-        _kill("failed to get function\n",1)							\
-    }								\
-}
-
-
-
-//MARK: Implementation
-
-_global LibHandle vklib = 0;
-
-void VInitVulkan(){
-    
-    //MARK: expand this list
-    const s8* vklib_array[] = {
-        
-#ifdef _WIN32
-        "vulkan-1.dll",
-        "vulkan.dll",
-#else
-        "libvulkan.so.1",
-        "libvulkan.so",
-#endif
-        
-    };
-    
-    for(u32 i = 0; i < _arraycount(vklib_array); i++){
-        
-        vklib = LLoadLibrary(vklib_array[i]);
-        
-        if(vklib){
-            _dprint("using vkloader %s\n",vklib_array[i]);
-            break;
-        }
-        
-    }
-    
-    _kill("faild to load vulkan lib\n",!vklib);
-    
-    vkenumerateinstanceextensionproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceExtensionProperties");
-    
-    vkenumerateinstancelayerproperties =
-        LGetLibFunction(vklib,"vkEnumerateInstanceLayerProperties");
-    
-    vkcreateinstance = LGetLibFunction(vklib,"vkCreateInstance");
-    
-    vkdestroyinstance = LGetLibFunction(vklib,"vkDestroyInstance");
-    
-    
-    vkgetinstanceprocaddress = LGetLibFunction(vklib,"vkGetInstanceProcAddr");
-    vkgetdeviceprocaddress = LGetLibFunction(vklib,"vkGetDeviceProcAddr");
-    
-}
-
-_global VkInstance global_instance = 0;
-_global u32 global_version_no = 0;
-
-#ifdef DEBUG 
-_global VkDevice global_device = 0;
-#endif
-
-void InternalLoadVulkanInstanceLevelFunctions(){
-    
-    _instproc(vkenumeratephysicaldevices,global_instance,vkEnumeratePhysicalDevices);
-    
-    _instproc(vkgetphysicaldevicequeuefamilyproperties,global_instance,vkGetPhysicalDeviceQueueFamilyProperties);
-    
-    _instproc(vkgetphysicaldeviceproperties,global_instance,vkGetPhysicalDeviceProperties);
-    
-    _instproc(vkgetphysicaldevicememoryproperties,global_instance,vkGetPhysicalDeviceMemoryProperties);
-    
-    _instproc(vkgetphysicaldevicefeatures,global_instance,vkGetPhysicalDeviceFeatures);
-    
-    _instproc(vkcreatedevice,global_instance,vkCreateDevice);
-    
-    _instproc(vkgetphysicaldevicesurfacesupportkhr,global_instance,vkGetPhysicalDeviceSurfaceSupportKHR);
-    
-    _instproc(vkenumeratedevicelayerproperties,global_instance,vkEnumerateDeviceLayerProperties);
-    
-    _instproc(vkenumeratedeviceextensionproperties,global_instance,vkEnumerateDeviceExtensionProperties);
-    
-    _instproc(vkgetphysicaldeviceformatproperties,global_instance,vkGetPhysicalDeviceFormatProperties);
-    
-    _instproc(vkgetphysicaldeviceimageformatproperties,global_instance,vkGetPhysicalDeviceImageFormatProperties);
-    
-    _instproc(vkdestroysurfacekhr,global_instance,vkDestroySurfaceKHR);
-    
-    //vulkan 1.1 here
-    
-    if(VK_VERSION_MINOR(global_version_no)){
-        
-        //TODO: deprecate 1.0 functions (set them to -1)
-        
-        _instproc(vkenumeratephysicaldevicegroups,global_instance,vkEnumeratePhysicalDeviceGroups);
-    }
-}
-
-void InternalLoadVulkanFunctions(void* k,void* load_fptr){
-    
-    
-    _kill("",!vkenumeratephysicaldevices);
-    
-    auto load = (void* (*)(void*,const s8*))load_fptr;
-    
-#define _initfunc(func,var) var = (void*)load(k,""#func); if(!var){printf("%s %s %d :: Failed to load function %s\n",__FUNCTION__,__FILE__,__LINE__,""#func);_kill("",1);}
-    
-    
-    _initfunc(vkCmdPipelineBarrier,vkcmdpipelinebarrier);
-    _initfunc(vkCreateShaderModule,vkcreateshadermodule);
-    _initfunc(vkCreateBuffer,vkcreatebuffer);
-    _initfunc(vkGetBufferMemoryRequirements,vkgetbuffermemoryrequirements);
-    _initfunc(vkMapMemory,vkmapmemory);
-    _initfunc(vkUnmapMemory,vkunmapmemory);
-    _initfunc(vkFlushMappedMemoryRanges,vkflushmappedmemoryranges);
-    _initfunc(vkInvalidateMappedMemoryRanges,vkinvalidatemappedmemoryranges);
-    _initfunc(vkBindBufferMemory,vkbindbuffermemory);
-    _initfunc(vkDestroyBuffer,vkdestroybuffer);
-    _initfunc(vkAllocateMemory,vkallocatememory);
-    _initfunc(vkFreeMemory,vkfreememory);
-    _initfunc(vkCreateRenderPass,vkcreaterenderpass);
-    _initfunc(vkCmdBeginRenderPass,vkcmdbeginrenderpass);
-    _initfunc(vkCmdEndRenderPass,vkcmdendrenderpass);
-    _initfunc(vkCmdNextSubpass,vkcmdnextsubpass);
-    _initfunc(vkCmdExecuteCommands,vkcmdexecutecommands);
-    _initfunc(vkCreateImage,vkcreateimage);
-    _initfunc(vkGetImageMemoryRequirements,vkgetimagememoryrequirements);
-    _initfunc(vkCreateImageView,vkcreateimageview);
-    _initfunc(vkDestroyImageView,vkdestroyimageview);
-    _initfunc(vkBindImageMemory,vkbindimagememory);
-    _initfunc(vkGetImageSubresourceLayout,vkgetimagesubresourcelayout);
-    _initfunc(vkCmdCopyImage,vkcmdcopyimage);
-    _initfunc(vkCmdBlitImage,vkcmdblitimage);
-    _initfunc(vkDestroyImage,vkdestroyimage);
-    _initfunc(vkCmdClearAttachments,vkcmdclearattachments);
-    _initfunc(vkCmdCopyBuffer,vkcmdcopybuffer);
-    _initfunc(vkCmdCopyBufferToImage,vkcmdcopybuffertoimage);
-    _initfunc(vkCreateSampler,vkcreatesampler);
-    _initfunc(vkDestroySampler,vkdestroysampler);
-    _initfunc(vkCreateSemaphore,vkcreatesemaphore);
-    _initfunc(vkDestroySemaphore,vkdestroysemaphore);
-    _initfunc(vkCreateFence,vkcreatefence);
-    _initfunc(vkDestroyFence,vkdestroyfence);
-    _initfunc(vkWaitForFences,vkwaitforfences);
-    _initfunc(vkResetFences,vkresetfences);
-    _initfunc(vkCreateCommandPool,vkcreatecommandpool);
-    _initfunc(vkDestroyCommandPool,vkdestroycommandpool);
-    _initfunc(vkAllocateCommandBuffers,vkallocatecommandbuffers);
-    _initfunc(vkBeginCommandBuffer,vkbegincommandbuffer);
-    _initfunc(vkEndCommandBuffer,vkendcommandbuffer);
-    _initfunc(vkGetDeviceQueue,vkgetdevicequeue);
-    _initfunc(vkQueueSubmit,vkqueuesubmit);
-    _initfunc(vkQueueWaitIdle,vkqueuewaitidle);
-    _initfunc(vkDeviceWaitIdle,vkdevicewaitidle);
-    _initfunc(vkCreateFramebuffer,vkcreateframebuffer);
-    _initfunc(vkCreatePipelineCache,vkcreatepipelinecache);
-    _initfunc(vkCreatePipelineLayout,vkcreatepipelinelayout);
-    _initfunc(vkCreateGraphicsPipelines,vkcreategraphicspipelines);
-    _initfunc(vkCreateComputePipelines,vkcreatecomputepipelines);
-    _initfunc(vkCreateDescriptorPool,vkcreatedescriptorpool);
-    _initfunc(vkCreateDescriptorSetLayout,vkcreatedescriptorsetlayout);
-    _initfunc(vkAllocateDescriptorSets,vkallocatedescriptorsets);
-    _initfunc(vkUpdateDescriptorSets,vkupdatedescriptorsets);
-    _initfunc(vkCmdBindDescriptorSets,vkcmdbinddescriptorsets);
-    _initfunc(vkCmdBindPipeline,vkcmdbindpipeline);
-    _initfunc(vkCmdBindVertexBuffers,vkcmdbindvertexbuffers);
-    _initfunc(vkCmdBindIndexBuffer,vkcmdbindindexbuffer);
-    _initfunc(vkCmdSetViewport,vkcmdsetviewport);
-    _initfunc(vkCmdSetScissor,vkcmdsetscissor);
-    _initfunc(vkCmdSetLineWidth,vkcmdsetlinewidth);
-    _initfunc(vkCmdSetDepthBias,vkcmdsetdepthbias);
-    _initfunc(vkCmdPushConstants,vkcmdpushconstants);
-    _initfunc(vkCmdDrawIndexed,vkcmddrawindexed);
-    _initfunc(vkCmdDraw,vkcmddraw);
-    _initfunc(vkCmdDrawIndexedIndirect,vkcmddrawindexedindirect);
-    _initfunc(vkCmdDrawIndirect,vkcmddrawindirect);
-    _initfunc(vkCmdDispatch,vkcmddispatch);
-    _initfunc(vkDestroyPipeline,vkdestroypipeline);
-    _initfunc(vkDestroyPipelineLayout,vkdestroypipelinelayout);
-    _initfunc(vkDestroyDescriptorSetLayout,vkdestroydescriptorsetlayout);
-    _initfunc(vkDestroyDevice,vkdestroydevice);
-    
-    _initfunc(vkDestroyDescriptorPool,vkdestroydescriptorpool);
-    _initfunc(vkFreeCommandBuffers,vkfreecommandbuffers);
-    _initfunc(vkDestroyRenderPass,vkdestroyrenderpass);
-    _initfunc(vkDestroyFramebuffer,vkdestroyframebuffer);
-    _initfunc(vkDestroyShaderModule,vkdestroyshadermodule);
-    _initfunc(vkDestroyPipelineCache,vkdestroypipelinecache);
-    _initfunc(vkCreateQueryPool,vkcreatequerypool);
-    _initfunc(vkDestroyQueryPool,vkdestroyquerypool);
-    _initfunc(vkGetQueryPoolResults,vkgetquerypoolresults);
-    _initfunc(vkCmdBeginQuery,vkcmdbeginquery);
-    _initfunc(vkCmdEndQuery,vkcmdendquery);
-    _initfunc(vkCmdResetQueryPool,vkcmdresetquerypool);
-    _initfunc(vkCmdCopyQueryPoolResults,vkcmdcopyquerypoolresults);
-    
-    
-    _initfunc(vkCmdFillBuffer,vkcmdfillbuffer);
-    _initfunc(vkAcquireNextImageKHR,vkacquirenextimagekhr);
-    _initfunc(vkGetFenceStatus,vkgetfencestatus);
-    _initfunc(vkCreateSwapchainKHR,vkcreateswapchainkhr);
-    _initfunc(vkGetSwapchainImagesKHR,vkgetswapchainimageskhr);
-    _initfunc(vkQueuePresentKHR,vkqueuepresentkhr);
-    
-    _initfunc(vkCmdClearColorImage,vkcmdclearcolorimage);
-    
-    _initfunc(vkCmdCopyImageToBuffer,vkcmdcopyimagetobuffer);
-    
-    _initfunc(vkGetPipelineCacheData,vkgetpipelinecachedata);
-    
-    //vulkan 1.1 here
-    if(VK_VERSION_MINOR(global_version_no)){
-        //TODO: deprecated 1.0 functions (set them to -1)
-    }
-    
-#undef _initfunc
-    
-}
 
 
 VkBool32 VkDebugMessageCallback(VkDebugReportFlagsEXT flags,
@@ -1121,7 +908,7 @@ PFN_vkDestroyDebugReportCallbackEXT CreateVkDebug(VkInstance instance){
 
 //Unmanaged
 VkDeviceMemory  
-VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
+VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index,void* next){
     
 #ifdef DEBUG
     
@@ -1135,7 +922,7 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     
     VkMemoryAllocateInfo info = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        0,
+        next,
         alloc_size,
         memorytype_index
     };
@@ -1145,7 +932,8 @@ VRawDeviceAlloc(VkDevice device,VkDeviceSize alloc_size,u32 memorytype_index){
     return memory;
 }
 
-_global VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32) = VRawDeviceAlloc;
+
+_global VkDeviceMemory (*deviceallocator)(VkDevice,VkDeviceSize,u32,void*) = VRawDeviceAlloc;
 
 VkSampler CreateSampler(VkDevice device,VkSamplerCreateFlags flags,
                         VkFilter mag_filter,VkFilter min_filter,
@@ -1227,6 +1015,42 @@ VkBuffer VRawCreateBuffer(VkDevice device,
     
 }
 
+_intern VDeviceMemoryBlock InternBlockAlloc(const VDeviceContext* vdevice,const VBufferContext context,VMemoryBlockHintFlag flag){
+
+
+	auto memoryproperties = *(vdevice->phys_info->memoryproperties);
+	auto device = vdevice->device;
+
+	_make_chain(chain,VMakeDedicatedMemReq());
+	VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,VChainVKStruct(chain),0);
+
+	VDeviceMemoryBlock block = {};
+	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
+
+
+	if(ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation){
+		block = VDedicatedBlockAlloc(vdevice,memoryreq.size,context.buffer);
+	}
+
+	else if(flag == VBLOCK_DEVICE){
+		block = VLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	}
+
+	else if(flag == VBLOCK_READWRITE){
+		block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
+	}
+
+	else if(flag == VBLOCK_WRITE){
+		block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
+	}
+
+	else{
+		block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
+	}
+
+	return block;
+}
+
 _intern VBufferContext CreateStaticBufferContext(
 const  VDeviceContext* _restrict vdevice,
 ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
@@ -1239,43 +1063,15 @@ ptrsize data_size,VkBufferUsageFlags usage,VMemoryBlockHintFlag flag){
     
     auto device = vdevice->device;
     
-    VkPhysicalDeviceMemoryProperties 
-        memoryproperties = *(vdevice->phys_info->memoryproperties);
     
     context.buffer = 
         CreateBuffer(device,0,data_size,usage,VK_SHARING_MODE_EXCLUSIVE,0,0);
-    
-    VkMemoryRequirements memoryreq = {};
-    
-    vkGetBufferMemoryRequirements(device,context.buffer,
-                                  &memoryreq);
-    
-    context.size = memoryreq.size;
-    
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,_direct_block_flags);
-    }
+
+    auto block = InternBlockAlloc(vdevice,context,flag);
+    context.size = block.size;
+    context.mapid = block.offset;
     
     VBindBufferMemoryBlock(vdevice,context.buffer,block);
-    
-    context.mapid = block.offset;
     
     return context;
 }
@@ -1291,15 +1087,13 @@ VkDeviceMemory memory,VkDeviceSize offset,u32 data_size,VkBufferUsageFlags usage
     
     VBufferContext context = {};
     
-    VkMemoryRequirements memoryreq = {};
     
     context.buffer =
         CreateBuffer(device,0,
                      data_size,usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                      VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(device,context.buffer,&memoryreq);
-    
+    VkMemoryRequirements memoryreq = VGetBufferMemoryRequirements(device,context.buffer,0,0);
     context.size = memoryreq.size;
     
 #ifdef DEBUG
@@ -1543,15 +1337,7 @@ VkImage CreateImage(VkDevice device,VkImageCreateFlags flags,
 #ifdef DEBUG
     {
         
-        VkImageFormatProperties props = {};
-        
-        vkGetPhysicalDeviceImageFormatProperties(
-            phys_device,
-            format,
-            imagetype,
-            tiling,
-            usage,
-            flags,&props);
+        VkImageFormatProperties props = VGetPhysicalDeviceImageFormatProperties(phys_device,format,imagetype,tiling,usage,flags);
         
         _kill("cannot create this image\n",extent.width > props.maxExtent.width ||
               extent.height > props.maxExtent.height || extent.depth > props.maxExtent.depth);
@@ -1561,6 +1347,19 @@ VkImage CreateImage(VkDevice device,VkImageCreateFlags flags,
     _vktest(vkCreateImage(device,&info,global_allocator,&image));
     
     return image;
+}
+
+VDeviceMemoryBlock _intern _ainline InternImageBlockAlloc(VkDevice device,VkImage image,VkPhysicalDeviceMemoryProperties memoryproperties){
+	_make_chain(chain,VMakeDedicatedMemReq());
+	auto memoryreq = VGetImageMemoryRequirements(device,image,VChainVKStruct(chain),0);
+	auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
+
+	auto block = (ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation) ? 
+		VDedicatedBlockAlloc(device,memoryproperties,memoryreq.size,image) : 
+		VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	return block;
 }
 
 VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicaldevice,
@@ -1832,10 +1631,8 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
         
         for(u32 i = 0; i < 5; i++){
             
-            VkFormatProperties prop;
-            
-            vkGetPhysicalDeviceFormatProperties(physicaldevice,depthformat_array[i],
-                                                &prop);
+            VkFormatProperties prop = VGetPhysicalDeviceFormatProperties(physicaldevice,depthformat_array[i]);
+
             if (prop.optimalTilingFeatures &
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT){
                 swapchain.internal->depthstencil.format = depthformat_array[i];
@@ -1851,18 +1648,12 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | 
                         VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_SHARING_MODE_EXCLUSIVE,
                         0,0,VK_IMAGE_LAYOUT_UNDEFINED,physicaldevice);
-        
-        
-        
-        VkMemoryRequirements memoryreq = {};
-        vkGetImageMemoryRequirements(device,swapchain.internal->depthstencil.image,
-                                     &memoryreq);
-        
-        auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,memoryproperties,memoryreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	auto block = InternImageBlockAlloc(device,swapchain.internal->depthstencil.image,memoryproperties);
         
 #ifdef DEBUG
-        printf("SWAPCHAIN DEPTH::%p,%p,%d\n",(void*)swapchain.internal->depthstencil.image,(void*)block.memory,block.offset);
-        printf("SIZE %d ALIGNMENT %d\n",(u32)memoryreq.size,(u32)memoryreq.alignment);
+        printf("SWAPCHAIN INFO::%p,%p,%d\n",(void*)swapchain.internal->depthstencil.image,(void*)block.memory,block.offset);
+        //printf("SIZE %d ALIGNMENT %d\n",(u32)memoryreq.size,(u32)memoryreq.alignment);
         
 #endif
         
@@ -1967,7 +1758,7 @@ void VSetDriverAllocator(VkAllocationCallbacks allocator){
     *global_allocator = allocator;
 }
 
-void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32)){
+void VSetDeviceAllocator(VkDeviceMemory (*allocator)(VkDevice,VkDeviceSize,u32,void*)){
     deviceallocator = allocator;
 }
 
@@ -2023,17 +1814,11 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
     _kill("failed to load lib\n",!vkcreateinstance);
     
     if(VK_MAKE_VERSION(1,0,0) != api_version){
+
+	    u32 latest_version = VGetMaxSupportedVkVersion();
+       
         
-        PFN_vkEnumerateInstanceVersion EnumerateInstanceVersion_fptr =
-        
-            (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(
-            VK_NULL_HANDLE,"vkEnumerateInstanceVersion");
-        
-        if(EnumerateInstanceVersion_fptr){
-            
-            u32 latest_version = 0;
-            
-            EnumerateInstanceVersion_fptr(&latest_version);
+        if(VK_VERSION_MINOR(latest_version)){
             
             _dprint("VULKAN\nLatest supported: %d.%d.%d\nRequested: %d.%d.%d\n",VK_VERSION_MAJOR(latest_version),VK_VERSION_MINOR(latest_version),VK_VERSION_PATCH(latest_version),VK_VERSION_MAJOR(api_version),VK_VERSION_MINOR(api_version),VK_VERSION_PATCH(api_version));
             
@@ -2055,8 +1840,6 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
         else if(V_INSTANCE_FLAGS_API_VERSION_OPTIONAL & v_inst_flags){
             
             _dprint("Only 1.0 loader found. Falling back to version 1.0\n%s","");
-            
-            
             api_version = VK_MAKE_VERSION(1,0,0);
         }
         
@@ -2073,10 +1856,12 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
                                      extension_array,extension_count);
     
     global_version_no = api_version;
-    
+   
+    //TODO: maybe we should move all the global stuff and just inline it here
     InternalLoadVulkanInstanceLevelFunctions();
     
     if(!(v_inst_flags & V_INSTANCE_FLAGS_SINGLE_VKDEVICE)){
+	_dprint("%s\n","Single device not specified! Using instance to resolve Vk functions");
         InternalLoadVulkanFunctions(global_instance,(void*)vkGetInstanceProcAddr);
     }
     
@@ -2122,8 +1907,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     context.phys_info->physicaldevice_count = physdevice_count;
     
 #if DEBUG
-    VkPhysicalDeviceProperties physproperties;
-    vkGetPhysicalDeviceProperties(context.phys_info->physicaldevice_array[0],&physproperties);
+    VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(context.phys_info->physicaldevice_array[0]);
     
     _dprint("gpu:%s\n",physproperties.deviceName);
 #endif
@@ -2131,18 +1915,25 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     context.phys_info->memoryproperties =
         (VkPhysicalDeviceMemoryProperties*)alloc(sizeof(VkPhysicalDeviceMemoryProperties));
     
-    vkGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0],context.phys_info->memoryproperties);
+    *context.phys_info->memoryproperties = VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]);
+
+    //memcpy(context.phys_info->memoryproperties,&VGetPhysicalDeviceMemoryProperties(context.phys_info->physicaldevice_array[0]),
+		    //sizeof(VkPhysicalDeviceMemoryProperties));
     
     VkDeviceQueueCreateInfo queueinfo_array[5];
     u32 queueinfo_count = 0;
     
-    VkQueueFamilyProperties queue_properties[5] = {};
+    VkQueueFamilyProperties2 queue_properties[5] = {};
     u32 queueproperties_count = 0;
+
+    for(u32 i = 0; i < _arraycount(queue_properties); i++){
+	    queue_properties[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+    }
     
-    vkGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
+    VGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
                                              &queueproperties_count,0);
     
-    vkGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
+    VGetPhysicalDeviceQueueFamilyProperties(context.phys_info->physicaldevice_array[0],
                                              &queueproperties_count,queue_properties);
     
     f32 queue_priority = 1.0f;
@@ -2162,12 +1953,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
         //Usually only the root queue has graphics capabilities (NV,AMD,Intel)
         if( 
-            (queue_properties[i].queueFlags  & VK_QUEUE_GRAPHICS_BIT) &&
+            (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_GRAPHICS_BIT) &&
             (createqueue_bits & VCREATEQUEUEBIT_ROOT)){
             
             global_queuefamilyinfo_array[VQUEUETYPE_ROOT] = {
                 i,
-                queue_properties[i].queueFlags,
+                queue_properties[i].queueFamilyProperties.queueFlags,
                 1 //MARK:this is the queuecount of this type. we should handle this case
             };
             
@@ -2178,12 +1969,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         else{
             
             if( 
-                (queue_properties[i].queueFlags  & VK_QUEUE_COMPUTE_BIT) &&
+                (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_COMPUTE_BIT) &&
                 (createqueue_bits & VCREATEQUEUEBIT_COMPUTE)){
                 
                 global_queuefamilyinfo_array[VQUEUETYPE_COMPUTE] = {
                     i,
-                    queue_properties[i].queueFlags,
+                    queue_properties[i].queueFamilyProperties.queueFlags,
                     1 //MARK:this is the queuecount of this type. we should handle this case
                 };
                 
@@ -2192,12 +1983,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
             }
             
             else if(
-                (queue_properties[i].queueFlags  & VK_QUEUE_TRANSFER_BIT) &&
+                (queue_properties[i].queueFamilyProperties.queueFlags  & VK_QUEUE_TRANSFER_BIT) &&
                 (createqueue_bits & VCREATEQUEUEBIT_TRANSFER)){
                 
                 global_queuefamilyinfo_array[VQUEUETYPE_TRANSFER] = {
                     i,
-                    queue_properties[i].queueFlags,
+                    queue_properties[i].queueFamilyProperties.queueFlags,
                     1 //MARK:this is the queuecount of this type. we should handle this case
                 };
                 
@@ -2209,9 +2000,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
     }
     
-    VkPhysicalDeviceFeatures devicefeatures;
-    vkGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0],&devicefeatures);
-    
+    VkPhysicalDeviceFeatures devicefeatures = VGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0]);
     
     const s8* extension_array[] = {
 	    //TODO: this is only for debug
@@ -2244,6 +2033,7 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
         
 #endif
         
+	_dprint("%s\n","Single device specified! Using device to resolve Vk functions");
         InternalLoadVulkanFunctions(context.device,(void*)vkGetDeviceProcAddr);
         
     }
@@ -2781,16 +2571,21 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
                     usage,
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
-    
-    VkMemoryRequirements memoryreq = {};
-    
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
+
+
+    _make_chain(chain,VMakeDedicatedMemReq());
+    VkMemoryRequirements memoryreq = VGetImageMemoryRequirements(vdevice->device,context.image,VChainVKStruct(chain),0);
+    auto ded_req = (VkMemoryDedicatedRequirements*)chain[0];
     
     _kill("this resource cannot be created with the specified flag\n",flag == VBLOCK_DEVICE);
     
     VDeviceMemoryBlock block = {};
+
+    if(ded_req->prefersDedicatedAllocation || ded_req->requiresDedicatedAllocation){
+	    block = VDedicatedBlockAlloc(vdevice->device,*(vdevice->phys_info->memoryproperties),memoryreq.size,context.image);
+    }
     
-    if(flag == VBLOCK_READWRITE){
+    else if(flag == VBLOCK_READWRITE){
         block = VReadWriteBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
     }
     
@@ -2808,9 +2603,7 @@ VImageMemoryContext VCreateColorImageMemory(const  VDeviceContext* _restrict vde
     
     context.mapid = block.offset;
     context.size = block.size;
-    
-    
-    
+
     return context;
     
 }
@@ -2832,12 +2625,8 @@ VImageContext VCreateColorImage(const  VDeviceContext* _restrict vdevice,
                     usage,
                     VK_SHARING_MODE_EXCLUSIVE,0,0,
                     layout,vdevice->phys_info->physicaldevice_array[0]);
-    
-    
-    VkMemoryRequirements memoryreq = {};
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
-    
-    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,memory_property);
+
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,*vdevice->phys_info->memoryproperties);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -2945,23 +2734,22 @@ void VCreateComputePipelineArray(const  VDeviceContext* _restrict vdevice,
 
 
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
-                                           VkViewport* viewport,u32 viewport_count,VkRect2D* scissor,
-                                           u32 scissor_count){
-    
-    memcpy(&spec->viewport_array[0],viewport,sizeof(VkViewport) * viewport_count);
-    
-    memcpy(&spec->scissor_array[0],scissor,sizeof(VkRect2D) * scissor_count);
-    
-    spec->viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    
-    spec->viewport.viewportCount = viewport_count;
-    spec->viewport.scissorCount = scissor_count;
+		VViewport* viewport,u32 viewport_count,VkRect2D* scissor,
+		u32 scissor_count){
+
+	memcpy(&spec->viewport_array[0],viewport,sizeof(VkViewport) * viewport_count);
+	memcpy(&spec->scissor_array[0],scissor,sizeof(VkRect2D) * scissor_count);
+
+	spec->viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+
+	spec->viewport.viewportCount = viewport_count;
+	spec->viewport.scissorCount = scissor_count;
 }
 
 void VSetFixedViewportGraphicsPipelineSpec(VGraphicsPipelineSpecObj* spec,
                                            u16 width,u16 height){
     
-    VkViewport viewport = {0.0f,0.0f,(f32)width,(f32)height,0.0f,1.0f};
+    auto viewport = VViewport(0,0,width,height);
     VkRect2D scissor = {{},width,height};
     
     VSetFixedViewportGraphicsPipelineSpec(spec,&viewport,1,&scissor,1);
@@ -3288,9 +3076,10 @@ void VCreateGraphicsPipelineArray(const  VDeviceContext* _restrict vdevice,VGrap
             spec->parent_pipeline,
             spec->parentpipeline_index
         };
+
         
     }
-    
+
     _vktest(vkCreateGraphicsPipelines(vdevice->device,cache,spec_count,&info_array[0],global_allocator,
                                       pipeline_array));
     
@@ -3342,7 +3131,6 @@ VGraphicsPipelineSpecObj VMakeGraphicsPipelineSpecObj(const  VDeviceContext* vde
     VSetRasterState(&spec);
     
     if(swap){
-        
         VSetFixedViewportGraphicsPipelineSpec(&spec,swap->width,swap->height);
     }
     
@@ -3476,29 +3264,29 @@ void VEnumeratePhysicalDevices(VkPhysicalDevice* array,u32* count,WWindowContext
         
         auto d = device_array[i];
         
-        VkPhysicalDeviceProperties physproperties;
-        vkGetPhysicalDeviceProperties(d,&physproperties);
+        VkPhysicalDeviceProperties physproperties = VGetPhysicalDeviceProperties(d);
         
         if(physproperties.apiVersion >= global_version_no){
             
             if(window){
                 
                 u32 p_count = 0;
-                VkQueueFamilyProperties p_array[8] = {};
+                VkQueueFamilyProperties2 p_array[8] = {};
+		VInitQueueFamilyProperties(p_array,_arraycount(p_array));
                 
-                vkGetPhysicalDeviceQueueFamilyProperties(d,
+                VGetPhysicalDeviceQueueFamilyProperties(d,
                                                          &p_count,0);
                 
                 _kill("",p_count > _arraycount(p_array));
                 
-                vkGetPhysicalDeviceQueueFamilyProperties(d,
+                VGetPhysicalDeviceQueueFamilyProperties(d,
                                                          &p_count,&p_array[0]);
                 
                 u32 famindex = (u32)-1;
                 
                 for(u32 j = 0; j < p_count; j++){
                     
-                    if(p_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT){
+                    if(p_array[j].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT){
                         famindex = j;
                         break;
                     }
@@ -3622,44 +3410,6 @@ void VInvalidateMemoryRanges(VkDevice device,VMemoryRangesPtr* ranges){
     _vktest(vkInvalidateMappedMemoryRanges(device,ranges->count,&ranges->range_array[0]));
 }
 
-
-
-void VInitDevice(VkDevice device){
-    InternalLoadVulkanFunctions(device,(void*)vkGetDeviceProcAddr);
-}
-
-void InitInstance(VkInstance instance){
-    
-    _instproc(vkenumeratephysicaldevices,instance,vkEnumeratePhysicalDevices);
-    
-    _instproc(vkgetphysicaldevicequeuefamilyproperties,instance,vkGetPhysicalDeviceQueueFamilyProperties);
-    
-    _instproc(vkgetphysicaldeviceproperties,instance,vkGetPhysicalDeviceProperties);
-    
-    _instproc(vkgetphysicaldevicememoryproperties,instance,vkGetPhysicalDeviceMemoryProperties);
-    
-    _instproc(vkgetphysicaldevicefeatures,instance,vkGetPhysicalDeviceFeatures);
-    
-    _instproc(vkcreatedevice,instance,vkCreateDevice);
-    
-    _instproc(vkgetphysicaldevicesurfacesupportkhr,instance,vkGetPhysicalDeviceSurfaceSupportKHR);
-    
-    _instproc(vkenumeratedevicelayerproperties,instance,vkEnumerateDeviceLayerProperties);
-    
-    _instproc(vkenumeratedeviceextensionproperties,instance,vkEnumerateDeviceExtensionProperties);
-    
-    _instproc(vkgetphysicaldeviceformatproperties,instance,vkGetPhysicalDeviceFormatProperties);
-    
-    _instproc(vkgetphysicaldeviceimageformatproperties,instance,vkGetPhysicalDeviceImageFormatProperties);
-    
-    _instproc(vkdestroysurfacekhr,instance,vkDestroySurfaceKHR);
-}
-
-
-//TODO: fix the below stuff
-
-
-
 VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdevice,
                                            u32 data_size,VMemoryBlockHintFlag flag){
     
@@ -3668,39 +3418,19 @@ VBufferContext VCreateUniformBufferContext(const  VDeviceContext* _restrict vdev
     }
     
     VBufferContext context = {};
-    VkMemoryRequirements memreq = {};
     
     context.buffer = CreateBuffer(vdevice->device,0,data_size,
                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
-    }
+    VDeviceMemoryBlock block = InternBlockAlloc(vdevice,context,flag);
+    context.size = block.size;
+    context.mapid = block.offset;
     
     VBindBufferMemoryBlock(vdevice,context.buffer,block);
     
-    context.size = memreq.size;
-    context.mapid = block.offset;
     
     return context;
 }
@@ -3715,42 +3445,20 @@ u32 data_size,VMemoryBlockHintFlag flag){
     }
     
     VBufferContext context = {};
-    VkMemoryRequirements memreq = {};
     
     context.buffer = CreateBuffer(vdevice->device,0,data_size,
                                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                   VK_SHARING_MODE_EXCLUSIVE,0,0);
     
-    vkGetBufferMemoryRequirements(vdevice->device,context.buffer,&memreq);
+    VkMemoryRequirements memreq = VGetBufferMemoryRequirements(vdevice->device,context.buffer,0,0);
     
-    
-    VDeviceMemoryBlock block = {};
-    
-    if(flag == VBLOCK_DEVICE){
-        
-        block = VLinearDeviceBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    
-    else if(flag == VBLOCK_READWRITE){
-        block = VReadWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_readwrite_block_flags);
-    }
-    
-    else if(flag == VBLOCK_WRITE){
-        
-        block = VWriteBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_write_block_flags);
-    }
-    
-    else{
-        
-        block = VDirectBlockAlloc(memreq.size,memreq.alignment,*(vdevice->phys_info->memoryproperties),memreq.memoryTypeBits,_direct_block_flags);
-    }
-    
-    VBindBufferMemoryBlock(vdevice,context.buffer,block);
-    
+    VDeviceMemoryBlock block = InternBlockAlloc(vdevice,context,flag);
     context.size = memreq.size;
     context.mapid = block.offset;
-    
+
+    VBindBufferMemoryBlock(vdevice,context.buffer,block);
+
     return context;
 }
 
@@ -3762,7 +3470,6 @@ u32 data_size,VMemoryBlockHintFlag flag){
 VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,u32 miplevels,VkFormat format){
     
     VTextureContext context = {};
-    VkMemoryRequirements memoryreq = {};
     
     context.image = 
         CreateImage(vdevice->device,0,
@@ -3773,11 +3480,7 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
     
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
-    
-    
-    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,*vdevice->phys_info->memoryproperties);
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3807,7 +3510,6 @@ VTextureContext VCreateTexture(const  VDeviceContext* _restrict vdevice,u32 widt
 VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32 width,u32 height,VkFormat format){
     
     VTextureContext handle;
-    VkMemoryRequirements memoryreq = {};
     
     handle.image = 
         CreateImage(vdevice->device,0,
@@ -3817,12 +3519,8 @@ VTextureContext VCreateTextureCache(const  VDeviceContext* _restrict vdevice,u32
                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                     VK_SHARING_MODE_EXCLUSIVE,0,0,VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
-    
-    
-    vkGetImageMemoryRequirements(vdevice->device,handle.image,&memoryreq);
-    
-    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    auto block = InternImageBlockAlloc(vdevice->device,handle.image,*(vdevice->phys_info->memoryproperties));
     
     VBindImageMemoryBlock(vdevice,handle.image,block);
     
@@ -3855,7 +3553,6 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
     auto format = VK_FORMAT_R8G8B8A8_UNORM;
     
     VTextureContext context = {};
-    VkMemoryRequirements memoryreq = {};
     
     auto pwidth = width/128;
     auto pheight = height/128;
@@ -3872,11 +3569,8 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                     0,0,
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     vdevice->phys_info->physicaldevice_array[0]);
-    
-    vkGetImageMemoryRequirements(vdevice->device,context.image,&memoryreq);
-    
-    auto block = VNonLinearDeviceBlockAlloc(memoryreq.size,memoryreq.alignment,*(vdevice->phys_info->memoryproperties),memoryreq.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    auto block = InternImageBlockAlloc(vdevice->device,context.image,*(vdevice->phys_info->memoryproperties));
     
     VBindImageMemoryBlock(vdevice,context.image,block);
     
@@ -3924,4 +3618,20 @@ VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice
     
     return context;
     
+}
+
+
+void* VChainVKStruct(void** info_array,u32 count){
+	struct VKStruct{
+		VkStructureType type;
+		void* next;
+	};
+
+	for(u32 i = 0; i < count; i++){
+		auto a = (VKStruct*)(info_array[i]);
+		auto b = i + 1 < count ? info_array[i + 1] : 0;
+
+		a->next = b;
+	}
+	return info_array[0];
 }

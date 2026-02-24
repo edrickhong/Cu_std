@@ -54,7 +54,8 @@ Consider using _mm_hadd_ps??
 #endif
 
 #define DEPTH_ZERO_TO_ONE 1
-#define Z_RHS 1
+
+#define NDC_RHS 0
 
 #define _radians(degrees) (degrees * (_pi / 180.0f))
 #define _degrees(radians) (radians * (180.0f / _pi))
@@ -66,6 +67,9 @@ Consider using _mm_hadd_ps??
 typedef union Vec2 {
 	struct{
 		f32 x, y;
+	};
+	struct{
+		f32 w,h;
 	};
 	f32 container[2];
 } Vec2;
@@ -164,6 +168,8 @@ typedef Vec3 Color3;
 typedef Vec4 Point4;
 typedef Vec3 Point3;
 typedef Vec2 Point2;
+
+typedef Vec2 Dim2;
 
 _align(16) typedef union Mat4 {
 	f32 container[16];
@@ -580,6 +586,8 @@ Vec4 SubVec4(Vec4 lhs, Vec4 rhs);
 Vec4 MulConstLVec4(f32 lhs, Vec4 rhs);
 Vec4 MulConstRVec4(Vec4 lhs, f32 rhs);
 Vec4 DivConstRVec4(Vec4 lhs, f32 rhs);
+Vec4 MulMat4Vec4(Mat4 lhs,Vec4 rhs);
+b32 CmpVec4(Vec4 lhs, Vec4 rhs);
 
 Vec3 AddVec3(Vec3 lhs, Vec3 rhs);
 Vec3 SubVec3(Vec3 lhs, Vec3 rhs);
@@ -1094,6 +1102,20 @@ Vec3 GetSphereNormalVec3(Sphere sphere, Point3 point_on_sphere);
 void DeconstructQuat(Quat quaternion, Vec3* vector, f32* angle);
 
 
+Vec3 _ainline PixelCoordToNDC(Vec3 p,Dim2 dim){
+	auto x = (2.0f * p.x)/dim.w - 1.0f;
+	auto y = (1.0f - (2.0f * p.y) / dim.h);
+	auto z = p.z;
+
+
+#if NDC_RHS
+	y *= -1;
+#endif
+
+	return {x,y,z};
+}
+
+
 #ifdef __cplusplus
 }
 
@@ -1123,6 +1145,8 @@ Vec4 operator-(Vec4 lhs, Vec4 rhs);
 Vec4 operator*(f32 lhs, Vec4 rhs);
 Vec4 operator*(Vec4 lhs, f32 rhs);
 Vec4 operator/(Vec4 lhs, f32 rhs);
+Vec4 operator*(Mat4 lhs, Vec4 rhs);
+b32 operator==(Vec4 lhs, Vec4 rhs);
 
 Vec3 operator+(Vec3 lhs, Vec3 rhs);
 Vec3 operator-(Vec3 lhs, Vec3 rhs);

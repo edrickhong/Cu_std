@@ -1,5 +1,3 @@
-
-
 #include "gui_draw.h"
 
 #include "debugtimer.h"
@@ -627,12 +625,17 @@ b32 GUIMouseUpL(){
 }
 
 #define _cellwidth 1.0f/95.0f
+#define _blanktexcoord 94.0f/95.0f
 
 void InternalGUIDrawRect(f32 x,f32 y,f32 width,f32 height,Color4 color){
 
-#define _blanktexcoord 94.0f/95.0f
-
+#if NDC_RHS
 	y *= -1;
+#else
+	height *= -1;
+#endif
+
+
 
 	u32 curvert = gui->vert_offset;
 
@@ -697,6 +700,8 @@ void InternalGUIDrawLine(GUIVec3 a,GUIVec3 b,Color4 color = White){
 	_kill("gui vertex overflow", curvert > _reserve_count);
 }
 
+//TODO: move all this into the math library
+
 _ainline
 void InternalPixelDimToNormalizedDim(f32 r_w,f32 r_h,f32 p_w,f32 p_h,
 		f32* w,f32* h){
@@ -734,12 +739,9 @@ void InternalNormalizedCoordToPixelCoord(f32 r_w,f32 r_h,f32 n_x,f32 n_y,
 _ainline
 void InternalPixelCoordToNormalizedCoord(f32 r_w,f32 r_h,f32 p_x,f32 p_y,
 		f32* x,f32* y){
-
-	auto h_width = r_w/2.0f;
-	auto h_height = r_h/2.0f;
-
-	*x = (p_x - h_width)/h_width;
-	*y = (h_height - p_y)/h_height;
+	auto v = PixelCoordToNDC({p_x,p_y},{r_w,r_h});
+	*x = v.x;
+	*y = v.y;
 }
 
 
@@ -1996,7 +1998,10 @@ void GUIDraw(VkCommandBuffer cmdbuffer){
 		vkCmdBindPipeline(cmdbuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gui->pipeline_array[sub->rendermode]);
 
-		vkCmdSetViewport(cmdbuffer,0,1,&viewport);
+
+		VViewport viewports[] = {VViewport(viewport)};
+
+		VCmdSetViewport(cmdbuffer,viewports,_arraycount(viewports));
 		vkCmdSetScissor(cmdbuffer,0,1,&scissor);
 
 
@@ -2508,6 +2513,20 @@ void InternalGUIDrawLine(GUIVec2 a,GUIVec2 b,Color4 color = White){
 	InternalGUIDrawLine(GUIVec3{a.x,a.y,0},GUIVec3{b.x,b.y,0},color);
 }
 
+void GUIDrawLine3D(GUIVec3 a,GUIVec3 b,Color4 color){
+	GUISetRenderMode(GUI_RENDER_LINE);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+	a = WorldSpaceToClipSpaceVec3(a,viewproj);
+	b = WorldSpaceToClipSpaceVec3(b,viewproj);
+
+	InternalGUIDrawLine(a,b,color);
+}
+
 b32 GUITranslateGizmo(GUIVec3* world_pos){
 
 	auto token = PHashString("GUI3DTranslate");
@@ -2530,9 +2549,6 @@ b32 GUITranslateGizmo(GUIVec3* world_pos){
 	auto z_c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,0,1},viewproj);
 
 	Vec2 mouse_c = GUIMouseCoordToScreenCoord();
-	mouse_c.y *= -1.0f;
-
-
 
 	InternalGUIDrawLine(obj_c,x_c,gui->axis_x_color);
 	InternalGUIDrawLine(obj_c,y_c,gui->axis_y_color);
@@ -2619,7 +2635,6 @@ b32 GUIScaleGizmo(GUIVec3 world_pos,f32* scale){
 	auto obj_c = Vec3ToVec2(WorldSpaceToClipSpaceVec3(world_pos,viewproj));
 
 	Vec2 mouse_c = GUIMouseCoordToScreenCoord();
-	mouse_c.y *= -1.0f;
 
 	auto mouse_dir =  mouse_c - obj_c;
 	auto mouse_ndir =  NormalizeVec2(mouse_dir);
@@ -2835,7 +2850,6 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
 	Vec3 mouse_c = {};
 	mouse_c.v2 = GUIMouseCoordToScreenCoord();
 	mouse_c.z = 0;
-	mouse_c.y *= -1.0f;
 
 	auto mouse_w = ClipSpaceToWorldSpaceVec3(mouse_c,viewproj);
 
@@ -2937,7 +2951,7 @@ b32 GUIRotationGizmo(GUIVec3 world_pos,Quat* rot){
 	return ret;
 }
 
-void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color){
+void GUIDrawPosMarker(GUIVec3 pos,Color4 color,b32 is_perspective){
 
 	GUISetRenderMode(GUI_RENDER_LINE);
 	GUISetCameraMode(GUI_CAMERA_NONE);
@@ -2946,16 +2960,58 @@ void GUIDrawPosMarker(GUIVec3 world_pos,Color4 color){
 
 	auto viewproj = gui->proj_matrix * gui->view_matrix;
 
-	auto obj_w = world_pos;
+	auto obj_w = pos;
 
-	auto a = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * 0.5f),viewproj);
-	auto b = WorldSpaceToClipSpaceVec3(obj_w + (Vec3{-1,1,0}  * 0.5f),viewproj);
-	auto c = WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj);
-	auto obj_c = WorldSpaceToClipSpaceVec3(obj_w,viewproj);
+	auto a = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * 0.5f),viewproj) : (obj_w + (Vec3{1,1,0} * 0.5f));
+	auto b = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{-1,1,0}  * 0.5f),viewproj) : (obj_w + (Vec3{-1,1,0}  * 0.5f));
+	auto c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + Vec3{0,1,0},viewproj) : (obj_w + Vec3{0,1,0});
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
 
 	InternalGUIDrawLine(obj_c,a,color);
 	InternalGUIDrawLine(obj_c,b,color);
 	InternalGUIDrawLine(obj_c,c,color);
+}
+
+
+void GUIDrawPosMarkerX(GUIVec3 pos,Color4 color,b32 is_perspective){
+
+	f32 scale = 0.1f;
+
+	GUISetRenderMode(GUI_RENDER_LINE);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+
+	auto obj_w = pos;
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
+
+	auto dir_a = (is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,1,0} * scale),viewproj) : (obj_w + (Vec3{1,1,0} * scale))) - obj_c;
+	auto dir_b =(is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,-1,0} * scale),viewproj) : (obj_w + (Vec3{1,-1,0} * scale))) - obj_c;
+
+
+	InternalGUIDrawLine(obj_c - dir_a,obj_c + dir_a,color);
+	InternalGUIDrawLine(obj_c - dir_b,obj_c + dir_b,color);
+}
+
+
+void GUIDrawPosRect(GUIVec3 pos,Color4 color,b32 is_perspective){
+
+	f32 scale = 0.4;
+
+	GUISetRenderMode(GUI_RENDER_SOLID);
+	GUISetCameraMode(GUI_CAMERA_NONE);
+
+	GUIInternalMakeSubmission(WINDOWSTATE_NONE,{},{});
+
+	auto viewproj = gui->proj_matrix * gui->view_matrix;
+
+	auto obj_w = pos;
+	auto obj_c = is_perspective ? WorldSpaceToClipSpaceVec3(obj_w,viewproj) : obj_w;
+	auto w = MagnitudeVec3((is_perspective ? WorldSpaceToClipSpaceVec3(obj_w + (Vec3{1,0,0} * scale),viewproj) : (obj_w + (Vec3{1,1,0} * scale))) - obj_c);
+
+	InternalGUIDrawRect(obj_c.x,obj_c.y,w,w,color);
 }
 
 #ifdef DEBUG
