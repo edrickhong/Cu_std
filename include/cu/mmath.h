@@ -169,7 +169,7 @@ _align(16) typedef union Mat4 {
 	f32 container[16];
 	__m128 simd[4];
 
-#ifdef __cplusplus_
+#ifdef __cplusplus
 	f32& operator[](u32 index) { return container[index]; }
 #endif
 } Mat4;
@@ -1154,5 +1154,39 @@ DualQ operator*(DualQ lhs, DualQ rhs);
 DualQ operator*(f32 lhs, DualQ rhs);
 DualQ operator*(DualQ lhs, f32 rhs);
 
+
+void _ainline PPrint(Mat4 matrix){
+	PrintMat4(matrix);
+}
+void _ainline PPrint(Mat3 matrix){
+	PrintMat3(matrix);
+}
+
+void _ainline PPrint(Vec4 vec){
+	PrintVec4(vec);
+}
+void _ainline PPrint(Vec3 vec){
+	PrintVec3(vec);
+}
+
+void _ainline PPrint(Vec2 vec){
+	PrintVec2(vec);
+}
+
+void _ainline PPrint(Quat quat){
+	PrintQuat(quat);
+}
+void _ainline PPrint(DualQ d){
+	PrintDualQ(d);
+}
+
+
 #endif
 
+_imm u32 Max(u32 a,u32 b){
+	return a > b? a : b;
+}
+
+_imm u32 Min(u32 a,u32 b){
+	return a < b? a : b;
+}

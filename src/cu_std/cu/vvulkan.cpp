@@ -549,8 +549,11 @@ _intern VDeviceMemoryBlock VDirectBlockAlloc(u32 size,u32 alignment){
 }
 
 _intern VDeviceMemoryBlock VLinearDeviceBlockAlloc(u32 size,u32 alignment){
+
     
     auto offset = TGetEntryAlignedOffsetD(&linear_block.offset,size,alignment,linear_block.size);
+
+    _kill("Not enough memory\n",(offset + size) >= linear_block.size); //FIXME: why the fuck is this not working???
     
     
     return {linear_block.memory,offset,size};
@@ -560,6 +563,7 @@ _intern VDeviceMemoryBlock VNonLinearDeviceBlockAlloc(u32 size,u32 alignment){
     
     auto offset = TGetEntryAlignedOffsetD(&non_linear_block.offset,size,alignment,non_linear_block.size);
     
+    _kill("Not enough memory\n",(offset + size) >= non_linear_block.size);
     
     return {non_linear_block.memory,offset,size};
 }
@@ -839,34 +843,8 @@ void VInitVulkan(){
         "vulkan-1.dll",
         "vulkan.dll",
 #else
-        "libvulkan.so.1.1.70", // required for 1.1
-        
-        "libvulkan.so.1.0.66",
-        "libvulkan.so.1.0.65",
-        "libvulkan.so.1.0.61",
-        "libvulkan.so.1.0.57",
-        "libvulkan.so.1.0.54",
-        "libvulkan.so.1.0.51",
-        "libvulkan.so.1.0.49",
-        "libvulkan.so.1.0.46",
-        "libvulkan.so.1.0.42",
-        "libvulkan.so.1.0.39",
-        "libvulkan.so.1.0.37",
-        "libvulkan.so.1.0.33",
-        "libvulkan.so.1.0.30",
-        "libvulkan.so.1.0.26",
-        "libvulkan.so.1.0.24",
-        "libvulkan.so.1.0.21",
-        "libvulkan.so.1.0.17",
-        "libvulkan.so.1.0.13",
-        "libvulkan.so.1.0.11",
-        "libvulkan.so.1.0.08",
-        "libvulkan.so.1.0.05",
-        "libvulkan.so.1.0.03",
         "libvulkan.so.1",
         "libvulkan.so",
-        
-        
 #endif
         
     };
@@ -1830,7 +1808,7 @@ VSwapchainContext CreateSwapchain(VkInstance instance,VkPhysicalDevice physicald
     swapchain_info.queueFamilyIndexCount = 0;
     swapchain_info.pQueueFamilyIndices = 0;
     swapchain_info.preTransform = pretransform;
-    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;//VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_info.presentMode = presentmode;
     swapchain_info.clipped = VK_TRUE; //discards pixels that are obscured
     
@@ -2001,7 +1979,7 @@ u32 VCreateInstance(const s8* applicationname_string,b32 validation_enable,u32 a
     
     //use this for runtime resource validation
     const s8* layer_array[] = {
-        "VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_KHRONOS_validation",
 #if 0
         "VK_LAYER_LUNARG_device_simulation"
 #endif
@@ -2235,8 +2213,12 @@ VDeviceContext VCreateDeviceContext(VkPhysicalDevice* physdevice_array,u32 physd
     vkGetPhysicalDeviceFeatures(context.phys_info->physicaldevice_array[0],&devicefeatures);
     
     
-    const s8* extension_array[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    u32 extension_count = 0;
+    const s8* extension_array[] = {
+	    //TODO: this is only for debug
+	    VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, 
+	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+    u32 extension_count = 1;
     
     const s8* layer_array[] = {"VK_LAYER_LUNARG_standard_validation"};
     u32 layer_count = 0;
@@ -3916,4 +3898,30 @@ VTextureContext VCreateTexturePageTable(const  VDeviceContext* _restrict vdevice
                       VK_FALSE);
     
     return context;
+}
+
+
+
+VBufferContext TCreateStaticVertexBuffer(const  VDeviceContext* _restrict vdevice,
+                                         ptrsize data_size,u32 bindingno,VMemoryBlockHintFlag flag){
+    
+    
+    auto context = CreateStaticBufferContext(vdevice,data_size,VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,flag);
+    
+    context.bind_no = bindingno;
+    
+    return context;
+}
+
+VBufferContext TCreateStaticIndexBuffer(const  VDeviceContext* _restrict vdevice,
+                                        ptrsize size,u32 ind_size,VMemoryBlockHintFlag flag){
+    
+    
+    auto context = CreateStaticBufferContext(vdevice,size,VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
+                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,flag);
+    
+    context.ind_count = size/ind_size;
+    
+    return context;
+    
 }

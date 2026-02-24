@@ -32,6 +32,8 @@ struct AAnimationKey{
   Vec4 value;
 };
 
+
+//MARK: this is obviosly for linearblend. we should rename this
 struct AAnimationData{
 
   //MARK: could have precision issues
@@ -46,10 +48,28 @@ struct AAnimationData{
 
 
 struct AAnimationSet{
-  u32 animationdata_count;
-  f32 duration;
-  f32 tps;
+#if 0
+	u64 hash;
+#endif
+	u32 animationdata_count;
+	f32 duration;
+	f32 tps;
+
+	AAnimationData* animationdata_array;
+
+#if 0
+	const s8 name[20];
+#endif
 };
+
+struct ASkel{
+	u32* childcount_array;
+	Mat4* offset_array;
+	AAnimationData* animationdata_array;
+	u32 count;
+
+};
+
 
 //MARK:Cache can still be better
 struct ALinearBone{

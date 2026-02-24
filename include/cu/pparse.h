@@ -150,6 +150,10 @@ b32 _ainline PIsVisibleChar(s8 c){
 }
 
 constexpr ptrsize PStrLen(const s8* string){
+
+	if(!string){
+		return 0;
+	}
     
     u32 len = 0;
     
@@ -563,3 +567,5 @@ m64 PEvaluateMathString(OpChar* char_array,u32 char_count,OpExecMode mode = OpEx
 m64 PEvaluateMathString(s8* string,OpExecMode mode = OpExecMode_S32);
 
 s32 PStringToInt(s8* buffer);
+
+

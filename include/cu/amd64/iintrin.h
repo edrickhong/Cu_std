@@ -148,6 +148,8 @@ __m64 _ainline _intrin_cvtps_pi16(__m128 a){
 
 #endif
 
+
+//FIXME:this is not working. FMA is not defined eventhough enabled
 #ifdef __FMA__
 
 #define _intrin_fmadd_ps(a,b,c) _mm_fmadd_ps(a,b,c)
