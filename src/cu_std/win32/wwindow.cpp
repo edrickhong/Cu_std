@@ -348,7 +348,9 @@ void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled){
 	}
 }
 
-void WCreateWindowConnection(WPlatform platform){}
+void WCreateWindowConnection(WPlatform platform){
+	_kill("Platform not valid\n", platform != WPLATFORM_WIN32 || platform != WPLATFORM_ANY);
+}
 void WDestroyWindowConnection(){}
 
 void WDestroyBackBuffer(WBackBufferContext* buffer){

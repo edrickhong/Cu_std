@@ -148,6 +148,7 @@ typedef enum WPlatform{
 	WPLATFORM_WIN32,
 	WPLATFORM_X11,
 	WPLATFORM_WAYLAND,
+	WPLATFORM_ANY,
 } WPlatform;
 
 #ifdef __cplusplus
@@ -157,9 +158,9 @@ extern "C" {
 
 void WGetPlatforms(WPlatform* array,u32* count,b32 vulkan_enabled);
 void WCreateWindowConnection(WPlatform platform);
-void WDestroyWindowConnection();
+void WDestroyWindowConnection(void);
 
-void* WGetWindowConnection();
+void* WGetWindowConnection(void);
 
 u32 WWaitForWindowEvent(WWindowEvent* event);
 void WRetireEvent(WWindowEvent* event);

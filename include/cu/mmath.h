@@ -266,7 +266,7 @@ typedef Vec4SOA PolygonSOA;
 extern "C" {
 #endif
 
-Mat4 _ainline IdentityMat4() {
+Mat4 _ainline IdentityMat4(void) {
 	Mat4 matrix = {
 
 	    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
@@ -274,7 +274,7 @@ Mat4 _ainline IdentityMat4() {
 	return matrix;
 }
 
-Mat3 _ainline IdentityMat3() {
+Mat3 _ainline IdentityMat3(void) {
 	Mat3 matrix = {{
 	    1,
 	    0,
@@ -290,7 +290,7 @@ Mat3 _ainline IdentityMat3() {
 	return matrix;
 }
 
-Mat2 _ainline IdentityMat2() {
+Mat2 _ainline IdentityMat2(void) {
 	Mat2 matrix = {{
 	    1,
 	    0,
@@ -301,11 +301,11 @@ Mat2 _ainline IdentityMat2() {
 	return matrix;
 }
 
-Quat _ainline MQuatIdentity() {
+Quat _ainline MQuatIdentity(void) {
 	Quat q = {0.0f, 0.0f, 0.0f, 1.0f};
 	return q;
 }
-Quat _ainline AQuatIdentity() {
+Quat _ainline AQuatIdentity(void) {
 	Quat q = {0.0f, 0.0f, 0.0f, 0.0f};
 	return q;
 }

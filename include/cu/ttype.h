@@ -143,9 +143,8 @@ typedef unsigned int ptrsize;
 #define _dalignpow2(value,pow) ((value) & (~(pow -1)))
 #define _dmapalign(value) _dalignpow2(value,128)
 
-
-#define _encode_rgba(r,g,b,a) ((u8(r)) | ((u8(g)) << 8) | ((u8(b)) << 16) | ((u8(a)) << 24))
-#define _encode_bgra(b,g,r,a) ((u8(b)) | ((u8(g)) << 8) | ((u8(r)) << 16) | ((u8(a)) << 24))
+#define _encode_rgba(r,g,b,a) (((u32)((u8)(r))) | (((u32)((u8)(g))) << 8) | (((u32)((u8)(b))) << 16) | (((u32)((u8)(a))) << 24))
+#define _encode_bgra(b,g,r,a) (((u32)((u8)(b))) | (((u32)((u8)(g))) << 8) | (((u32)((u8)(r))) << 16) | (((u32)((u8)(a))) << 24))
 #define _encode_argb(a, r, g, b) _encode_bgra(b,g,r,a)
 #define _removesignedbit(value) (value & 0x7FFFFFFF)
 #define _addsignedbit(value) (value |  (1 << 31))

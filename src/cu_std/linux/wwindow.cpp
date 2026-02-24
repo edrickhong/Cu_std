@@ -73,6 +73,9 @@ _global void (*impl_wackresizeevent)(WWindowEvent*) = 0;
 
 void WCreateWindowConnection(WPlatform platform) {
 	_kill("An exising connection exsists\n", wwindowlib_handle);
+	_kill("Platform not valid\n", platform == WPLATFORM_NONE || platform == WPLATFORM_WIN32);
+
+	platform = platform == WPLATFORM_ANY ? WPLATFORM_X11 : platform;
 
 	loaded_platform = platform;
 
